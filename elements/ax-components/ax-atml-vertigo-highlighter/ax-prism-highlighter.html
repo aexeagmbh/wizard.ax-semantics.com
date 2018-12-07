@@ -1,0 +1,80 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<!--<link rel="import" href="../../../bower_components/prism-element/prism-import.html">-->
+
+<script src="../../../bower_components/prism/prism.js" data-manual></script>
+
+<script src="./prism/components/prism-atmlvertigo.js"></script>
+
+
+<dom-module id="ax-prism-highlighter">
+    <template>
+        <link rel="stylesheet" href="../../../bower_components/prism/themes/prism.css">
+    </template>
+</dom-module>
+<!--
+Syntax highlighting via [Prism](http://prismjs.com/).
+
+Place a `<ax-prism-highlighter>` in your document, preferably as a direct child of
+`<body>`. It will listen for `syntax-highlight` events on its parent element,
+and annotate the code being provided via that event.
+
+The `syntax-highlight` event's detail is expected to have a `code` property
+containing the source to highlight. The event detail can optionally contain a
+`lang` property, containing a string like `"html"`, `"js"`, etc.
+
+This flow is supported by [`<marked-element>`](https://github.com/PolymerElements/marked-element).
+
+This element is basically prism-element/prism-highlighter without the language detection
+-->
+<script>
+(function() {
+
+  'use strict';
+
+  var HIGHLIGHT_EVENT = 'ax-syntax-highlight';
+
+  Polymer({
+
+    is: 'ax-prism-highlighter',
+
+    ready: function() {
+      this._handler = this._highlight.bind(this);
+    },
+
+    attached: function() {
+      (this.parentElement || this.parentNode.host).addEventListener(HIGHLIGHT_EVENT, this._handler);
+    },
+
+    detached: function() {
+      (this.parentElement || this.parentNode.host).removeEventListener(HIGHLIGHT_EVENT, this._handler);
+    },
+
+    /**
+     * Handle the highlighting event, if we can.
+     *
+     * @param {!CustomEvent} event
+     */
+    _highlight: function(event) {
+      if (!event.detail || !event.detail.code) {
+        console.warn('Malformed', HIGHLIGHT_EVENT, 'event:', event.detail);
+        return;
+      }
+
+      var detail = event.detail;
+      var lang =  Prism.languages[detail.lang] ? Prism.languages[detail.lang] : Prism.languages.markup;
+      detail.code = Prism.highlight(detail.code, lang);
+    }
+
+  });
+
+})();
+</script>

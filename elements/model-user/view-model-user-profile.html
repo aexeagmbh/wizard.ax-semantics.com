@@ -1,0 +1,68 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+<link rel="import" href="../ax-page-routing/page-routing-behavior.html">
+<link rel="import" href="../model-user/view-model-user-form.html">
+<link rel="import" href="../model-user-editor-settings/view-model-user-editor-settings-form.html">
+
+<dom-module id="view-model-user-profile">
+    <style>
+        :host paper-card {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        :host .buttons{
+            padding: 0px 12px;
+            margin-bottom: 15px;
+        }
+    </style>
+    <template>
+
+        <paper-card heading="Edit Profile of [[model.data.username]]">
+            <section>
+                    <view-model-user-editor-settings-form id="modal-dialog-form" load-model model-pk="[[modelPk]]"
+                                                          on-model-save-success="handleResponse"></view-model-user-editor-settings-form>
+                    <div class="buttons">
+                        <paper-button raised on-tap="submitModalForm">Save Changes</paper-button>
+                    </div>
+            </section>
+        </paper-card>
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-user-profile',
+
+            behaviors: [AxWizard.BaseModelViewBehavior, AxWizard.BaseModelModalFormBehavior],
+            properties: {
+                modelName: {
+                    type: String,
+                    value: 'user',
+                    readOnly: true
+                }
+            },
+//            computeModel: function () {
+//                var self = this;
+//                self._loadModel();
+//            },
+//
+//            routeActivated: function () {
+//                this.computeModel();
+//            },
+
+            submitForm: function () {
+                this.$$('#edit-form').saveModel();
+            },
+
+            handleResponse: function () {
+//                this.$$('#edit-form').cancel();
+//                window.location.reload();
+            }
+
+        });
+    })();
+</script>
+

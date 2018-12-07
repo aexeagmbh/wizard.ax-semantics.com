@@ -1,0 +1,185 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="stylesheet" href="stylesheets/style.css">
+<!--
+`ax-nlg-cloud-nav`
+navigation cloud
+
+@demo demo/index.html
+-->
+<style>
+    @font-face {
+        font-family: 'FontAwesome';
+        src: url('../components-font-awesome/fonts/fontawesome-webfont.eot?v=4.0.3');
+        src: url('../components-font-awesome/fonts/fontawesome-webfont.eot?#iefix&v=4.0.3') format('embedded-opentype'), url('../components-font-awesome/fonts/fontawesome-webfont.woff?v=4.0.3') format('woff'), url('../components-font-awesome/fonts/fontawesome-webfont.ttf?v=4.0.3') format('truetype'), url('../components-font-awesome/fonts/fontawesome-webfont.svg?v=4.0.3#fontawesomeregular') format('svg');
+        font-weight: normal;
+        font-style: normal;
+    }
+</style>
+<dom-module id="ax-nlg-cloud-nav">
+    <template>
+        <iron-ajax id="ironStatus"
+                   auto
+                   url="https://5d17qsy4gdly.statuspage.io/api/v2/summary.json"
+                   method="GET"
+                   handle-as="json"
+                   on-response="handleResponse"
+                   loading="{{ajaxResponseLoading}}"
+                   debounce-duration="300"
+                   last-response="{{ajaxResponse}}"></iron-ajax>
+        <div class="nav ax-nav-inverse">
+            <ul>
+                <div>
+                    <li><a href="http://cloud.ax-semantics.com/"><img class="ax-logo" src="img/logo-ax-bubble.png"><span
+                            class="hidden-sm-down"><green>AX Semantics</green><br>NLG CLOUD</span></a></li>
+                    <li class="green">
+                        <a href="https://cockpit.ax-semantics.com/"><i class="wihte ax fa fa-cloud"></i><span
+                                class="hidden-sm-down">CLOUD <br>COCKPIT</span></a>
+                    </li>
+                    <li class="green">
+                        <a href="https://my.ax-semantics.com/"><i class="ax fa fa-industry"></i><span
+                                class="hidden-sm-down">myAX <br>DATA INTERFACE</span></a>
+                    </li>
+                    <li class="active-green">
+                        <a href="https://wizard.ax-semantics.com/"><i class="wihte ax fa fa-graduation-cap"></i><span
+                                class="hidden-sm-down">TRAINING <br>WIZARD</span></a>
+                    </li>
+                </div>
+                <div>
+                    <li>
+                        <a class="href-state dropdown" id="dropmobile" href="{{ajaxResponse.page.url}}" on-mouseenter="reloadAjaxResponse"
+                           target="_blank">
+                                <template is="dom-if" if="{{statusIsLoading}}">
+                                    <div class="loader">
+                                        <img src="img/ax-loader.min.svg">
+                                    </div>
+                                </template>
+                                <template is="dom-if" if="{{!statusIsLoading}}">
+                                    <div class="pos ax-ajaxResponse">
+                                        [[ifStatus(ajaxResponse.status.description)]]
+                                    </div>
+                                    <div class$="{{circleStatus(ajaxResponse.status.description, 'true')}}"></div>
+                                    <div class="dropdown-content" >
+                                        <template is="dom-if" if="{{statusIsReLoading}}">
+                                            <div class="porperties-load">
+                                                <img src="img/ax-loader.min.svg">
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="{{!statusIsReLoading}}">
+                                            <div>
+                                                <template is="dom-if"
+                                                          if={{scheduledMaintenances(ajaxResponse.scheduled_maintenances)}}>
+                                                    <marquee behavior="scroll" direction="left">
+                                                        <template is="dom-repeat"
+                                                                  items="{{ajaxResponse.scheduled_maintenances}}">
+                                                            {{item.name}}: {{item.scheduled_for}}
+                                                        </template>
+                                                    </marquee>
+                                                </template>
+                                                <template is="dom-repeat" items="{{ajaxResponse.components}}">
+
+                                                    <p class="nlg-p">
+                                                <span class$="{{circleStatus(item.status, 'false')}}"
+                                                      id="advanced"></span>
+                                                        {{item.description}}: {{item.status}}
+                                                    </p>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                        </a>
+                    </li>
+                    <li class="quest green ">
+                        <a href="https://support.ax-semantics.com/" class="clickme"><i class="fa fa-question fa-2x "></i></a>
+                    </li>
+                </div>
+            </ul>
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+
+            is: 'ax-nlg-cloud-nav',
+            properties: {
+                /**
+                 * Is true if event on-mouseenter Status Element
+                 * @default false
+                 */
+                statusIsReLoading: false,
+                /**
+                 * Is true Load first time.
+                 * @default true
+                 */
+                statusIsLoading: true
+
+            },
+            /**
+             * Set on Response.
+             *      statusIsLoading, false.
+             *      statusIsReLoading, false.
+             */
+            handleResponse: function () {
+                this.set('statusIsLoading', false);
+                this.set('statusIsReLoading', false);
+            },
+            /**
+             * Reload Status on hover and set
+             *     statusIsReLoading  true
+             */
+            reloadAjaxResponse: function () {
+                var t = document.querySelector('#ironStatus');
+                this.set('statusIsReLoading', true);
+                t.generateRequest();
+            },
+            /**
+             * @return {String} Change Text for better user experience.
+             * data Object
+             */
+            ifStatus: function (data) {
+                if (data === 'All Systems Operational') {
+                    return 'Everything works just fine.';
+                }
+                return data;
+            },
+            /**
+             * @return {String} The current state for class as example 'pos circleStatus advancedFalse'.
+             * data Object
+             * out String true/flase
+             */
+            circleStatus: function (data/**Object*/, out) {
+                if (out === 'true') {
+                    if (data === 'All Systems Operational') {
+                        return 'pos circleStatus advancedTrue';
+                    } else if (data === 'Partially Degraded Service') {
+                        return 'pos circleStatus advancedFalse'
+                    }
+                    return 'pos circleStatus advancedFail'
+                }
+                if (out === 'false') {
+                    if (data === 'operational') {
+                        return 'pos circleStatus advancedTrue';
+                    } else if (data === 'degraded_performance') {
+                        return 'pos circleStatus advancedFalse';
+                    }
+                    return 'pos circleStatus advancedFail';
+                }
+            },
+            /**
+             * @return {Boolean} if !scheduledMaintenances 0.
+             * data Object
+             */
+            scheduledMaintenances: function (data) {
+                if (data.length === 0) {
+                    return false;
+                }
+                return true
+            }
+
+
+        });
+    </script>
+</dom-module>

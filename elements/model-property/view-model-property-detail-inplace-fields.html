@@ -1,0 +1,496 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../ax-components/ax-atml-vertigo-highlighter/ax-atml-vertigo-highlighter.html">
+
+<dom-module id="view-model-property-detail-inplace-fields">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host h4 {
+                display: inline-block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host .horizontal-section-container {
+                @apply(--layout-horizontal);
+                @apply(--layout-wrap);
+            }
+
+            :host .horizontal-section-container > * {
+                min-width: 33%;
+                max-width: 33%;
+            }
+
+            :host .horizontal-section {
+                position: relative;
+            }
+
+            :host paper-card .title {
+                @apply(--layout-horizontal);
+                @apply(--layout-justified);
+                @apply(--layout-wrap);
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host .card-content-body-form-container .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host paper-icon-item,
+            :host paper-icon-item.list-summary-item {
+                cursor: pointer;
+                position: relative;
+            }
+            :host #highlight-truth-expression {
+                position: absolute;
+                margin: 44px 32px 24px 16px;
+                z-index: 1;
+                line-height: 24px;
+            }
+
+            :host .clickable {
+                cursor: pointer;
+            }
+
+            :host paper-badge,
+            :host .card-header paper-toolbar paper-badge {
+                --paper-badge-text-color: #ffffff;
+                --paper-badge-background: #727272;
+                /*--paper-badge-background: #77bc1f;*/
+            }
+
+            :host .model-property-text {
+                margin: 0;
+                padding: 0 15px;
+            }
+
+            :host .model-property-text.validity-message {
+                background-color: lightgray;
+                padding: 15px;
+
+            }
+
+            :host h4 {
+                margin-bottom: 0;
+                margin-left: 15px;
+            }
+
+            :host ax-atml-vertigo-highlighter ::content h4 {
+                margin-left: 15px;
+            }
+        </style>
+            <paper-card>
+
+                    <div class="card-content">
+                        <section class="card-content-body-container">
+                            <div class="card-content-body-form-container">
+
+                                <div>
+                                    <h4 on-tap="_inplaceEditName">Name<paper-icon-button hidden="[[_isInplaceEditName]]" icon="editor:mode-edit"></paper-icon-button></h4>
+                                    <paper-material class="model-property-text" elevation="0"
+                                         on-tap="_inplaceEditName"
+                                         hidden="[[_isInplaceEditName]]"
+                                            >
+                                                    [[model.data.name]]
+
+                                    </paper-material>
+                                    <template is="dom-if" if="[[_isInplaceEditName]]" restamp>
+                                        <base-model-inplace-form form-data={{nameFormData}}
+                                                                 id="inplace-name"
+                                                                 hide-buttons
+                                                                 hidden="[[!_isInplaceEditName]]"
+                                                                 on-form-cancel="_stopInplaceEditName"
+                                                                 on-model-save-success="_stopInplaceEditName"
+                                                                 model-pk="[[modelPk]]"
+                                                                 allowed-fields="{{_toArray('name')}}"
+                                                                 storage-id="property">
+                                            <paper-input
+                                                     required
+                                                     auto-validate
+                                                     pattern="[a-zA-Z0-9öäüÖÄÜß&_]+"
+                                                     error-message="This field is required and may only contain characters a-z, A-Z, 0-9, ö, ä, ü, Ö, Ä, Ü, ß, &, and _"
+                                                    value="{{nameFormData.name}}"
+                                                    tabindex="-1"
+                                                    label="Name">
+                                                <paper-icon-button suffix icon="clear" on-tap="_cancelInplaceName"></paper-icon-button>
+                                                <paper-icon-button suffix icon="done" on-tap="_saveInplaceName"></paper-icon-button>
+                                            </paper-input>
+                                        </base-model-inplace-form>
+                                    </template>
+                                </div>
+
+
+
+                                <!--<div class="horizontal-section-container">-->
+                                    <div>
+                                        <!--<div class="horizontal-section">-->
+
+                                            <ax-atml-vertigo-highlighter disabled
+                                                                         class="clickable"
+                                                                         on-tap="_inplaceEditTruthExpression"
+                                                                         hidden="[[_isInplaceEditTruthExpression]]"
+                                                                         value="{{model.data.truthExpression}}"
+                                                                         label="Truth Expression">
+                                                    <iron-icon class="title-content" icon="[[itemValidityIcon(_isValidTruthExpression)]]" title="[[itemValidityMessage(_isValidTruthExpression)]]"></iron-icon>
+
+                                                    <paper-icon-button class="title-content" icon="editor:mode-edit"></paper-icon-button>
+
+                                                                         </ax-atml-vertigo-highlighter>
+
+
+                                            <template is="dom-if" if="[[_isInplaceEditTruthExpression]]" restamp>
+                                                <base-model-inplace-form form-data={{truthExpressionFormData}}
+                                                                         id="inplace-truth-expression"
+                                                                         hide-buttons
+                                                                         hidden="[[!_isInplaceEditTruthExpression]]"
+                                                                         on-form-cancel="_stopInplaceEditTruthExpression"
+                                                                         on-model-save-success="_stopInplaceEditTruthExpression"
+                                                                         model-pk="[[modelPk]]"
+                                                                         allowed-fields="{{_toArray('truthExpression')}}"
+                                                                         storage-id="property">
+                                                    <ax-atml-vertigo-highlighter
+                                                            required error-message="This field is required."
+                                                            value="{{truthExpressionFormData.truthExpression}}"
+                                                            on-ax-atml-vertigo-highlighter-cancel="_cancelInplaceTruthExpression"
+                                                            on-ax-atml-vertigo-highlighter-save="_saveInplaceTruthExpression"
+                                                            label="Truth Expression">
+                                                            </ax-atml-vertigo-highlighter>
+                                                </base-model-inplace-form>
+                                            </template>
+
+                                            <template is="dom-if" if="[[model.data.validityMessage.truth_expression]]">
+                                                <paper-material class="model-property-text validity-message" elevation="1">
+                                                    [[model.data.validityMessage.truth_expression]]
+                                                </paper-material>
+                                            </template>
+                                        <!--</div>-->
+                                    </div>
+                                    <div>
+                                        <!--<div class="horizontal-section">-->
+                                            <ax-atml-vertigo-highlighter disabled
+                                                                         class="clickable"
+                                                                         on-tap="_inplaceEditMappingExpression"
+                                                                         hidden="[[_isInplaceEditMappingExpression]]"
+                                                                         value="{{model.data.mappingExpression}}"
+                                                                         label="Mapping Expression">
+
+                                                    <iron-icon class="title-content" icon="[[itemValidityIcon(_isValidMappingExpression)]]" title="[[itemValidityMessage(_isValidMappingExpression)]]"></iron-icon>
+                                                    <paper-icon-button class="title-content" icon="editor:mode-edit"></paper-icon-button>
+
+                                                                         </ax-atml-vertigo-highlighter>
+                                            <template is="dom-if" if="[[_isInplaceEditMappingExpression]]" restamp>
+                                                <base-model-inplace-form form-data={{mappingExpressionFormData}}
+                                                                         id="inplace-mapping-expression"
+                                                                         hide-buttons
+                                                                         hidden="[[!_isInplaceEditMappingExpression]]"
+                                                                         on-form-cancel="_stopInplaceEditMappingExpression"
+                                                                         on-model-save-success="_stopInplaceEditMappingExpression"
+                                                                         model-pk="[[modelPk]]"
+                                                                         allowed-fields="{{_toArray('mappingExpression')}}"
+                                                                         storage-id="property">
+                                                    <ax-atml-vertigo-highlighter
+                                                            on-ax-atml-vertigo-highlighter-cancel="_cancelInplaceMappingExpression"
+                                                            on-ax-atml-vertigo-highlighter-save="_saveInplaceMappingExpression"
+                                                            value="{{mappingExpressionFormData.mappingExpression}}"
+                                                            label="Mapping Expression">
+                                                            </ax-atml-vertigo-highlighter>
+                                                </base-model-inplace-form>
+                                            </template>
+                                            <template is="dom-if" if="[[model.data.validityMessage.mapping_expression]]">
+                                                <paper-material class="model-property-text validity-message" elevation="1">
+                                                    [[model.data.validityMessage.mapping_expression]]
+                                                </paper-material>
+                                            </template>
+                                        <!--</div>-->
+                                    </div>
+                                    <template is="dom-if" if="[[model.data.validityMessage.consistency]]">
+                                        <div>
+                                            <paper-material class="model-property-text validity-message" elevation="1">
+                                                [[model.data.validityMessage.consistency]]
+                                            </paper-material>
+                                        </div>
+                                    </template>
+
+
+                                    <template is="dom-if" if="[[!hideVocabulary]]" restamp>
+                                        <div>
+                                             <!-- Vocabularies -->
+                                            <view-model-vocabulary-list
+                                                    id="vocabulary-list"
+                                                    parent-pk="[[modelPk]]">
+                                            </view-model-vocabulary-list>
+                                        </div>
+                                    </template>
+                                </div>
+                                 <div>
+                                    <h4 on-tap="_inplaceEditComment">Comment<paper-icon-button hidden="[[_isInplaceEditComment]]" icon="editor:mode-edit"></paper-icon-button></h4>
+                                    <paper-material class="model-property-text" elevation="0"
+                                         on-tap="_inplaceEditComment"
+                                         hidden="[[_isInplaceEditComment]]"
+                                            >
+                                                    [[model.data.comment]]
+
+
+                                    </paper-material>
+                                    <template is="dom-if" if="[[_isInplaceEditComment]]" restamp>
+                                        <base-model-inplace-form form-data={{commentFormData}}
+                                                                 id="inplace-comment"
+                                                                 hide-buttons
+                                                                 hidden="[[!_isInplaceEditComment]]"
+                                                                 on-form-cancel="_stopInplaceEditComment"
+                                                                 on-model-save-success="_stopInplaceEditComment"
+                                                                 model-pk="[[modelPk]]"
+                                                                 allowed-fields="{{_toArray('comment')}}"
+                                                                 storage-id="property">
+                                            <paper-textarea
+                                                    value="{{commentFormData.comment}}"
+                                                    tabindex="-1"
+                                                    label="Comment">
+
+                                                <paper-icon-button suffix icon="clear" on-tap="_cancelInplaceComment"></paper-icon-button>
+                                                <paper-icon-button suffix icon="done" on-tap="_saveInplaceComment"></paper-icon-button>
+                                            </paper-textarea>
+                                        </base-model-inplace-form>
+
+
+
+                                    </template>
+                                </div>
+
+                            <!--</div>-->
+
+                            <template is="dom-if" if="[[model.data.referredProperties.length]]" restamp>
+                               <div>
+                                    <h4>Referenced Properties</h4>
+                                    <template is="dom-if" if="[[model.data.validityMessage.consistency]]">
+                                        <div>
+                                            <paper-material class="model-property-text validity-message" elevation="1">
+                                                [[model.data.validityMessage.consistency]]
+                                            </paper-material>
+                                        </div>
+                                    </template>
+                                    <div>
+                                        <template is="dom-repeat" items="[[model.data.referredProperties]]" as="referredPropertyPk">
+                                            <view-model-property-list-detail
+                                                    model-pk="[[referredPropertyPk]]"
+                                                    no-delete
+                                                    no-clone
+                                                    ></view-model-property-list-detail>
+                                        </template>
+                                    </div>
+                                </div>
+                           </template>
+
+                        </section>
+                    </div>
+            </paper-card>
+        </div>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-property-detail-inplace-fields',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                hideVocabulary: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+
+                modelName: {
+                    type: String,
+                    value: 'property',
+                    readOnly: true
+                },
+                _isInplaceEditMappingExpression: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isInplaceEditTruthExpression: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isInplaceEditName: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isInplaceEditComment: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isValidTruthExpression: {
+                    notify: true
+                },
+                _isValidMappingExpression: {
+                    notify: true
+                },
+                hasUnsavedChanges: {
+                    type: Boolean,
+                    computed: '_checkHAsUnsavedChanges(_isInplaceEditComment, _isInplaceEditName, _isInplaceEditTruthExpression, _isInplaceEditMappingExpression)',
+                    notify: true
+                }
+
+            },
+
+            observers: [
+                '_observeValidity(model.data.valid, model.data.validityMessage)'
+            ],
+
+            _checkHAsUnsavedChanges: function () {
+                var args = Array.prototype.slice.call(arguments);
+                return args.filter(function (a) {
+                   return !!a;
+                }).length > 0;
+            },
+
+            _observeValidity: function (isValid, validityMessages) {
+
+                var truthValidityMessage = validityMessages && validityMessages.truth_expression ? validityMessages.truth_expression : '';
+                var mappingValidityMessage = validityMessages && validityMessages.mapping_expression ? validityMessages.mapping_expression : '';
+
+                if (isValid === null || isValid === undefined) {
+                    this.set('_isValidTruthExpression', null);
+                    this.set('_isValidMappingExpression', null);
+                    return;
+                }
+
+                this.set('_isValidTruthExpression', !truthValidityMessage);
+                this.set('_isValidMappingExpression', !mappingValidityMessage);
+
+            },
+
+
+            _toArray: function () {
+                return Array.prototype.slice.call(arguments);
+            },
+
+            _inplaceEditName: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditName', true);
+            },
+            _stopInplaceEditName: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditName', false);
+            },
+
+            _cancelInplaceName: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-name').cancel(event);
+            },
+            _saveInplaceName: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-name').saveModel(event);
+            },
+
+            _inplaceEditComment: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditComment', true);
+            },
+            _stopInplaceEditComment: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditComment', false);
+            },
+            _cancelInplaceComment: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-comment').cancel(event);
+            },
+            _saveInplaceComment: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-comment').saveModel(event);
+            },
+
+
+            _inplaceEditMappingExpression: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditMappingExpression', true);
+            },
+            _stopInplaceEditMappingExpression: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditMappingExpression', false);
+            },
+            _cancelInplaceMappingExpression: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-mapping-expression').cancel(event);
+            },
+            _saveInplaceMappingExpression: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-mapping-expression').saveModel(event);
+            },
+
+            _inplaceEditTruthExpression: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditTruthExpression', true);
+            },
+            _stopInplaceEditTruthExpression: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditTruthExpression', false);
+            },
+            _cancelInplaceTruthExpression: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-truth-expression').cancel(event);
+            },
+            _saveInplaceTruthExpression: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-truth-expression').saveModel(event);
+            },
+
+            onAxModelDataChanged: function () {
+                AxWizard.BaseModelViewBehavior.onAxModelDataChanged.apply(this, arguments);
+                this.fire('iron-resize');
+            },
+
+            itemValidityIcon: function (validity) {
+                if (validity === false) {
+                    return 'icons:warning';
+                }
+                if (validity === true) {
+                    return 'icons:check';
+                }
+                return 'icons:hourglass-empty';
+            },
+            itemValidityMessage: function (validity) {
+                if (validity === false) {
+                    return 'Invalid Expression';
+                }
+                if (validity === true) {
+                    return 'Valid';
+                }
+                return 'Validity not yet checked.';
+
+            }
+        });
+    })();
+</script>

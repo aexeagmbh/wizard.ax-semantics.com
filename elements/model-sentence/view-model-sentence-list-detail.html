@@ -1,0 +1,314 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../ax-components/ax-delete-ask-button.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-list.html">
+
+<dom-module id="view-model-sentence-list-detail">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host dl,
+            :host dl dt,
+            :host dl dd,
+            :host paper-item [secondary] dl,
+            :host paper-item [secondary] dl dt,
+            :host paper-item [secondary] dl dd {
+                margin: 0;
+            }
+
+            :host dl dt,
+            :host dl dd,
+            :host paper-item [secondary] dl dt,
+            :host paper-item [secondary] dl dd {
+                display: inline-flex;
+            }
+
+            :host dl dd,
+            :host paper-item [secondary] dl dd {
+                margin-left: 1em;
+                margin-right: 2em;
+            }
+
+            :host paper-icon-item,
+            :host paper-icon-item.list-summary-item {
+                cursor: pointer;
+                position: relative;
+            }
+
+
+            :host .horizontal-section-container {
+            @apply(--layout-horizontal);
+            @apply(--layout-wrap);
+                margin-left: -20px;
+            }
+
+            :host .horizontal-section-container > * {
+                width: 33%;
+            }
+
+            :host .horizontal-section-container .horizontal-section-item-content > * {
+                width: 100%;
+            }
+
+            :host .horizontal-section-container .horizontal-section-item-content {
+                margin-left: 20px;
+                margin-top: 20px;
+                width: -moz-calc(100% - 20px);
+                width: -webkit-calc(100% - 20px);
+                width: calc(100% - 20px);
+            }
+
+            :host .horizontal-section-item {
+                display: flex;
+            }
+
+            @media (max-width: 1023px) {
+                :host .horizontal-section-container > * {
+                    width: 100%;
+                }
+            }
+
+            :host paper-card .card-content paper-toolbar {
+                margin: 0 -16px;
+            }
+            :host .toolbar-sub-item > *{
+                display: inline-flex;
+
+            }
+
+        </style>
+
+        <!-- Content Details -->
+        <div class="list-view-list-item-detail-wrapper">
+            <paper-card elevation="0">
+                <div class="header paper-card">
+                    <paper-icon-item on-tap="toggleItemListDetail">
+                        <iron-icon item-icon icon="communication:clear-all" hidden="[[model.data.command]]"></iron-icon>
+                        <iron-icon item-icon icon="editor:wrap-text" hidden="[[!model.data.command]]"></iron-icon>
+                        <paper-item-body three-line>
+                            <div>[[model.data.name]] <span hidden="[[!isStoryMode]]">[Story Mode Sentence]</span></div>
+                            <div secondary>
+                                <div hidden="[[!isTriggerNone]]"
+                                     title="No Trigger defined. Sentence will never be rendered.">
+                                    <iron-icon icon="icons:warning"></iron-icon>
+                                    No Trigger defined. Sentence will never be rendered.
+                                </div>
+                                <div hidden="[[!isTriggerAuto]]"
+                                     title="Auto triggered. Sentence will always be rendered.">
+                                    <iron-icon icon="icons:check"></iron-icon>
+                                    Auto triggered. Sentence will always be rendered.
+                                </div>
+                                <div hidden="[[!isTriggeredByProperty]]"
+                                     title="Triggered by custom Properties. Sentence will be rendered if Properties match.">
+                                    <iron-icon icon="icons:check"></iron-icon>
+                                    Triggered by custom Properties. Sentence will be rendered if Properties match.
+                                </div>
+                            </div>
+                            <div secondary>
+                                <div title="[[model.data.comment]]">[[model.data.comment]]</div>
+                            </div>
+                        </paper-item-body>
+
+                        <template is="dom-if" if="[[!isStoryMode]]">
+                            <ax-search-field search-term="{{searchTerm}}" placeholder="Search in Variants"
+                                             hidden="[[!isItemListDetailExpanded]]"></ax-search-field>
+                        </template>
+
+                        <paper-icon-button icon="editor:mode-edit" on-tap="_editModel"
+                                           hidden="[[!isItemListDetailExpanded]]">
+                        </paper-icon-button>
+                        <template is="dom-if" if="[[!isDuplicateDisabled]]">
+                            <paper-icon-button icon="icons:content-copy" title="Duplicate" on-tap="_duplicateModel"
+                                               hidden="[[!isItemListDetailExpanded]]">
+                            </paper-icon-button>
+                        </template>
+                        <template is="dom-if" if="[[!isDeleteDisabled]]">
+                            <ax-delete-ask-button on-ax-delete-ask-button-confirmed="_deleteModel"
+                                                  hidden="[[!isItemListDetailExpanded]]"></ax-delete-ask-button>
+                        </template>
+
+                        <paper-icon-button on-tap="toggleItemListDetail"
+                                           icon="{{itemExpandedIcon(isItemListDetailExpanded)}}">
+                        </paper-icon-button>
+                    </paper-icon-item>
+                </div>
+                <template is="dom-if" if="[[isItemListDetailExpanded]]">
+                    <div class="card-content" style="padding-top: 4px">
+                        <section class="card-content-body-container">
+                            <template is="dom-if" if="[[isStoryMode]]">
+                                <paper-toolbar class="section-header">
+                                    <h4>Command</h4>
+                                </paper-toolbar>
+                                <div class="card-content-body-form-container">
+                                    <div class="paper-font-body1">[[model.data.command]]</div>
+                                </div>
+                            </template>
+                            <template is="dom-if" if="[[!isStoryMode]]">
+                                <!-- Sentence Variants -->
+                                <view-model-sentence-variant-list
+                                        search-term="{{searchTerm}}"
+                                        filter-list-facets="{{_getSentenceVariantListFacets(filterLanguages, filterLanguages.length)}}"
+                                        replace-container-with-source="[[replaceContainerWithSource]]"
+                                        id="sentence-variant-list"
+                                        on-selected-item-preview-changed="selectedForPreviewChanged"
+                                        training-pk="[[trainingPk]]"
+                                        parent-pk="[[modelPk]]">
+                                </view-model-sentence-variant-list>
+                            </template>
+                        </section>
+                    </div>
+                </template>
+            </paper-card>
+        </div>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-list-detail',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            selectedForPreviewChanged: function (event, data) {
+                if (data.selected) {
+                    this.push('previewVariants', data.modelPk);
+                } else {
+                    this.splice('previewVariants', this.previewVariants.indexOf(data.modelPk), 1);
+                }
+            },
+
+            addVariantAction: function (event) {
+                this.$$('#item-menu').close();
+                this.$$('#sentence-variant-list').addSentenceVariantDialogLang(event, {language: ''});
+            },
+
+            properties: {
+                filterLanguages: {
+                  type: Array,
+                    value: function () {return[];},
+                    notify: true
+                },
+                modelName: {
+                    value: 'sentence'
+                },
+                isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    bindToAttribute: true
+                },
+                isDeleteDisabled: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    bindToAttribute: true
+                },
+                isDuplicateDisabled: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    bindToAttribute: true
+                },
+                retTrue: {
+                    type: Boolean,
+                    value: true
+                },
+                isStoryMode: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                isTriggerAuto: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggerNone: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggeredByProperty: {
+                    type: Boolean,
+                    notify: true
+                }
+            },
+
+            observers: [
+                '_observeIsStoryMode(model.isStoryMode, model)',
+                '_observeIsTriggerAuto(model.isTriggerAuto, model, model.data)',
+                '_observeIsTriggerNone(model.isTriggerNone, model, model.data)',
+                '_observeIsTriggeredByProperty(model.isTriggerAuto, model.isTriggerNone, model, model.data)'
+            ],
+
+            _observeIsStoryMode: function (modelIsStoryMode) {
+                this.set('isStoryMode', modelIsStoryMode);
+            },
+
+            _observeIsTriggerAuto: function (isTriggerAuto) {
+                this.set('isTriggerAuto', isTriggerAuto);
+            },
+
+            _observeIsTriggerNone: function (isTriggerNone) {
+                this.set('isTriggerNone', isTriggerNone);
+            },
+
+            _observeIsTriggeredByProperty: function (isTriggerAuto, isTriggerNone) {
+                this.set('isTriggeredByProperty', !isTriggerAuto && !isTriggerNone);
+            },
+
+            saveItem: function () {
+                return this.model.save();
+            },
+
+            _validateSentenceVariants: function (event) {
+                event.stopPropagation();
+                this.model.validateSentenceVariants();
+            },
+
+            toggleItemListDetail: function (event) {
+                event.stopPropagation();
+                this.set('isItemListDetailExpanded', !this.isItemListDetailExpanded);
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            _getSentenceVariantListFacets: function (filterLanguages, length) {
+                if (filterLanguages && length) {
+                    return {'language': filterLanguages};
+                }
+                return {};
+            },
+
+            _editModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-modal-edit', params: {modelPk: this.modelPk}});
+            },
+
+            _duplicateModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-modal-duplicate', params: {modelPk: this.modelPk}});
+            }
+
+
+        });
+    })();
+</script>

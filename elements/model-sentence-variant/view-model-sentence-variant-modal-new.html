@@ -1,0 +1,89 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-form.html">
+
+
+<dom-module id="view-model-sentence-variant-modal-new">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Add Variant</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                    <view-model-sentence-variant-form language="{{language}}" id="modal-dialog-form"
+                                                      sentence-pk="[[sentencePk]]"
+                                                      training-pk="[[trainingPk]]"
+                                                      on-model-save-success="handleResponse"
+                                                      on-model-loaded="setDefaultFormData"></view-model-sentence-variant-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Add Variant</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-sentence-variant-modal-new',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                sentencePk: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                trainingPk: {
+                    notify: true
+                },
+                language: {
+                    type: String,
+                    value: '',
+                    notify: true
+                }
+            },
+
+            setDefaultFormData: function () {
+                if (this.language) {
+                    this.$$('#modal-dialog-form').set('formData.language', this.language);
+                } else {
+                    this.set('_isLoading', true);
+                    this._getUserLanguage().then(function (language) {
+                        this.$$('#modal-dialog-form').set('formData.language', language);
+                        this.set('_isLoading', false);
+                    }.bind(this), function () {
+                        this.$$('#modal-dialog-form').set('formData.language', '');
+                        this.set('_isLoading', false);
+                    }.bind(this));
+                }
+
+            },
+
+            _getUserLanguage: function () {
+                return app.fire('query-settings', {propertyName: 'language'}).detail.result;
+            }
+
+        });
+
+    })();
+</script>

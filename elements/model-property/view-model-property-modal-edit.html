@@ -1,0 +1,113 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../ax-components/ax-close-unsaved-ask-button.html">
+
+<link rel="import" href="../model-property/view-model-property-form.html">
+
+
+<dom-module id="view-model-property-modal-edit">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-dialog {
+                width: 90%;
+            }
+
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Edit Property</h2>
+
+            <paper-dialog-scrollable>
+                <paper-material elevation="1" hidden="[[!isFirstEdit]]">
+                    <paper-toolbar class="section-header">
+                        <div class="flex-row">
+                            <h4>
+                                <iron-icon icon="icons:check-circle"></iron-icon>
+                                The Property has been successfully created. Now you can add Vocabularies.
+                            </h4>
+                        </div>
+                    </paper-toolbar>
+                </paper-material>
+                <template is="dom-if" if="{{_opened}}" restamp>
+                <template is="dom-if" if="{{_showForm}}" restamp>
+
+                    <view-model-property-form
+                            has-unsaved-changes="{{hasUnsavedChanges}}"
+                            load-model id="modal-dialog-form" model-pk="[[modelPk]]"
+                                              on-model-save-success="handleResponse"
+                            ></view-model-property-form>
+                </template>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <ax-close-unsaved-ask-button has-unsaved-changes="[[hasUnsavedChanges]]" on-ax-close-unsaved-ask-button-confirmed="cancelModalForm"></ax-close-unsaved-ask-button>
+                <!--<paper-button raised on-tap="cancelModalForm">Close</paper-button>-->
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-property-modal-edit',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                isFirstEdit: {
+                    type: Boolean,
+                    value: false
+                },
+                _showForm: {
+                     type: Boolean,
+                    value: true
+                }
+            },
+
+            close: function () {
+                this.set('isFirstEdit', false);
+                this.$['modal-dialog'].close();
+                app.fire('ax-ga-event', {category: 'Dialog', action: 'closed', label: this.is});
+            },
+
+            submitModalForm: function (event) {
+                event.preventDefault();
+                var form = this.$$('#modal-dialog-form');
+                form.submitAction().then(function () {
+                    this.cancelModalForm();
+                }.bind(this));
+            },
+
+            submitModalFormAndContinue: function (event) {
+                event.preventDefault();
+                var form = this.$$('#modal-dialog-form');
+                form.submitAction().then(function () {
+                    this.set('isFirstEdit', false);
+                    this.set('_showForm', false);
+                    this.set('_showForm', true);
+
+//                    form.refresh();
+                }.bind(this));
+            },
+
+            handleResponse: function (event, model) {
+                return;
+            }
+
+        });
+
+    })();
+</script>

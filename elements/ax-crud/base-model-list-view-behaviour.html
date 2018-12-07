@@ -1,0 +1,320 @@
+<script>
+    var AxWizard = AxWizard || {};
+    AxWizard.BaseModelListViewBehaviour = {
+
+        properties: {
+            hideHeadArea: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true,
+                notify: true
+            },
+            storageId: {
+                type: String,
+                value: '',
+//                notify: true
+            },
+            params: {
+                type: Object,
+                value: {},
+//                notify: true
+            },
+            displayToolbar: {
+                type: Boolean,
+                value: true
+            },
+            parentPk: {
+                type: String,
+                notify: true
+            },
+            fields: {
+                type: Object,
+//                notify: true
+            },
+            storage: {
+                type: Object,
+//                notify: true
+            },
+            data: {
+                type: Array,
+//                notify: true
+            },
+            _isLoading: {
+                type: Boolean,
+                value: false
+            },
+            _isDataLoaded: {
+                type: Boolean,
+                value: false
+            },
+            searchTerm: {
+                type: String,
+                value: '',
+//                notify: true
+            },
+            searchFilterProperties: {
+                type: Array,
+                value: function () {
+                    return [
+
+                    ];
+                }
+            },
+            filterListFacets: {
+                type: Object,
+                value: function () {return {};},
+                notify: true
+            },
+            negatedFilterListFacets: {
+                type: Object,
+                value: function () {return {};},
+            },
+            _isFiltered: {
+                type: Boolean,
+                computed: '_computeIsFiltered(filterListFacets)',
+//                notify: true
+            },
+            listRequestParams: {
+                type: Object,
+//                notify: true
+            }
+        },
+
+        listeners: {
+            'parent-pk-changed': '_parentPkChanged'
+        },
+
+        _computeIsFiltered: function (facets) {
+            return facets && Object.keys(facets).length;
+        },
+
+        attached: function () {
+            this.refresh();
+        },
+
+        _parentPkChanged: function () {
+            this.set('data', []);
+            this.set('searchTerm', '');
+            this.set('_isDataLoaded', false);
+            this.set('listRequestParams', this._computeListRequestParams(this.parentPk));
+            if (this.isAttached) {
+                this.refresh();
+            }
+        },
+
+        _getStorageName: function () {
+            var self = this,
+                selfIsMatch,
+                storageId = (self.storageId || '').replace('storage-', '');
+
+            if (!storageId) {
+                selfIsMatch = self.is.match(/^view\-model\-(.*)\-list$/);
+                if (selfIsMatch && selfIsMatch[1]) {
+                    return selfIsMatch[1];
+                }
+            }
+            return storageId;
+        },
+
+        _getStorage: function () {
+            var self = this,
+                storageName,
+                p;
+
+            if (this.storage) {
+                return Promise.resolve(this.storage);
+            }
+            storageName = this._getStorageName();
+            p = new Promise(function (resolve, reject) {
+                var storageP = app.fire('ax-crud-get-store', {storeName: storageName}).detail.result;
+                if (!storageP) {
+                    reject(new Error('NO STORAGE CONTAINER ' +  storageName));
+                }
+
+                storageP.then(function (storage) {
+                    if (!storage) {
+                        reject(new Error('NO STORAGE'));
+                    } else {
+                        this.set('storage', storage);
+                        resolve(storage);
+                    }
+
+                }.bind(this));
+
+            }.bind(this));
+
+            return p;
+        },
+
+        routeActivated: function () {
+            this.refresh();
+        },
+
+        refresh: function (forceReload) {
+            var self = this,
+                p;
+
+            self.set('data', []);
+            self.set('_isLoading', true);
+            p = new Promise(function (resolve, reject) {
+                self._getStorage().then(function (storage) {
+                    if (self.parentPk === undefined) {
+                        self.set('_isLoading', false);
+                        return;
+                    }
+                    storage.list(self.parentPk, self.listRequestParams, forceReload).then(function (items) {
+                        self.set('data', items);
+
+                        storage.addEventListener('store-items-by-parent-pk-updated', self._storeItemsByParentPkUpdated.bind(self));
+
+                        self.dataLoaded(items).then(function () {
+                            self.set('_isLoading', false);
+                            self.set('_isDataLoaded', true);
+                        });
+                    }).catch(function (e) {
+                        self.set('_isLoading', false);
+                        self.set('_isDataLoaded', false);
+                        reject(e);
+                    });
+                });
+                resolve(self);
+            });
+            return p;
+        },
+
+        _storeItemsByParentPkUpdated: function (event) {
+            var detail = event.detail;
+            if ('' + detail.parentPk !== '' + this.parentPk) {
+                return;
+            }
+
+            if (detail.path !== 'splices') {
+                return;
+            }
+            this.set('data', null);
+            this.set('data', detail.value);
+            this.fire('ax-list-length-changed');
+            this.dataLoaded(detail.value);
+        },
+
+        detached: function () {
+            this._getStorage().then(function (storage) {
+                storage.removeEventListener('store-items-by-parent-pk-updated', this._storeItemsByParentPkUpdated.bind(this));
+//                console.log('detached', storage);
+            }.bind(this));
+        },
+
+        saveItem: function (event) {
+            var model = event.model.item,
+                self = this;
+            model.save().then(function () {
+            });
+        },
+
+
+        itemExpandedIcon: function (isExpanded) {
+            return isExpanded ? 'expand-less' : 'expand-more';
+        },
+
+
+        /**
+         *
+         * Split term by whitespace and match case_in_sensitive with searchFilterProperties
+         * use AND conjunction for terms
+         *
+         * @param String fullTerm
+         * @param Object facets
+         * @returns {Function}
+         * @private
+         */
+        _filterList: function (fullTerm, facets, negatedFacets) {
+            var self = this,
+                andTerms = fullTerm ? fullTerm.split(/\s+/).map(function (t) {return t.toLowerCase();}) : [],
+                negatedFacetPropertyNames,
+                facetPropertyNames;
+
+            if (!facets) {
+                facets = {};
+            }
+            facetPropertyNames = Object.keys(facets);
+
+            if (!negatedFacets) {
+                negatedFacets = {};
+            }
+            negatedFacetPropertyNames = Object.keys(negatedFacets);
+
+            return function (item) {
+                var andTermsMatches,
+                    allNegatedFacetsFound,
+                    allFacetsFound;
+                if (!fullTerm && !facetPropertyNames.length && !negatedFacetPropertyNames.length) {
+                    return true;
+                }
+                if (!item) {
+                    return false;
+                }
+
+                if (facetPropertyNames.length) {
+                    allFacetsFound = facetPropertyNames.filter(function (facetPropertyName) {
+                        var facetValues,
+                            facetData = facets[facetPropertyName] || [];
+                        if (typeof(facetData[0]) === 'object') {
+                            facetValues = facetData.map(function (item) {return item.value;});
+                        } else {
+                            facetValues = facetData;
+                        }
+
+                        return (item[facetPropertyName] !== undefined && ((facetValues).indexOf(item[facetPropertyName])) > -1);
+                    }).length === facetPropertyNames.length;
+                    if (!allFacetsFound) {
+                        return false;
+                    }
+                }
+
+                if (negatedFacetPropertyNames.length) {
+                    allNegatedFacetsFound = negatedFacetPropertyNames.filter(function (facetPropertyName) {
+                        var facetValues,
+                            facetData = negatedFacets[facetPropertyName] || [];
+                        if (typeof(facetData[0]) === 'object') {
+                            facetValues = facetData.map(function (item) {return item.value;});
+                        } else {
+                            facetValues = facetData;
+                        }
+
+                        return (item[facetPropertyName] === undefined || ((facetValues).indexOf(item[facetPropertyName])) === -1);
+                    }).length === negatedFacetPropertyNames.length;
+                    if (!allNegatedFacetsFound) {
+                        return false;
+                    }
+                }
+
+                andTermsMatches = andTerms.filter(function (term) {
+                    return self.searchFilterProperties.filter(function (propertyName) {
+                        return (item[propertyName] !== undefined && (('' + item[propertyName]).toLowerCase().indexOf(term)) > -1);
+                    }).length > 0;
+                });
+
+                return andTermsMatches.length === andTerms.length;
+
+            };
+        },
+
+        dataLoaded: function (data) {
+            // Implemented in children
+            return Promise.resolve(data);
+        },
+
+        _orderByObjectKey: function (keyName) {
+            return function (a, b) {
+                var aStrLower = ('' + a[keyName]).toLowerCase(),
+                    bStrLower = ('' + b[keyName]).toLowerCase();
+                return aStrLower < bStrLower ? -1 : (aStrLower === bStrLower ? 0 : 1);
+            };
+        },
+
+        _computeListRequestParams: function (parentPk) {
+            // implement in children
+            return null;
+        }
+    };
+</script>

@@ -1,0 +1,143 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+<link rel="import" href="../ax-components/ax-highlight-atml-containers.html">
+<link rel="import" href="../model-container/view-model-container-list.html">
+
+<dom-module id="view-model-vocabulary-form-containers">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+             :host paper-tabs {
+                --paper-tabs-selection-bar-color: #77bc1f;
+
+            }
+            :host paper-tabs paper-tab {
+                --paper-tab-ink: #77bc1f;
+            }
+            :host paper-card {
+                width: 100%;
+            }
+        </style>
+
+        <paper-tabs selected="{{activeMode}}" autoselect attr-for-selected="data-editor-mode">
+            <paper-tab data-editor-mode="write">Write Mode</paper-tab>
+            <paper-tab data-editor-mode="magic" disabled="[[!hasContent]]">Magic Mode</paper-tab>
+            <paper-tab data-editor-mode="sort" disabled="[[!hasContent]]">Arrange Mode</paper-tab>
+        </paper-tabs>
+
+        <paper-card elevation="0">
+            <div class="card-content">
+                 <view-model-container-list
+                    storage-id="storage-vocabulary-container"
+                    model-name="vocabulary-container"
+                    parent-model-name="vocabulary"
+                    has-unsaved-changes="{{hasUnsavedChanges}}"
+                    active-mode="[[activeMode]]"
+                    is-sortable="[[isSortable]]"
+                    training-pk="[[trainingPk]]"
+                    parent-pk="[[modelPk]]"
+                    filter-list-facets="{{_getFilterListFacets(vocabularyType)}}"
+                    show-edit-text-icon
+                    has-content="{{hasContent}}"
+                    replace-container-with-source="[[replaceContainerWithSource]]">
+                </view-model-container-list>
+            </div>
+        </paper-card>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-vocabulary-form-containers',
+
+            behaviors: [AxWizard.BaseModelViewBehavior],
+
+            properties: {
+
+                storageId: {
+                    type: String,
+                    value: 'vocabulary',
+                    notify: true
+                },
+                trainingPk: {
+                    notify: true
+                },
+                activeMode: {
+                    type: String,
+                    value: 'write',
+                    notify: true
+                },
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    value: true,
+                    notify: true
+                },
+
+                hasUnsavedChanges: {
+                    type: Boolean,
+                    notify: true
+                },
+                vocabularyType: {
+                    notify: true
+                },
+                isSortable: {
+                    type: Boolean,
+                    notify: true,
+                    computed: '_computeIsSortable(activeMode)'
+                },
+                hasContent: {
+                    type: Boolean,
+                    notify: true,
+                    observer: '_hasContentChanged'
+                },
+
+
+            },
+
+
+
+
+            _hasContentChanged: function (newVal, oldVal) {
+                if (oldVal === undefined) {
+                    return;
+                }
+                if (newVal && this.activeMode !== 'sort') {
+                    this.set('activeMode', 'magic');
+                }
+            },
+
+            _computeIsSortable: function (activeMode) {
+                return activeMode === 'sort';
+            },
+
+            _getFilterListFacets: function (vocabularyType) {
+               if (!vocabularyType) {
+                   return {};
+               }
+
+               return {vocabularyType: [vocabularyType]};
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            }
+
+        });
+    })();
+</script>

@@ -1,0 +1,218 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+<link rel="import" href="../model-lookup-table/view-model-lookup-table-list-detail.html">
+
+
+<dom-module id="view-model-lookup-table-list">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+
+            :host ax-search-field {
+                width: 50%;
+            }
+
+
+            :host paper-toolbar {
+                background-color: grey;
+            }
+
+            :host .list-view-list paper-icon-item {
+                cursor: pointer;
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host paper-icon-item {
+                cursor: pointer;
+                position: relative;
+            }
+
+            :host #filter-languages {
+                display: flex;
+                flex-direction: row;
+            }
+            :host #filter-languages ::content .ax-multi-select-selected-list {
+                display: flex;
+                flex-direction: row;
+            }
+            :host #filter-languages ::content .model-list-section-header-description {
+                display: none;
+            }
+            :host #filter-languages ::content .ax-multi-select-buttons {
+                display: flex;
+            }
+
+        </style>
+        <paper-card>
+            <div class="card-header">
+                <paper-toolbar>
+                    <paper-button raised on-tap="addLookupTableDialog">
+                        <iron-icon item-icon icon="icons:add"></iron-icon>
+                        Add Lookup Table
+                    </paper-button>
+                    <div class="flex">
+
+                    </div>
+                </paper-toolbar>
+                <paper-toolbar>
+
+                    <div class="content-right" style="display: inline-flex; align-items: center;">
+                        <ax-multi-select
+                                id="filter-languages"
+                                choices="[[languageChoices]]"
+                                open-select-label="Change Language Filter"
+                                selected-values="{{filterLanguages}}"></ax-multi-select>
+                    </div>
+
+                </paper-toolbar>
+            </div>
+
+            <div class="card-content">
+
+                 <section>
+
+
+                   <paper-material class="model-list-section-header-description" elevation="0">
+                        <p>
+                            A Lookup Table teaches the text engine to express data values in proper words. Add, remove and
+                            edit your Lookup Tables here.
+                        </p>
+                        <template is="dom-if" if="[[!_isLoading]]">
+
+
+                            <p hidden="[[data.length]]">
+                                Seems like you haven’t got any lookup table added.
+                            </p>
+                        </template>
+                    </paper-material>
+                </section>
+
+                <section class="flex-row">
+
+                    <div class="flex"></div>
+
+                    <ax-search-field placeholder="Filter Lookup Table List" search-term="{{searchTerm}}" display-opened-form leave-form-opened></ax-search-field>
+
+
+                    <div class="flex"></div>
+                </section>
+
+
+
+
+                <paper-spinner active="[[_isLoading]]" hidden="[[!_isLoading]]"></paper-spinner>
+
+                <paper-material elevation="1" hidden="[[!data.length]]">
+                    <section id="list" class="list-view-list" >
+                         <template is="dom-repeat" items="[[data]]"  filter="{{_filterList(searchTerm)}}">
+                            <view-model-lookup-table-list-detail uses-container="[[usesContainer]]" model-pk="[[item.id]]" search-term="[[searchTerm]]" filter-languages="[[filterLanguages]]">
+
+
+                            </view-model-lookup-table-list-detail>
+
+                        </template>
+
+                        <ax-list-view-add-element-card on-ax-list-view-add-element-card-add-element="addLookupTableDialog">
+                            <div class="header">Add Lookup Table</div>
+                        </ax-list-view-add-element-card>
+                    </section>
+                </paper-material>
+            </div>
+
+        </paper-card>
+
+
+
+
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-lookup-table-list',
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            properties: {
+
+                storageId: {
+                    type: String,
+                    value: 'storage-lookup-table',
+                    notify: true
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name'
+                        ];
+                    }
+                },
+
+                usesContainer: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+
+                languageChoices: {
+                    type: Array
+                }
+            },
+
+            attached: function () {
+                this._loadLanguageChoices(this.parentPk);
+            },
+
+
+            _loadLanguageChoices: function (trainingPk) {
+                app.storageContainer.getObject('training', trainingPk).then(function (training) {
+                    training.getConfiguredLanguageList().then(function (list) {
+                        this.set('languageChoices', list.map(function (languageItem) {
+                            return {
+                                'display_name': languageItem.name,
+                                'value': languageItem.id
+                            };
+                        }));
+                    }.bind(this));
+                }.bind(this));
+            },
+
+            addLookupTableDialog: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-lookup-table-modal-new', params: {trainingPk: this.parentPk}});
+            }
+
+
+
+        });
+    })();
+</script>

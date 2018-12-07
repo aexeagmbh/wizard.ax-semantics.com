@@ -1,0 +1,215 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../model-nested-product-type/view-model-nested-product-type-list.html">
+<link rel="import" href="../model-sentence-group/view-model-sentence-group-list.html">
+<link rel="import" href="../model-sentence/view-model-sentence-list.html">
+
+<dom-module id="page-training-detail-text-rule-set">
+
+    <template>
+         <style include="iron-flex">
+        :host {
+            display: block;
+        }
+
+        :host paper-card {
+            width: 100%;
+            /*margin-top: 20px;*/
+        }
+
+         :host paper-icon-button.mode-switch[active] ::content iron-icon {
+            /*color: #77bc1f;*/
+            border-bottom: 2px solid #77bc1f;
+        }
+
+        :host paper-toolbar {
+            background-color: grey;
+        }
+
+        :host paper-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 10;
+            --paper-fab-background: #77bc1f;
+        }
+
+        :host paper-menu.floating-menu {
+            position: fixed;
+            bottom: 80px;
+            right: 24px;
+            z-index: 11;
+        }
+
+        :host paper-tabs {
+            --paper-tabs-selection-bar-color: #77bc1f;
+
+        }
+        :host paper-tabs paper-tab {
+            --paper-tab-ink: #77bc1f;
+        }
+    </style>
+
+        <template is="dom-if" if="[[modelPk]]">
+            <paper-card>
+                <paper-tabs attr-for-selected="data-route" selected="{{showTab}}" class="bottom self-end">
+                    <paper-tab data-route="trainingTypes">Story Types</paper-tab>
+                    <paper-tab data-route="sentences"> All Sentences</paper-tab>
+                    <paper-tab data-route="sentenceGroups">Sentence Groups</paper-tab>
+                </paper-tabs>
+            </paper-card>
+
+            <section>
+                <iron-pages attr-for-selected="data-route" selected="{{showTab}}" selected-attribute="is-active">
+
+                    <template is="dom-if" if="[[_isTabActive('trainingTypes', showTab)]]">
+                        <div data-route="trainingTypes">
+                                    <paper-card>
+                                        <div class="header paper-card">
+                                            <paper-toolbar>
+                                                <paper-button raised on-tap="_editProductTypeOrderDialog">
+                                                    Sort Story Types
+                                                </paper-button>
+                                                <div class="flex">
+
+                                                </div>
+                                                <paper-icon-button class="mode-switch" toggles icon="icons:code"
+                                                                   title="Always show ATML Container in Text"
+                                                                   active="{{!replaceContainerWithSource}}"></paper-icon-button>
+                                            </paper-toolbar>
+                                        </div>
+                                    </paper-card>
+                                    <view-model-nested-product-type-list
+                                            data-route-story="list"
+                                            replace-container-with-source="[[replaceContainerWithSource]]"
+                                            parent-pk="[[modelPk]]"></view-model-nested-product-type-list>
+                        </div>
+                    </template>
+                    <template is="dom-if" if="[[_isTabActive('sentences', showTab)]]">
+                        <div data-route="sentences">
+                        <paper-card>
+                            <div class="header paper-card">
+                                <paper-toolbar>
+                                    <div class="flex">
+
+                                    </div>
+                                    <paper-icon-button class="mode-switch" toggles icon="icons:code"
+                                                       title="Always show ATML Container in Text"
+                                                       active="{{!replaceContainerWithSource}}"></paper-icon-button>
+                                </paper-toolbar>
+                            </div>
+                        </paper-card>
+                        <view-model-sentence-list id="sentence-list"
+                                                  show-language-filter
+                                                  show-expand-all
+                                                  data-route="sentences"
+                                                  replace-container-with-source="[[replaceContainerWithSource]]"
+                                                  parent-pk="[[modelPk]]"></view-model-sentence-list>
+                            </div>
+                    </template>
+                    <template is="dom-if" if="[[_isTabActive('sentenceGroups', showTab)]]">
+                        <div data-route="sentenceGroups">
+                        <paper-card>
+                            <div class="header paper-card">
+                                <paper-toolbar>
+                                    <div class="flex">
+
+                                    </div>
+                                    <paper-icon-button class="mode-switch" toggles icon="icons:code"
+                                                       title="Always show ATML Container in Text"
+                                                       active="{{!replaceContainerWithSource}}"></paper-icon-button>
+                                </paper-toolbar>
+                            </div>
+                        </paper-card>
+                        <view-model-sentence-group-list data-route="sentenceGroups"
+                                                        replace-container-with-source="[[replaceContainerWithSource]]"
+                                                        parent-pk="[[modelPk]]"></view-model-sentence-group-list>
+                            </div>
+                    </template>
+                </iron-pages>
+            </section>
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'page-training-detail-text-rule-set',
+            behaviors: [AxWizard.BaseModelViewBehavior],
+            properties: {
+                modelName: {
+                    value: 'training'
+                },
+                showTab: {
+                    type: String,
+                    value: 'trainingTypes',
+                    notify: true,
+                    observer: '_showTabObserver'
+                },
+                showTabStory: {
+                    type: String,
+                    value: 'list',
+                    notify: true,
+//                    observer: '_showTabObserver'
+                },
+                isActive: {
+                    type: Boolean,
+                    notify: true,
+                    observer: '_isActiveObserver'
+                },
+                storageId: {
+                    type: String,
+                    value: 'training',
+                    notify: true
+                },
+                paramsPkName: {
+                    type: String,
+                    value: 'trainingPk',
+                    notify: true
+                },
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    value: true,
+                    notify: true
+                }
+            },
+
+            closeFloatingMenu: function () {
+                this.$$('#floating-menu').close();
+            },
+
+            _isTabActive: function (showTab, tabName) {
+                return showTab === tabName;
+            },
+
+
+            _showTabObserver: function (showTab) {
+                app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: showTab});
+            },
+
+            _isActiveObserver: function (isActive, isActiveOld) {
+                if (isActive && isActiveOld !== undefined) {
+                    app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: this.showTab});
+                }
+            },
+
+
+
+            _editProductTypeOrderDialog: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-training-modal-edit-product-type-order', params: {modelPk: this.modelPk}});
+            }
+        });
+    })();
+</script>

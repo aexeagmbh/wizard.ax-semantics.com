@@ -1,0 +1,61 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-property/view-model-group-property-wizard.html">
+
+
+<dom-module id="view-model-group-property-wizard-modal">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal
+                      on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Property Wizard for Group Properties</h2>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                    <view-model-group-property-wizard id="modal-dialog-form"
+                                                     model-pk="[[trainingPk]]"
+                                                                training-pk="[[trainingPk]]"
+                                                                on-model-save-success="handleResponse"
+                            ></view-model-group-property-wizard>
+                </template>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Close</paper-button>
+                <paper-button raised on-tap="submitModalForm">Generate Group Property</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+        Polymer({
+            is: 'view-model-group-property-wizard-modal',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                trainingPk: {
+                    notify: true
+                },
+                propertyType: {
+                    type: String,
+                    notify: true
+                }
+            }
+
+        });
+
+    })();
+</script>

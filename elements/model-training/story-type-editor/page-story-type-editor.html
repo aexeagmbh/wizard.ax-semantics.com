@@ -1,0 +1,597 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../ax-crud/base-model-view-behavior.html">
+<link rel="import" href="./story-type-editor-mode-behavior.html">
+
+<link rel="import" href="../../model-nested-product-type/view-model-nested-product-type-form.html">
+<link rel="import" href="../../ax-page-routing/page-routing-behavior.html">
+<link rel="import" href="../../model-container/view-model-container-list-detail.html">
+<link rel="import" href="../../model-container/view-model-container-list.html">
+<link rel="import" href="../../container-mode/container-view-model-nested-product-type-list-detail.html">
+
+
+<dom-module id="page-story-type-editor">
+
+    <template>
+        <style include="iron-flex">
+
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host paper-icon-button.mode-switch[active] ::content iron-icon,
+            :host paper-button.mode-switch[active] span {
+                /*color: #77bc1f;*/
+                border-bottom: 2px solid #77bc1f;
+            }
+            :host paper-button.mode-switch[active] span {
+                margin-bottom: -2px;
+            }
+
+            :host paper-toolbar {
+                background-color: grey;
+            }
+            :host paper-material {
+                padding: 16px;
+            }
+            :host paper-tabs {
+                --paper-tabs-selection-bar-color: #77bc1f;
+
+            }
+            :host paper-tabs paper-tab {
+                --paper-tab-ink: #77bc1f;
+            }
+            :host #product-type-container[elevation="1"] {
+                padding-left: 4vw;
+                padding-top: 4vw;
+                min-heigth: 25vh;
+            }
+            :host #product-type-container[elevation="0"] {
+                padding: 0;
+                min-height: 25vh;
+            }
+
+            :host paper-item-body [secondary] {
+                color: inherit;
+            }
+        </style>
+        <model-training id="model" pk="[[modelPk]]"></model-training>
+
+
+        <paper-card>
+            <div class="header paper-card">
+                <paper-toolbar>
+                    <base-model-list-select
+                            on-base-model-list-select-add-new-option="_createStoryType"
+                            pre-select-first-option
+                            show-new-option
+                            new-option-label="Create a new Story Type"
+                            render-as="button"
+                            title="Select a Story Type"
+                            icon="icons:extension"
+                            id="select-product-type"
+                            selected="{{selectedProductTypePk}}"
+                            selected-label="[[_selectedProductType.data.name]]"
+                            template-id="list-select-product-type-template-button"
+                            label="Story Type"
+                            storage-id="storage-nested-product-type"
+                            parent-pk="[[modelPk]]">
+                        <template id="list-select-product-type-template-button" is="dom-template">
+                            <view-model-nested-product-type-list-detail as-simple-item model-pk="[[baseModelListItem.id]]"></view-model-nested-product-type-list-detail>
+                        </template>
+                    </base-model-list-select>
+
+
+                    <template is="dom-if" if="[[selectedProductTypePk]]" >
+
+                        <paper-icon-button
+                                id="edit-btn"
+                                on-tap="_editStoryType"
+                                title="Edit Story Type" icon="editor:mode-edit">
+                        </paper-icon-button>
+                        <paper-item>
+                            <paper-item-body>
+                                <div secondary>
+                                    <div hidden="[[!isTriggerNone]]"><iron-icon icon="icons:warning"></iron-icon><i>No Trigger defined.</i></div>
+                                    <div hidden="[[!isTriggerAuto]]"><iron-icon icon="icons:check"></iron-icon><i>Auto triggered.</i></div>
+                                    <div hidden="[[!isTriggeredByProperty]]"><iron-icon icon="icons:check"></iron-icon><i>Triggered by custom Properties.</i></div>
+                                </div>
+                            </paper-item-body>
+                        </paper-item>
+                    </template>
+
+
+                    <paper-menu-button id="select-language" hidden="[[translateMode]]">
+                        <paper-button class="dropdown-trigger">
+                            <iron-icon icon="icons:language"></iron-icon>
+                            [[selectedLanguageItem.label]]
+                            <iron-icon icon="icons:arrow-drop-down"></iron-icon>
+                        </paper-button>
+                        <paper-menu selected-item="{{selectedLanguageItem}}" class="dropdown-content"
+                                    attr-for-selected="value"
+                                    selected="{{language}}">
+                            <template is="dom-repeat" items="[[languageChoices]]">
+                                <paper-item label="[[item.name]]" value="[[item.id]]">[[item.name]]</paper-item>
+                            </template>
+                        </paper-menu>
+                    </paper-menu-button>
+
+
+                    <div class="flex"></div>
+
+                        <paper-tabs selected="{{activeMode}}" autoselect attr-for-selected="data-editor-mode">
+                            <paper-tab data-editor-mode="write">Write Mode</paper-tab>
+                            <paper-tab data-editor-mode="magic">Magic Mode</paper-tab>
+                            <paper-tab data-editor-mode="variant">Variant Mode</paper-tab>
+                            <template is="dom-if" if="[[model.data.containerMode]]">
+                                <paper-tab data-editor-mode="translate">Translate Mode</paper-tab>
+                            </template>
+                        </paper-tabs>
+
+                </paper-toolbar>
+
+
+                <template is="dom-if" if="[[translateMode]]">
+
+
+                    <paper-toolbar>
+                        <div class="flex">
+                            <paper-menu-button>
+                                <paper-button class="dropdown-trigger">
+                                    <iron-icon icon="icons:language"></iron-icon>
+                                    [[selectedTranslateLanguageItem.label]]
+                                    <span hidden="[[selectedTranslateLanguageItem.label]]">Choose the base language to translate from</span>
+                                    <iron-icon icon="icons:arrow-drop-down"></iron-icon>
+                                </paper-button>
+                                <paper-menu selected-item="{{selectedTranslateLanguageItem}}" class="dropdown-content"
+                                            attr-for-selected="value"
+                                            selected="{{translateLanguage}}">
+                                    <template is="dom-repeat" items="[[languageChoices]]">
+                                        <paper-item label="[[item.name]]" value="[[item.id]]">[[item.name]]</paper-item>
+                                    </template>
+                                </paper-menu>
+                            </paper-menu-button>
+                        </div>
+                        <div class="flex">
+                            <paper-menu-button id="select-language">
+                                <paper-button class="dropdown-trigger">
+                                    <iron-icon icon="icons:language"></iron-icon>
+                                    [[selectedLanguageItem.label]]
+                                    <iron-icon icon="icons:arrow-drop-down"></iron-icon>
+                                </paper-button>
+                                <paper-menu selected-item="{{selectedLanguageItem}}" class="dropdown-content"
+                                            attr-for-selected="value"
+                                            selected="{{language}}">
+                                    <template is="dom-repeat" items="[[languageChoices]]">
+                                        <paper-item label="[[item.name]]" value="[[item.id]]">[[item.name]]</paper-item>
+                                    </template>
+                                </paper-menu>
+                            </paper-menu-button>
+                        </div>
+
+                    </paper-toolbar>
+                </template>
+
+
+            </div>
+            <div class="card-content">
+
+                <template is="dom-if" if="[[!modeCreateStoryType]]" restamp>
+                    <template is="dom-if" if="[[!selectedProductTypePk]]" restamp>
+                        <template is="dom-if" if="[[!language]]" restamp>
+
+                            <paper-dropdown-menu label="Please select a Language">
+                                <paper-menu class="dropdown-content"
+                                            attr-for-selected="value"
+                                            selected="{{language}}">
+                                    <template is="dom-repeat" items="[[languageChoices]]">
+                                        <paper-item label="[[item.name]]" value="[[item.id]]">[[item.name]]</paper-item>
+                                    </template>
+                                </paper-menu>
+                            </paper-dropdown-menu>
+
+                        </template>
+                        <template is="dom-if" if="[[language]]" restamp>
+                            <section class="list-view-list">
+
+                                <paper-card heading="Work on existing Story Type">
+
+                                    <div class="card-content">
+                                        <base-model-list-select
+                                                title="Select a Story Type"
+                                                id="select-product-type"
+                                                selected="{{selectedProductTypePk}}"
+                                                template-id="list-select-product-type-template"
+                                                label="Story Type"
+                                                storage-id="storage-nested-product-type"
+                                                parent-pk="[[modelPk]]">
+                                            <template id="list-select-product-type-template" is="dom-template">
+                                                <paper-item label="[[baseModelListItem.name]]"
+                                                            value="[[baseModelListItem.id]]">
+                                                    [[baseModelListItem.name]]
+                                                </paper-item>
+                                            </template>
+                                        </base-model-list-select>
+                                    </div>
+                                </paper-card>
+                                <ax-list-view-add-element-card
+                                        on-ax-list-view-add-element-card-add-element="_createStoryType">
+                                    <div class="header">Add Story Type</div>
+                                </ax-list-view-add-element-card>
+
+                            </section>
+                        </template>
+                    </template>
+                </template>
+
+                <template is="dom-if" if="[[modeCreateStoryType]]" restamp>
+                    <paper-card>
+                        <div class="card-content">
+                            <section class="card-content-body-container">
+                                <div class="card-content-body-form-container">
+                                    <view-model-nested-product-type-form training-pk="[[modelPk]]"
+                                                                         id="story-type-form"
+                                                                         on-model-save-success="_onStoryTypeCreated">
+                                    </view-model-nested-product-type-form>
+                                </div>
+                            </section>
+                        </div>
+                        <div class="card-actions">
+                            <div class="flex-row">
+                                <div class="flex"></div>
+                                <div class="buttons">
+                                    <paper-button raised on-tap="_submitProductTypeForm">Add Story Type</paper-button>
+                                </div>
+                            </div>
+                        </div>
+                    </paper-card>
+
+                </template>
+                <template is="dom-if" if="[[selectedProductTypePk]]" restamp>
+
+
+                    <template is="dom-if" if="[[language]]" restamp>
+
+                        <paper-material id="product-type-container" elevation="[[_productTypeContainerElevation]]" >
+
+                            <container-view-model-nested-product-type-list-detail
+                                    model="{{_selectedProductType}}"
+                                    is-trigger-auto="{{isTriggerAuto}}"
+                                    is-trigger-none="{{isTriggerNone}}"
+                                    is-triggered-by-property="{{isTriggeredByProperty}}"
+                                    active-mode="[[activeMode]]"
+                                    translate-language="[[translateLanguage]]"
+                                    language="[[language]]"
+                                    training-pk="[[modelPk]]"
+                                    training-uses-containers="[[model.data.containerMode]]"
+                                    model-pk="[[selectedProductTypePk]]">
+                            </container-view-model-nested-product-type-list-detail>
+                        </paper-material>
+                    </template>
+                </template>
+            </div>
+            <div class="header footer paper-card">
+                <paper-toolbar>
+
+
+                    <div class="flex"></div>
+
+                    <paper-tabs selected="{{activeMode}}" autoselect attr-for-selected="data-editor-mode">
+                        <paper-tab data-editor-mode="write">Write Mode</paper-tab>
+                        <paper-tab data-editor-mode="magic">Magic Mode</paper-tab>
+                        <paper-tab data-editor-mode="variant">Variant Mode</paper-tab>
+                        <template is="dom-if" if="[[model.data.containerMode]]">
+                            <paper-tab data-editor-mode="translate">Translate Mode</paper-tab>
+                        </template>
+                    </paper-tabs>
+
+                </paper-toolbar>
+            </div>
+        </paper-card>
+    </template>
+</dom-module>
+
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'page-story-type-editor',
+            behaviors: [
+                AxWizard.StoryTypeEditorModeBehavior,
+                AxWizard.BaseModelViewBehavior
+            ],
+            properties: {
+                editTextMode: {
+                    type: Boolean,
+                    notify: true
+                },
+                modePreviewContent: {
+                    type: Boolean,
+                    notify: true
+                },
+                modeSortSentences: {
+                    type: Boolean,
+                    notify: true
+                },
+                modeVariants: {
+                    type: Boolean,
+                    notify: true
+                },
+
+
+                modeCreateStoryType: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+
+                showAllVariants: {
+                    type: Boolean,
+                    notify: true
+                },
+                modeAddVariants: {
+                    type: Boolean,
+                    notify: true
+                },
+
+                paramsPkName: {
+                    type: String,
+                    value: 'trainingPk',
+                    notify: true
+                },
+                selectedProductTypePk: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                language: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                translateLanguage: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                sentenceList: {
+                    type: Array
+                },
+
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    value: true
+                },
+                _productTypeContainerElevation: {
+                    type: Number,
+                    value: 1,
+                    notify: true
+                },
+                _selectedProductTypeName: {
+                    type: String,
+                    notify: true
+                }
+
+            },
+
+            _writeModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('editTextMode', true);
+                this.set('modePreviewContent', false);
+                this.set('modeSortSentences', true);
+                this.set('modeVariants', false);
+                this.set('showAllVariants', false);
+                this.set('modeAddVariants', false);
+                this.set('_productTypeContainerElevation', 1);
+            },
+
+            _magicModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('editTextMode', false);
+                this.set('modePreviewContent', true);
+                this.set('modeSortSentences', false);
+                this.set('modeVariants', true);
+                this.set('showAllVariants', false);
+                this.set('modeAddVariants', false);
+                this.set('_productTypeContainerElevation', 1);
+            },
+
+            _variantModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('editTextMode', false);
+                this.set('modePreviewContent', false);
+                this.set('modeSortSentences', false);
+                this.set('modeVariants', true);
+                this.set('showAllVariants', false);
+                this.set('modeAddVariants', true);
+                this.set('_productTypeContainerElevation', 1);
+            },
+
+            _translateModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_productTypeContainerElevation', 0);
+            },
+
+
+            _disableModeSortSentences: function (event) {
+              this.set('modeSortSentences', false);
+            },
+
+            _validateSentenceVariants: function (event) {
+                event.stopPropagation();
+                this.model.validateSentenceVariants();
+            },
+
+            _createStoryType: function (event) {
+                event.stopPropagation();
+
+                this.set('selectedProductTypePk', null);
+                this.set('modeCreateStoryType', true);
+
+            },
+
+            listeners: {
+                'selected-product-type-pk-changed': '_selectedProductTypeChanged',
+                'ax-get-training-languages': '_queryTrainingLanguages'
+            },
+
+            _createNewSentence: function (event) {
+                var detail = event.detail,
+                        p;
+
+                p = new Promise(function (resolve, reject) {
+                    app.storageContainer.getObject('nested-product-type', this.selectedProductTypePk).then(function (productType) {
+                        var sentenceName = productType.data.name + '_' + new Date().getTime();
+
+                        resolve(productType.createNewSentence(sentenceName));
+
+                    }.bind(this));
+                }.bind(this));
+
+                event.detail.sentence = p;
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            _queryTrainingLanguages: function (event) {
+                var detail = event.detail,
+                        p;
+
+                p = new Promise(function (resolve) {
+                    app.storageContainer.getObject('training', this.modelPk).then(function (training) {
+                        training.getConfiguredLanguageList().then(function (languages) {
+                            resolve(languages);
+                        });
+                    });
+                }.bind(this));
+
+                detail.languages = p;
+            },
+
+            attached: function () {
+                this._loadLanguageChoices();
+            },
+
+            _modelPkChanged: function (event, obj) {
+                var modelPk = obj.value;
+                this._initSentences(modelPk);
+            },
+
+            _initSentences: function (trainingPk) {
+                if (trainingPk === undefined || trainingPk === 'undefined') {
+                    this.set('sentenceList', []);
+                    return;
+                }
+                app.storageContainer.getList('sentence', trainingPk).then(function (list) {
+                    this.set('sentenceList', list);
+                }.bind(this));
+            },
+
+            _getSentenceIdByName: function (name) {
+                return this.sentenceList.filter(function (sentenceData) {
+                    return sentenceData.name === name;
+                })[0].id;
+            },
+
+            _selectedProductTypeChanged: function (event, obj) {
+                var selectedProductTypePk = obj.value;
+                if (selectedProductTypePk) {
+                    this.set('modeCreateStoryType', false);
+                }
+            },
+
+
+            _onAxStoryTypeCreated: function (event, details) {
+                var selectedProductTypePk = details.productTypePk,
+                    language = details.language;
+                this.set('selectedProductTypePk', selectedProductTypePk);
+                this.set('language', language);
+            },
+
+            _onStoryTypeCreated: function (event, model) {
+                event.stopPropagation();
+                this.set('selectedProductTypePk', model.pk);
+            },
+
+            _submitSentenceVariantForm: function () {
+                this.$$('#sentence-variant-create-form').submitAction();
+            },
+
+            _loadLanguageChoices: function () {
+                this.fire('ax-get-training-languages', {}).detail.languages.then(function (trainingLanguagesList) {
+                    var list = trainingLanguagesList.filter(function (l) {
+//                        return l.id.indexOf('*') < 0;
+                        return true;
+                    });
+
+                    this.set('languageChoices', list);
+
+                    if (list.length === 1) {
+                        this.set('language', list[0].id);
+                    } else {
+
+                        app.fire('query-settings', {propertyName: 'language'}).detail.result.then(function (userLanguage) {
+                            var userLanguageIsInList = list.filter(function (l) {
+                                return l.id === userLanguage;
+                            }).length > 0;
+                            if (userLanguageIsInList) {
+                                this.set('language', userLanguage);
+                            } else if (!this.get('language')) {
+
+                                this.$['select-language'].open();
+                            }
+                        }.bind(this));
+
+                    }
+
+
+                }.bind(this));
+            },
+
+            _editStoryType: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-nested-product-type-modal-edit', params: {modelPk: this.selectedProductTypePk}});
+            },
+
+            _submitProductTypeForm: function (event) {
+                if (event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
+
+                var form = this.$$('#story-type-form');
+                form.submitAction();
+            }
+
+
+        });
+    })();
+</script>

@@ -1,0 +1,67 @@
+<!--
+@element paper-step
+@demo demo/index.html
+@hero hero.svg
+-->
+<dom-module id="ax-paper-step">
+  <template>
+    <style>
+      :host {
+        display: block;
+        box-sizing: border-box;
+      }
+    </style>
+    <content></content>
+  </template>
+</dom-module>
+
+<script>
+  Polymer({
+
+    is: 'ax-paper-step',
+
+    behaviors: [
+      Polymer.IronValidatableBehavior
+    ],
+
+    properties: {
+      editable: {
+        type: Boolean,
+        value: false,
+        reflectToAttribute: true,
+        notify: true
+      },
+      label: {
+        type: String,
+        value: '',
+        notify: true
+      },
+      optional: {
+        type: Boolean,
+        value: false,
+        notify: true
+      },
+      opened: {
+        type: Boolean,
+        readOnly: true
+      },
+      axValidator: {
+          type: Object
+      }
+    },
+    skip: function() {
+      this.fire('skip-step');
+    },
+    continue: function() {
+      this.fire('continue-step');
+    },
+
+    _getValidity: function () {
+        if (!this.axValidator) {
+            return true;
+        }
+        return this.axValidator();
+    }
+  });
+
+</script>

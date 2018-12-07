@@ -1,0 +1,106 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-vocabulary/view-model-vocabulary-form.html">
+
+
+<dom-module id="view-model-vocabulary-modal-translate">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host .preview-container {
+                position: relative;
+                background-color: #dddddd;
+            }
+        </style>
+
+        <paper-dialog class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Translate Property Output</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <model-vocabulary data="{{sourceVocabularyData}}" pk="[[modelPk]]"></model-vocabulary>
+                    <model-language data="{{languageData}}" pk="[[sourceVocabularyData.language]]"></model-language>
+                     <section class="preview-container">
+                        <h3>Source Property Output</h3>
+                        <h4 id="preview-language">[[languageData.name]]</h4>
+                        <div><i secondary>Noun:&nbsp;</i>[[sourceVocabularyData.noun]]</div>
+                        <div><i secondary>Adjective:&nbsp;</i>[[sourceVocabularyData.adjective]]</div>
+                        <div><i secondary>Headnoun:&nbsp;</i>[[sourceVocabularyData.headnoun]]</div>
+                     </section>
+
+                    <h3>Translation</h3>
+                    <view-model-vocabulary-form language="{{language}}" id="modal-dialog-form"
+                                                      training-pk="[[trainingPk]]"
+                                                      property-pk="[[sourceVocabularyData.property]]"
+                                                      on-model-save-success="handleResponse"
+                                                      on-model-loaded="setDefaultFormData"></view-model-vocabulary-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Create Translation</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-vocabulary-modal-translate',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                modelPk: {
+                  type: String,
+                  notify: true
+                },
+                trainingPk: {
+                    notify: true
+                },
+                language: {
+                    type: String,
+                    value: '',
+                    notify: true
+                }
+            },
+
+            setDefaultFormData: function () {
+                if (this.language) {
+                    this.$$('#modal-dialog-form').set('formData.language', this.language);
+                } else {
+                    this.set('_isLoading', true);
+                    this._getUserLanguage().then(function (language) {
+                        this.$$('#modal-dialog-form').set('formData.language', language);
+                        this.set('_isLoading', false);
+                    }.bind(this), function () {
+                        this.$$('#modal-dialog-form').set('formData.language', '');
+                        this.set('_isLoading', false);
+                    }.bind(this));
+                }
+                this.$$('#modal-dialog-form').set('formData.noun', this.sourceVocabularyData.noun);
+                this.$$('#modal-dialog-form').set('formData.adjective', this.sourceVocabularyData.adjective);
+                this.$$('#modal-dialog-form').set('formData.headnoun', this.sourceVocabularyData.headnoun);
+
+            },
+
+            _getUserLanguage: function () {
+                return app.fire('query-settings', {propertyName: 'language'}).detail.result;
+            }
+
+        });
+
+    })();
+</script>

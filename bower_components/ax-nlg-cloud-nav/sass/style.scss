@@ -1,0 +1,236 @@
+$fa-font-path:   "../bower_components/components-font-awesome/font";
+@import "../bower_components/components-font-awesome/scss/font-awesome";
+
+$mainColor: rgba(119, 187, 31, 1);
+$footer: #333333;
+$font-color: #424242;
+$quest-color: rgba(118, 189, 29, 1);
+ax-nlg-cloud-nav .nav.ax-nav-inverse {
+     background-image: url("../img/3px-tile.png");
+      background-color: #262626;
+  }
+ax-nlg-cloud-nav .nav{
+    top: 0;
+    z-index: 100;
+    position: relative;
+    font-weight: 700;
+    font-size: 15px;
+    margin: 0;
+    padding: 0;
+    .active-green {
+      background-color: $mainColor;
+    }
+    .active-white {
+      background-color: #fff;
+    }
+      .advancedTrue {
+        width: 25px;
+        height: 25px;
+        background-image: -moz-radial-gradient(45px 45px 45deg, circle cover, #e3f1d1 0%, #76bd1d 100%, #e3f1d1 95%);
+        background-image: -webkit-radial-gradient(45px 45px, circle cover, #e3f1d1, #76bd1d);
+        background-image: radial-gradient(45px 45px 45deg, circle cover, #e3f1d1 0%, #76bd1d 100%, #e3f1d1 95%);
+        animation-name: spin;
+        animation-duration: 3s; /* 3 seconds */
+        animation-iteration-count: infinite;
+        animation-timing-function: linear;
+    }
+    .advancedFail {
+      width: 25px;
+      height: 25px;
+      background-image: -moz-radial-gradient(45px 45px 45deg, circle cover, #ffcccc 0%, #ff0000 100%, #b20000 95%);
+      background-image: -webkit-radial-gradient(45px 45px, circle cover, #ffcccc, #ff0000);
+      background-image: radial-gradient(45px 45px 45deg, circle cover, #ffcccc 0%, #ff0000 100%, #b20000 95%);
+      animation-name: spin;
+      animation-duration: 3s; /* 3 seconds */
+      animation-iteration-count: infinite;
+      animation-timing-function: linear;
+  }
+    .advancedFalse {
+      background-image: -moz-radial-gradient(45px 45px 45deg, circle cover, #ffcccc 0%, yellow 100%, #b20000 95%);
+      background-image: -webkit-radial-gradient(45px 45px, circle cover, #ffcccc, yellow);
+      background-image: radial-gradient(45px 45px 45deg, circle cover, #ffcccc 0%, yellow 100%, #b20000 95%);
+  }
+    green {
+      color: $mainColor;
+    }
+    > ul {
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      list-style: none;
+      justify-content: space-between;
+      div {
+        display: flex;
+      }
+      div > li {
+        border-right: 2px solid #333;
+        display: flex;
+        list-style: none;
+        transition: all .2s ease-in;
+        span{
+          line-height: 1.42857143;
+          padding-left: 15px;
+        }
+
+        &:hover.quest {
+          background-color: $quest-color;
+        }
+        &:hover.green {
+          background-color: $mainColor;
+          border-color: $mainColor;
+        }
+        &:hover.white {
+          a {
+            color: #000;
+          }
+          background-color: #fff;
+          border-color: #fff;
+        }
+      }
+      .circleStatus {
+          display: inline-block;
+          border-radius: 50%;
+          width: 25px;
+          height: 25px;
+          /* width and height can be anything, as long as they're equal */
+      }
+      @keyframes spin{
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      a {
+        display: flex;
+        padding-left: 15px;
+        width: 200px;
+        align-items: center;
+        height: 52px;
+        text-decoration: none;
+        color: #fff;
+        &:focus {
+          color: #fff;
+          text-decoration: none;
+          outline: 0;
+        }
+        i.fa {
+          font-size: 25px;
+          align-self: center;
+        }
+        img {
+          align-self: center;
+          height: 30px;
+        }
+
+      }
+      div:last-child {
+        li {
+          a {
+            width: 100px;
+            padding: 0px;
+            justify-content: center;
+          }
+          border-left: 2px solid #333;
+          border-right: none;
+
+        }
+      }
+      .dropdown-content{
+        display: none;
+      }
+      #dropmobile{
+        width: 225px;
+      }
+      .dropdown{
+
+
+        .ax-ajaxResponse{
+          padding-right: 10px;
+          font-weight: 400;
+        }
+        &:hover{
+          .dropdown-content{
+            min-width: 482px;
+            padding: 10px 15px;
+            display:flex;
+            right: 0px;
+            top: 52px;
+            z-index: 1030;
+            position: absolute;
+            background: rgba(0,0,0,.8);
+            box-shadow: 0 8px 16px 0 rgba(0,0,0,.2);
+            .porperties-load{
+              margin:auto;
+                img{
+                    height: auto;
+                }
+            }
+            .circleStatus {
+                margin-right: 15px;
+                align-self: center;
+                display: flex;
+                width: 15px;
+                height: 15px;
+               padding: 0;
+            }
+            >div{
+               flex-direction: column;
+            }
+            p{
+              font-weight: 400;
+              margin: 0;
+              line-height: 2.1;
+              font-size: 13px;
+              display: flex;
+            }
+          }
+        }
+      }
+    }
+  }
+@media (min-width: 0px) and (max-width: 1070px) {
+    ax-nlg-cloud-nav .nav {
+      >ul .dropdown {
+
+      }
+      >ul #dropmobile{
+        width: auto ;
+        padding: 0px 20px;
+      }
+      >ul .dropdown .ax-ajaxResponse{
+        display: none;
+
+      }
+    }
+}
+@media (min-width: 0px) and (max-width: 992px) {
+  ax-nlg-cloud-nav .nav {
+      ul {
+        div li a {
+          padding: 0px 20px;
+          width: auto;
+          justify-content: center;
+        }
+        div li a span{
+          display: none;
+        }
+        .ax-ajaxResponse{
+          display: none;
+        }
+        div:last-child {
+          li a {
+            padding: 0px 20px;
+            width: auto;
+          }
+        }
+
+      }
+      >ul #dropdown{
+        width: auto ;
+      }
+  }
+}

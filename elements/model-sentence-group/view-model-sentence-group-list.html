@@ -1,0 +1,107 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+<link rel="import" href="../model-sentence-group/view-model-sentence-group-list-detail.html">
+
+
+<dom-module id="view-model-sentence-group-list">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host .list-view-list paper-icon-item {
+                cursor: pointer;
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host paper-icon-item {
+                cursor: pointer;
+                position: relative;
+            }
+
+        </style>
+        <view-model-list-section-header section-title="Sentence Groups" search-term="{{searchTerm}}"
+                                        _is-loading="[[_isLoading]]"
+                                        on-add-element-action="addItemDialog">
+        </view-model-list-section-header>
+
+        <section>
+            <paper-material class="model-list-section-header-description" elevation="0">
+                <template is="dom-if" if="[[_isLoading]]">
+                    <p>
+                        Sentence Groups can be used to apply selective operations on defined groups of sentences.
+                    </p>
+                </template>
+                <template is="dom-if" if="[[!_isLoading]]">
+                    <p hidden="[[!data.length]]">
+                        Sentence Groups can be used to apply selective operations on defined groups of sentences. Add, remove and change your Sentence Groups here.
+                    </p>
+                    <p hidden="[[data.length]]">
+                        Sentence Groups can be used to apply selective operations on defined groups of sentences. Seems like you haven’t added any Sentence Groups to your Training yet.
+                    </p>
+                </template>
+            </paper-material>
+        </section>
+
+        <section class="list-view-list" hidden="[[_isLoading]]">
+            <template is="dom-repeat" items="{{data}}" filter="{{_filterList(searchTerm)}}">
+                <view-model-sentence-group-list-detail model-pk="[[item.id]]"
+                                                       replace-container-with-source="[[replaceContainerWithSource]]"
+                ></view-model-sentence-group-list-detail>
+            </template>
+            <ax-list-view-add-element-card on-ax-list-view-add-element-card-add-element="addItemDialog">
+                <div class="header">Add Sentence Group</div>
+            </ax-list-view-add-element-card>
+        </section>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-group-list',
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'storage-sentence-group',
+                    notify: true
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name'
+                        ];
+                    }
+                }
+            },
+
+
+            addItemDialog: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-group-modal-new', params: {trainingPk: this.parentPk}});
+            }
+        });
+    })();
+</script>

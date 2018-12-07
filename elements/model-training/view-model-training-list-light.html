@@ -1,0 +1,215 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+
+<dom-module id="view-model-training-list-light">
+
+    <template>
+
+
+        <style include="iron-flex">
+            :host paper-item {
+                cursor: pointer;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host paper-card .title-text {
+                display: inline-flex;
+            }
+
+            :host paper-toolbar.paper-toolbar-0 {
+                color: var(--primary-text-color);
+                background-color: #fff;
+            }
+
+            :host .list-view-list paper-icon-item {
+                cursor: pointer;
+            }
+
+            :host paper-toolbar .toolbar-icon {
+                --iron-icon-height: 50px;
+                --iron-icon-width: 50px;
+                color: grey;
+                margin: 16px;
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host paper-fab {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                z-index: 10;
+                --paper-fab-background: #77bc1f;
+            }
+
+            :host paper-menu.floating-add-menu {
+                position: fixed;
+                bottom: 80px;
+                right: 24px;
+                z-index: 11;
+            }
+
+            :host paper-icon-item {
+                cursor: pointer;
+                position: relative;
+            }
+        </style>
+
+
+        <paper-card>
+            <div class="header">
+                <paper-toolbar class="tall">
+
+                    <div class="flex"></div>
+                    <iron-icon icon="social:school" class="toolbar-icon middle"></iron-icon>
+                    <div class="middle flex">
+                        <div class="title">Trainings</div>
+                        <div class="paper-font-subhead">List</div>
+                    </div>
+                    <div class="middle flex">
+                        <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                    </div>
+
+                </paper-toolbar>
+            </div>
+
+            <div class="card-actions">
+
+                <a href="//cockpit.ax-semantics.com" target="_blank" rel="noopener noreferrer">
+                    Add new Trainings in the Cloud Cockpit
+                </a>
+
+            </div>
+
+        </paper-card>
+
+         <view-model-list-section-header section-title="Trainings" search-term="{{searchTerm}}"
+                                        _is-loading="[[_isLoading]]"
+                                        show-add-button="[[showAddButton]]" show-title="[[showTitle]]"></view-model-list-section-header>
+        <section class="list-view-list">
+            <template is="dom-repeat" items="{{data}}" filter="{{_filterList(searchTerm)}}" initial-count="50" sort="{{_orderByObjectKey('name')}}">
+
+                <paper-icon-item on-tap="goToTraining">
+                    <iron-icon item-icon icon="social:school" class="list-icon"></iron-icon>
+                    <paper-item-body three-line>
+                        <div>[[item.name]]</div>
+                        <div secondary>ID: <span>[[item.id]]</span></div>
+                        <template is="dom-if" if="[[item.hasPendingImports]]">
+                            <div secondary>Import running</div>
+                        </template>
+                    </paper-item-body>
+
+                    <template is="dom-if" if="[[item.hasPendingImports]]">
+                        <paper-spinner active></paper-spinner>
+                    </template>
+                    <template is="dom-if" if="[[!item.hasPendingImports]]">
+                        <paper-icon-button
+                                class="btn-list-show-detail"
+                                icon="chevron-right" >
+                        </paper-icon-button>
+                    </template>
+                </paper-icon-item>
+
+            </template>
+        </section>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-training-list-light',
+            behaviors: [AxWizard.PageRoutingBehavior, AxWizard.BaseModelListViewBehaviour],
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'storage-training',
+                    notify: true
+                },
+                showAddButton: {
+                    type: Boolean,
+                    value: false
+                },
+                showTitle: {
+                    type: Boolean,
+                    value: false
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name',
+                            'id'
+                        ];
+                    }
+                },
+                _refreshP: {
+
+                }
+            },
+
+            goToTraining: function (event) {
+                var trainingPk = event.model.item.id;
+                event.preventDefault();
+
+                page('/trainings/' + trainingPk);
+            },
+
+            refresh: function (forceReload) {
+                var self = this,
+                    p;
+                
+                if (this._isDataLoaded && !forceReload) {
+                    this.dataLoaded(this.data);
+                    return Promise.resolve(self);
+                }
+
+                if (this._refreshP && !forceReload) {
+                    return this._refreshP;
+                }
+
+                self.set('data', []);
+                self.set('_isLoading', true);
+                p = new Promise(function (resolve, reject) {
+                    self._getStorage().then(function (storage) {
+                        storage.performJsonGetAction('', {fields: 'id,name,has_pending_imports'}).then(function (request) {
+                            var items = request.response || [];
+                            self.set('data', items);
+                            self.dataLoaded(items).then(function () {
+                                self.set('_isLoading', false);
+                                self.set('_isDataLoaded', true);
+                            });
+                        }).catch(function (e) {
+                            self.set('_isLoading', false);
+                            self.set('_isDataLoaded', false);
+                            reject(e);
+                        });
+                    });
+                    resolve(self);
+                });
+                this.set('_refreshP', p);
+                return this._refreshP;
+            }
+
+        });
+    })();
+</script>

@@ -1,0 +1,280 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+<link rel="import" href="../ax-components/ax-highlight-atml-containers.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-form-containers.html">
+
+<dom-module id="view-model-sentence-variant-detail-inplace-fields">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+            :host h4 {
+                display: inline-block;
+            }
+
+            :host .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            :host .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host paper-material {
+                padding: 16px;
+            }
+            :host .model-property-text {
+                margin: 0;
+                padding: 0 15px;
+            }
+
+            :host .clickable {
+                cursor: pointer;
+            }
+        </style>
+        <template is="dom-if" if="[[!trainingUsesContainer]]" restamp>
+
+            <div>
+                <h4 on-tap="_inplaceEditText">Text<paper-icon-button hidden="[[_isInplaceEditText]]" icon="editor:mode-edit"></paper-icon-button></h4>
+                <paper-material class="model-property-text" elevation="0"
+                     on-tap="_inplaceEditText"
+                     hidden="[[_isInplaceEditText]]"
+                        >
+                                [[model.data.text]]
+
+                </paper-material>
+                <template is="dom-if" if="[[_isInplaceEditText]]" restamp>
+                    <base-model-inplace-form form-data={{textFormData}}
+                                             id="inplace-text"
+                                             hide-buttons
+                                             hidden="[[!_isInplaceEditText]]"
+                                             on-form-cancel="_stopInplaceEditText"
+                                             on-model-save-success="_stopInplaceEditText"
+                                             model-pk="[[modelPk]]"
+                                             allowed-fields="{{_toArray('text')}}"
+                                             storage-id="sentence-variant">
+
+                        <paper-textarea
+                            autofocus
+                            tabindex="-1"
+                            label="Text"
+                            value="{{textFormData.text}}"
+                            id="model-data-text"
+                            required error-message="This field is required."
+                            >
+
+                            <paper-icon-button suffix icon="clear" on-tap="_cancelInplaceText"></paper-icon-button>
+                            <paper-icon-button suffix icon="done" on-tap="_saveInplaceText"></paper-icon-button>
+                    </paper-textarea>
+
+                    </base-model-inplace-form>
+                </template>
+            </div>
+        </template>
+
+        <template is="dom-if" if="[[trainingUsesContainer]]" restamp>
+            <h4>Text</h4>
+            <view-model-sentence-variant-form-containers
+                    has-unsaved-changes="{{_isInplaceEditText}}"
+                    on-model-save-success="_stopPropagation"
+                    model-pk="[[modelPk]]"></view-model-sentence-variant-form-containers>
+        </template>
+
+         <div>
+            <h4 on-tap="_inplaceEditLanguage">Language<paper-icon-button hidden="[[_isInplaceEditLanguage]]" icon="editor:mode-edit"></paper-icon-button></h4>
+            <paper-material class="model-list-section-header-description" elevation="0"
+                 hidden="[[_isInplaceEditLanguage]]"
+                    >
+                <span class="clickable" on-tap="_inplaceEditLanguage">
+                    [[model.data.language]]
+                </span>
+
+
+            </paper-material>
+            <template is="dom-if" if="[[_isInplaceEditLanguage]]" restamp>
+                <base-model-inplace-form form-data={{languageFormData}}
+                                         id="inplace-language"
+                                         hide-buttons
+                                         hidden="[[!_isInplaceEditLanguage]]"
+                                         on-form-cancel="_stopInplaceEditLanguage"
+                                         on-model-save-success="_stopInplaceEditLanguage"
+                                         model-pk="[[modelPk]]"
+                                         allowed-fields="{{_toArray('language')}}"
+                                         storage-id="sentence-variant">
+                    <div class="flex-row">
+                    <paper-dropdown-menu required label="Language" on-iron-overlay-opened="_stopPropagation" error-message="This field is required.">
+                        <paper-menu class="dropdown-content" attr-for-selected="value"
+                                    selected="{{languageFormData.language}}" >
+                            <template is="dom-repeat" items="[[languageChoices]]">
+                                <paper-item value="[[item.id]]">[[item.name]]</paper-item>
+                            </template>
+                        </paper-menu>
+
+                    </paper-dropdown-menu>
+
+                        <paper-icon-button suffix icon="clear" on-tap="_cancelInplaceLanguage"></paper-icon-button>
+                        <paper-icon-button suffix icon="done" on-tap="_saveInplaceLanguage"></paper-icon-button>
+                        </div>
+                </base-model-inplace-form>
+            </template>
+        </div>
+
+        <div>
+            <h4>Use for content generation</h4>
+            <paper-button>
+                <paper-toggle-button
+                        on-tap="_toggleSentenceVariantActive"
+                        checked="[[model.data.active]]"
+                        title="[[_toggleSentenceVariantActiveTitleText(model.data.active)]]" class="mode-switch">
+                </paper-toggle-button>
+            </paper-button>
+        </div>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-variant-detail-inplace-fields',
+
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                modelName: {
+                    type: String,
+                    value: 'sentence-variant',
+                    readOnly: true
+                },
+                trainingPk: {
+                    notify: true
+                },
+                _isInplaceEditText: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+
+                _isInplaceEditLanguage: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _containerFormHasUnsavedChanges: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                languageChoices: {
+                    type: Array,
+                    notify: true
+                },
+                hasUnsavedChanges: {
+                    type: Boolean,
+                    computed: '_checkHAsUnsavedChanges(_isInplaceEditText, _isInplaceEditLanguage)',
+                    notify: true
+                }
+            },
+
+            _checkHAsUnsavedChanges: function () {
+                var args = Array.prototype.slice.call(arguments);
+                return args.filter(function (a) {
+                   return !!a;
+                }).length > 0;
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+
+
+            _toArray: function () {
+                return Array.prototype.slice.call(arguments);
+            },
+
+            _inplaceEditText: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditText', true);
+            },
+            _stopInplaceEditText: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditText', false);
+            },
+
+            _cancelInplaceText: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-text').cancel(event);
+            },
+            _saveInplaceText: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-text').saveModel(event);
+            },
+
+            _inplaceEditLanguage: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditLanguage', true);
+            },
+            _stopInplaceEditLanguage: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditLanguage', false);
+            },
+            _cancelInplaceLanguage: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-language').cancel(event);
+            },
+            _saveInplaceLanguage: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-language').saveModel(event);
+            },
+
+            modelChanged: function (model) {
+                this._loadLanguageChoices();
+                this._loadTraining();
+            },
+
+            _loadLanguageChoices: function () {
+                this.fire('ax-get-training-languages', {}).detail.languages.then(function (list) {
+                    this.set('languageChoices', list);
+                }.bind(this));
+            },
+
+            _loadTraining: function () {
+                app.storageContainer.getObject('training', this.trainingPk).then(function (training) {
+                    this.set('training', training);
+                    this.set('trainingUsesContainer', training.get('data.containerMode'));
+                }.bind(this));
+            },
+
+            _toggleSentenceVariantActive: function (event) {
+                event.stopPropagation();
+                this.model.save(['active'], {active: !this.model.get('data.active')});
+            },
+            _toggleSentenceVariantActiveTitleText: function (isOn) {
+                return isOn ? 'Variant is active' : 'Variant is not active';
+            }
+
+        });
+    })();
+</script>

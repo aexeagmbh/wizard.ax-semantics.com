@@ -1,0 +1,183 @@
+<script>
+    var AxWizard = AxWizard || {};
+    AxWizard.BaseModelFormBehavior = {
+
+        properties: {
+
+            storageId: {
+                type: String,
+                value: '',
+//                notify: true
+            },
+            modelPk: {
+                type: String,
+                value: '',
+//                notify: true,
+                observer: '_modelPkChanged'
+            },
+            model: {
+                type: Object,
+                observer: '_modelChanged',
+//                notify: true
+            },
+            _isLoading: {
+                type: Boolean,
+                value: false
+            },
+            allowedFields: {
+                type: Array,
+                value: function () {
+                    return [];
+                },
+//                notify: true
+            },
+            loadModel: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+            formData: {
+                type: Object,
+                value: function () {
+                    return {};
+                },
+                notify: true
+            },
+            disableSubmit: {
+                type: Boolean,
+                value: false,
+                notify: true
+            }
+        },
+
+
+        _getStorage: function (storageId) {
+            var self = this,
+                    p;
+            p = new Promise(function (resolve, reject) {
+                var storageContainer = document.querySelector('#storage-container');
+                storageContainer.getStorage(storageId).then(function (storage) {
+                    if (storage) {
+                        if (!storage.get('noFieldsFromOptions')) {
+                            storage.optionsPost();
+                        }
+                        resolve(storage);
+                    } else {
+                        console.log('_getStorage ERROR');
+                        reject();
+                    }
+                }, function (e) {
+                    console.log('_getStorage ERROR');
+                    reject();
+                });
+            });
+            return p;
+        },
+
+        _loadModel: function (modelPk) {
+            var self = this,
+                p;
+            self.set('_isLoading', true);
+            p = new Promise(function (resolve, reject) {
+                self._getStorage(self.storageId.replace('storage-', '')).then(function (storage) {
+                    var modelP;
+                    if (!self.loadModel) {
+                        modelP = storage.getNewObject();
+                    } else {
+                        modelP = storage.fetchObject(modelPk).then(function (m) {
+                            return m.refresh(true);
+                        });
+                    }
+
+
+                    modelP.then(function (model) {
+                        self.set('model', model);
+//                        self.set('formData', JSON.parse(JSON.stringify(model.data)));
+                        self._initFormData(model);
+                        self.set('_isLoading', false);
+                        self.fire('model-loaded', storage.getItemIdOrDefault(model.data));
+                        resolve(modelP);
+                    }, function () {
+                        console.log('noModel loaded');
+                        self.set('formData', {});
+                        self.set('model', null);
+                        reject(modelP);
+                    });
+
+                });
+            });
+            return p;
+        },
+
+        _initFormData: function (model) {
+            this.set('formData', null);
+            this.set('formData', JSON.parse(JSON.stringify(model.data)));
+        },
+
+        attached: function () {
+            return this._loadModel(this.get('modelPk'));
+        },
+
+        _modelChanged: function (model) {
+            // Implemented in children
+        },
+
+        _modelPkChanged: function (newVal) {
+            return this._loadModel(newVal);
+        },
+
+        cancel: function (event) {
+            var self = this,
+                p;
+            if (event) {
+                event.preventDefault();
+            }
+            app.fire('ax-ga-event', {category: 'Form', action: 'canceled', label: this.is});
+            p = self.model.refresh();
+            p.then(function (m) {
+                self.set('model', m);
+                self.set('model.data', m.data);
+//                self.set('formData', JSON.parse(JSON.stringify(m.data)));
+                self._initFormData(m);
+                self.fire('form-cancel');
+            });
+            return p;
+        },
+
+        _preSaveModel: function () {
+        },
+
+        submitAction: function () {
+            return this.saveModel();
+        },
+
+        saveModel: function () {
+            var self = this,
+                    p;
+            app.fire('ax-ga-event', {category: 'Form', action: 'save', label: this.is});
+            self.set('_isLoading', true);
+            self._preSaveModel();
+            p = this.model.save(this.allowedFields, this.formData);
+            p.then(function (m) {
+                self.fire('model-save-success', m);
+                self.set('_isLoading', false);
+                self._initFormData(m);
+            }, function (e) {
+                console.log('model-save-error', e);
+                self.set('_isLoading', false);
+                self.fire('model-save-error', e);
+            });
+
+            return p;
+        },
+
+        refresh: function () {
+            return this._loadModel(this.modelPk);
+        },
+
+        _stopPropagation: function (event) {
+            event.stopPropagation();
+        }
+
+    };
+</script>

@@ -1,0 +1,570 @@
+<script>
+var AxWizard = AxWizard || {};
+AxWizard.AxCrudRestStoreBehavior = {
+
+    properties: {
+        axApiName: {
+            type: String,
+            notify: true
+        },
+        apiUrl: {
+            type: String,
+            value: '',
+            notify: true,
+            observer: '_apiUrlChanged'
+        },
+        wsUrl: {
+            type: String,
+            value: '',
+            notify: true
+        },
+        singleEndPoint: {
+            type: String,
+            value: '',
+            notify: true
+        },
+        actionEndPoint: {
+            type: String,
+            value: '',
+            notify: true
+        },
+        listEndPoint: {
+            type: String,
+            value: '',
+            notify: true
+        },
+        appendPkToSingleUrls: {
+            type: Boolean,
+            value: true,
+            notify: true
+        },
+        noFieldsFromOptions: {
+            type: Boolean,
+            value: false
+        },
+        fields: {
+            type: Object,
+            notify: true
+        },
+        parentPropertyUrlParamName: {
+
+        }
+    },
+
+    _apiUrlChanged: function (newVal, oldVal) {
+
+        if (!oldVal) {
+            return;
+        }
+
+        this.purgeAll();
+    },
+
+    _setFields: function (options) {
+        var fieldObj = options.actions.POST,
+                normalizedFieldObj = {};
+
+        Object.keys(fieldObj).forEach(function (fieldName) {
+            var field = fieldObj[fieldName],
+                    normalizedFieldName = fieldName.replace(/(_[a-z])/g, function ($1) {
+                        return $1.toUpperCase().replace('_', '');
+                    });
+
+            normalizedFieldObj[normalizedFieldName] = field;
+        });
+
+        this.set('fields', normalizedFieldObj);
+    },
+
+    computeEndPointUrl: function (fragment, params, apiUrl) {
+        var urlPath = '' + fragment,
+                re = /###([^\#]+)###/,
+                match;
+
+        if (!fragment) {
+            return  apiUrl + '/';
+        }
+
+
+        while (!!(match = re.exec(urlPath))) {
+            urlPath = urlPath.replace(match[0], params[match[1]]);
+        }
+
+        return [apiUrl, urlPath].join('/') + '/';
+
+    },
+
+    getListEndPointByParentPk: function (parentPk) {
+        var fragment = this.listEndPoint;
+        var apiUrl = this.apiUrl;
+        var match = fragment.match(/###([^\#]+)###/);
+        if (match && match.length) {
+            if (parentPk) {
+                return  apiUrl + '/' + fragment.replace(match[0], parentPk) + '/';
+            } else {
+                return   apiUrl + '/' + fragment + '/';
+            }
+        }
+        return  apiUrl + '/' + fragment + '/';
+    },
+
+    getSingleEndPoint: function (pk, params) {
+        var url = this.computeEndPointUrl(this.singleEndPoint, (params || this.params), this.apiUrl);
+
+        if (pk && this.appendPkToSingleUrls) {
+            url += pk + '/';
+        }
+
+        return url;
+    },
+
+    getActionEndPoint: function (pk, params) {
+        if (!this.actionEndPoint) {
+            return this.getSingleEndPoint(pk, params);
+        }
+        var url = this.computeEndPointUrl(this.actionEndPoint, (params || this.params), this.apiUrl);
+
+        if (pk && this.appendPkToSingleUrls) {
+            url += pk + '/';
+        }
+
+        return url;
+    },
+
+    getWebServiceSingleEndPoint: function (pk, params) {
+        var url;
+        if (this.appendPkToSingleUrls && !pk) {
+            throw(new Error('Missing pk for url'));
+        }
+
+        url = this.computeEndPointUrl(this.singleEndPoint, (params || this.params), this.wsUrl);
+        if (this.appendPkToSingleUrls && pk) {
+            url += pk + '/';
+        }
+        return url;
+    },
+
+    list: function (parentPk, params, forceReload) {
+        var self = this,
+                items;
+
+        // there is no possibility to load this item
+        if ((parentPk === null || parentPk === undefined || parentPk === 'undefined')) {
+            return Promise.reject(new Error('No parent id provided'));
+        }
+        parentPk = parentPk || 0;
+
+        if (!forceReload && this._isListLoaded[parentPk]) {
+            // item exists; so return it
+            items = self._getItemsByParentPk(parentPk);
+            if (items) {
+                return Promise.resolve(items);
+            }
+        }
+
+        if (forceReload && this._isListLoaded[parentPk]) {
+            // item exists; so remove them all
+            items = self._getItemsByParentPk(parentPk);
+            items.forEach(function (item) {
+                this._deleteItem(this._getItemStorageId(item));
+            }.bind(this));
+        }
+
+
+
+        if (this.listPromiseMap[parentPk]) {
+            return this.listPromiseMap[parentPk];
+        }
+
+
+        if (this.itemParentIdPropertyName) {
+            params = params || {};
+
+            if (this.parentPropertyUrlParamName) {
+                params[this.parentPropertyUrlParamName] = params[this.parentPropertyUrlParamName] || parentPk;
+            } else {
+                params[this.itemParentIdPropertyName] = params[this.itemParentIdPropertyName] || parentPk;
+            }
+
+
+        }
+
+        this.listPromiseMap[parentPk] = new Promise(function (resolve, reject) {
+            var crud = self.getCrud(),
+                    res;
+            crud.set('listUrl', self.getListEndPointByParentPk(parentPk));
+            res = crud.promiseList(params);
+            res.then(function (response) {
+                self._setItems(self._extractListResponse(response), parentPk).then(function (items) {
+                    delete self.listPromiseMap[parentPk];
+                    self._isListLoaded[parentPk] = true;
+                    resolve(items);
+                });
+
+            }).catch(function (e) {
+                console.log({listE: e});
+                delete self.listPromiseMap[parentPk];
+                reject(e);
+            });
+            return res;
+        });
+
+        return this.listPromiseMap[parentPk];
+    },
+
+    /**
+    * used to prime storage
+    */
+    bulkList: function (parentPks, params, forceReload) {
+        var self = this,
+                parentPksStr,
+                items;
+
+        // there is no possibility to load this item
+        if ((parentPks === null || parentPks === undefined || parentPks === 'undefined' || parentPks.length === 0)) {
+            return Promise.reject(new Error('No parent id provided'));
+        }
+        parentPks = parentPks || [0];
+
+        parentPksStr = parentPks.sort(function (a,b) {return a<b;}).join(',');
+
+        if (!forceReload && this._isListLoaded[parentPksStr]) {
+            var ret = [];
+            parentPks.forEach(function (parentPk) {
+                ret = ret.concat(self._getItemsByParentPk(parentPk) || []);
+            });
+
+                return Promise.resolve(ret);
+        }
+
+        if (this.listPromiseMap[parentPksStr]) {
+            return this.listPromiseMap[parentPksStr];
+        }
+
+
+        if (this.itemParentIdPropertyName) {
+            params = params || {};
+            params[this.itemParentIdPropertyName] = params[this.itemParentIdPropertyName] || parentPksStr;
+        }
+
+        this.listPromiseMap[parentPksStr] = new Promise(function (resolve, reject) {
+            var crud = self.getCrud(),
+                res;
+
+            crud.set('listUrl', self.getListEndPointByParentPk(parentPksStr));
+            res = crud.promiseList(params);
+            res.then(function (response) {
+                var items = self._extractListResponse(response);
+                self._setItems(items, null).then(function () {
+                    self._isListLoaded[parentPksStr] = true;
+
+                    parentPks.forEach(function (parentPk) {
+                        self._isListLoaded[parentPk] = true;
+                    });
+                    delete self.listPromiseMap[parentPksStr];
+                    resolve(items);
+                });
+
+            }).catch(function (e) {
+                console.log({listE: e});
+                delete self.listPromiseMap[parentPksStr];
+                reject(e);
+            });
+            return res;
+        });
+
+        return this.listPromiseMap[parentPksStr];
+    },
+
+
+    /**
+     *
+     * @param String pk
+     * @param Object params
+     * @param Boolean forceReload
+     * @returns {Promise}
+     */
+    promiseGet: function (pk, params, forceReload) {
+        var self = this,
+                getUrl,
+                item;
+
+        // there is no possibility to load this item
+        if ((!pk || pk === 'undefined') && this.appendPkToSingleUrls) {
+            return Promise.reject(new Error('No id provided for ' + this.id));
+        }
+
+
+        if (!forceReload) {
+            // item exists; so return it
+            item = self._getItem(pk);
+            if (item) {
+                return Promise.resolve(item);
+            }
+        }
+
+
+        getUrl = self.getSingleEndPoint(pk, params);
+        // item is already loading; return loading promise
+        if (self.getPromiseMap[getUrl]) {
+            return self.getPromiseMap[getUrl];
+        }
+
+        self.getPromiseMap[getUrl] = new Promise(function (resolve, reject) {
+            var crud = self.getCrud(),
+                    res;
+
+            crud.set('getUrl', getUrl);
+            res = crud.promiseGet({});
+
+            res.then(function (response) {
+                var item = response.response,
+                        itemWithEnsuredId = self._setItemId(item, (self._getItemId(item) || pk));
+                self._setItem(itemWithEnsuredId).then(function (o) {
+                    delete self.getPromiseMap[getUrl];
+                    resolve(o);
+                });
+            }).catch(function (e) {
+                delete self.getPromiseMap[getUrl];
+                reject(e);
+            });
+        });
+
+        return self.getPromiseMap[getUrl];
+    },
+
+    /**
+     *
+     * @param Object data
+     * @returns {Promise}
+     */
+    post: function (data, params) {
+        var self = this,
+                p;
+        p = new Promise(function (resolve, reject) {
+            var crud = self.getCrud(),
+                    res;
+
+            crud.set('postUrl', self.getSingleEndPoint(null, params));
+            res = crud.promisePost({}, JSON.stringify(data));
+            res.then(function (response) {
+                var item = response.response;
+
+                self._setItem(item).then(function (o) {
+                    self._displayMessage(self.verboseSingleName + ' created');
+                    resolve(o);
+                });
+            }).catch(function (e) {
+
+                reject(e);
+            });
+        });
+
+        return p;
+    },
+
+    /**
+     *
+     * @param Object data
+     * @param String id
+     * @returns {Promise}
+     */
+    put: function (data, id, params) {
+        var self = this,
+                pk = id || self._getItemId(data),
+                p;
+        p = new Promise(function (resolve, reject) {
+            var crud = self.getCrud(),
+                    res;
+
+            crud.set('putUrl', self.getSingleEndPoint(pk, params));
+            res = crud.promisePut({}, JSON.stringify(data));
+            res.then(function (response) {
+                var item = response.response;
+                self._setItem(item).then(function (o) {
+                    self._displayMessage(self.verboseSingleName + ' updated');
+                    resolve(o);
+                });
+            }).catch(function (e) {
+                reject(e);
+            });
+        });
+
+        return p;
+    },
+
+    /**
+     *
+     * @param Object data
+     * @param String id
+     * @returns {Promise}
+     */
+    patch: function (data, id, params) {
+        var self = this,
+                pk = id || self._getItemId(data),
+                p;
+        p = new Promise(function (resolve, reject) {
+            var crud = self.getCrud(),
+                    res;
+
+            crud.set('patchUrl', self.getSingleEndPoint(pk, params));
+            res = crud.promisePatch({}, JSON.stringify(data));
+            res.then(function (response) {
+                var item = response.response;
+                self._setItem(item).then(function (o) {
+                    self._displayMessage(self.verboseSingleName + ' updated');
+                    resolve(o);
+                });
+            }).catch(function (e) {
+                reject(e);
+            });
+        });
+
+        return p;
+    },
+
+    delete: function (pk) {
+        var self = this,
+                p;
+
+        p = new Promise(function (resolve, reject) {
+            var crud = self.getCrud(),
+                    res;
+
+            crud.set('deleteUrl', self.getSingleEndPoint(pk));
+            res = crud.promiseDelete({});
+            res.then(function (payload) {
+                self._deleteItem(pk);
+                self._displayMessage(self.verboseSingleName + ' deleted');
+                resolve(payload);
+            }).catch(function (e) {
+                reject(e);
+            });
+        });
+
+        return p;
+    },
+
+    optionsPost: function () {
+        var self = this;
+
+        self.set('optionsPromise', self.optionsPromise || new Promise(function (resolve, reject) {
+            var crud = self.getCrud(),
+                    res;
+
+            if (self.fields) {
+                resolve(self.fields);
+                return;
+            }
+            crud.set('optionsUrl', self.getSingleEndPoint());
+            res = crud.promiseOptionsPost({});
+            res.then(function (response) {
+                self._setFields(response.response);
+                resolve(self.fields);
+            }).catch(function (e) {
+                try {
+                } catch (e) {
+                    reject(e.message);
+                }
+            });
+        }));
+
+        return self.optionsPromise;
+    },
+
+
+
+    _buildCrudRequestSetup: function (method, handleAs, contentType, url) {
+        var setup = {
+            method: method
+        };
+        if (handleAs) {
+            setup.handleAs = handleAs;
+        }
+        if (contentType) {
+            setup.contentType = contentType;
+        }
+
+        setup.url = url;
+
+        return setup;
+    },
+
+    _performAction: function (actionName, setup, params, body) {
+        var self = this,
+            p;
+
+        p = new Promise(function (resolve, reject) {
+            var crud = self.getCrud();
+            app.fire('ax-ga-event', {category: 'Model', action: actionName, label: self.modelName});
+//            app.fire('ax-intercom-event', {eventName: self.modelName, details: {action: actionName}});
+            crud.promiseAction(setup, params, body).then(function (resp) {
+                resolve(resp);
+            }, function (e) {
+                reject(e);
+            });
+
+        });
+
+        return p;
+    },
+
+    buildActionUrl: function (url, actionName) {
+        if(actionName === ''){
+            return url;
+        }
+        return url + actionName + '/';
+    },
+
+    performJsonPostAction: function (actionName, params, body, pk, urlParams) {
+        var self = this,
+            url = this.buildActionUrl(this.getActionEndPoint(pk, urlParams), actionName),
+            setup = self._buildCrudRequestSetup('POST', 'json', 'application/json', url);
+
+        return self._performAction(actionName, setup, params, body);
+    },
+
+    performJsonGetAction: function (actionName, params, pk, urlParams) {
+        var self = this,
+            url = this.buildActionUrl(this.getActionEndPoint(pk, urlParams), actionName),
+            setup = self._buildCrudRequestSetup('GET', 'json', 'application/json', url);
+
+        return self._performAction(actionName, setup, params, null);
+    },
+
+    performFileGetAction: function (actionName, params, pk, urlParams) {
+        var self = this,
+            url = this.buildActionUrl(this.getActionEndPoint(pk, urlParams), actionName),
+            setup = self._buildCrudRequestSetup('GET', 'blob', 'application/json', url);
+
+        return self._performAction(actionName, setup, params, null);
+    },
+
+    performJsonPutAction: function (actionName, params, body, pk, urlParams) {
+        var self = this,
+            url = this.buildActionUrl(this.getActionEndPoint(pk, urlParams), actionName),
+            setup = self._buildCrudRequestSetup('PUT', 'json', 'application/json', url);
+
+        return self._performAction(actionName, setup, params, body);
+    },
+
+
+
+    _onDrfCrudSaveError: function (event, obj) {
+        this._displayMessage('ERROR: Saving ' + this.verboseSingleName + ' failed. ' + obj.axCrudErrorMsg);
+    },
+    _onDrfCrudDeleteError: function (event, obj) {
+        this._displayMessage('ERROR: Deleting ' + this.verboseSingleName + ' failed. ' + obj.axCrudErrorMsg);
+    },
+    _onDrfCrudLoadError: function (event, obj) {
+        this._displayMessage('ERROR: Loading ' + this.verboseSingleName + ' failed. ' + obj.axCrudErrorMsg);
+    },
+    _onDrfCrudLoadListError: function (event, obj) {
+        this._displayMessage('ERROR: Loading ' + this.verbosePluralName + ' failed. ' + obj.axCrudErrorMsg);
+    },
+    _onDrfActionError: function (event, obj) {
+        this._displayMessage('ERROR: Action on ' + this.verboseSingleName + ' failed. ' + obj.axCrudErrorMsg);
+    }
+
+};
+</script>

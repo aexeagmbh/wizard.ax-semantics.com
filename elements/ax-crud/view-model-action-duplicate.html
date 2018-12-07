@@ -1,0 +1,107 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-validator-behavior/iron-validator-behavior.html">
+
+<link rel="import" href="../ax-crud/base-model-behaviour.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+<dom-module id="view-model-action-duplicate">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+        <custom-validator id="name-validator" validator-name="name-validator"></custom-validator>
+        <form id="action-form" on-submit="submitAction" is="iron-form">
+            <template is="dom-if" restamp if="[[isNamed]]">
+                <paper-input validator="name-validator" auto-validate id="input-name" autofocus value="{{formData.name}}" label="[[_getLabelForName(model)]]" required error-message="This field requires a unique name."></paper-input>
+            <p></p>
+            </template>
+
+        </form>
+    </template>
+</dom-module>
+<script>
+    (function () {
+
+        function getDefaultFormData() {
+            return {};
+        }
+
+        Polymer({
+            is: 'custom-validator',
+            behaviors: [
+                Polymer.IronValidatorBehavior
+            ]
+        });
+
+
+        Polymer({
+            is: 'view-model-action-duplicate',
+
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            properties: {
+                isNamed: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true,
+//                    notify: true
+                },
+                storageId: {
+                    type: String,
+//                    notify: true
+                },
+                loadModel: {
+                    type: Boolean,
+                    value: true,
+                    readOnly: true
+                }
+            },
+
+            _initFormData: function (model) {
+                var formData = {};
+                if (this.isNamed) {
+                    formData.name = model.getDisplayName() || '';
+                }
+                this.set('formData', formData);
+                this.$['name-validator'].validate = this._validateName.bind(this);
+            },
+
+
+            _validateName: function (newName) {
+                return newName && newName !== this.model.getDisplayName();
+            },
+
+            _getLabelForName: function (model) {
+                return 'Name of the duplicate of ' + model.getDisplayName();
+            },
+
+            submitAction: function () {
+                if (!this.$['action-form'].validate()) {
+                    return;
+                }
+
+                return this.model.duplicate(this.formData).then(function (resp) {
+                    this.fire('model-save-success', resp);
+                }.bind(this), function (e) {
+                    this.fire('model-save-error', e);
+                }.bind(this));
+
+            }
+
+        });
+    })();
+</script>

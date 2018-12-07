@@ -1,0 +1,178 @@
+<script>
+    var AxWizard = AxWizard || {};
+
+    AxWizard.ModelPushableBehavior = {
+
+        properties: {
+
+            pk: {
+                notify: true
+            },
+            isPushEnabled: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+
+            params: {
+                type: Object,
+                notify: true
+            }
+
+        },
+        listeners: {
+            'pk-changed': '_pushEndpointChanged',
+            'model-pushable-close': '_onModelPushableClose',
+            'model-pushable-open': '_onModelPushableOpen'
+        },
+
+        _onModelPushableClose: function (event) {
+            event.stopPropagation();
+            this._closeSocket();
+        },
+
+        _onModelPushableOpen: function (event) {
+            event.stopPropagation();
+            this._openSocket();
+        },
+
+        attached: function () {
+            if (this.isPushEnabled) {
+                this._openSocket();
+            }
+        },
+
+        detached: function () {
+            this._closeSocket();
+        },
+
+        _pushEndpointChanged: function () {
+            if (this.isPushEnabled && this.isAttached) {
+                this._closeSocket();
+                this._openSocket();
+            }
+        },
+
+
+        _onSocketError: function () {
+            console.log('_onSocketError', arguments);
+        },
+
+        _onSocketMessage: function (event) {
+            var messageData = JSON.parse(event.data),
+                action = messageData.action,
+                modelType = messageData.type,
+                modelPk = messageData.pk,
+                modelParentPk = messageData.parent,
+                storageName;
+
+            if (!modelType) {
+
+                try {
+                    window.Raven.captureMessage('Push did not provide a type', {messageData: messageData});
+                    throw new Error('Push did not provide a type');
+                } catch (e) {
+                    console.log(e, messageData);
+                }
+
+
+                return; //nothing to do
+            }
+
+            storageName = this._getStorageNameByModelType(modelType);
+
+            if (action === 'updated') {
+                app.storageContainer.getStorage(storageName).then(function (storage) {
+                    if (!storage.checkIsItemLoaded(modelPk)) {
+                        return;
+                    }
+
+                    storage.fetchObject(modelPk).then(function (model) {
+                        model.refresh(true);
+                    });
+
+                }.bind(this), function (e) {
+                    //pass silent
+                    console.log('push updated', e);
+                });
+            }
+
+            if (action === 'deleted') {
+                app.storageContainer.getStorage(storageName).then(function (storage) {
+                    if (!storage.checkIsItemLoaded(modelPk)) {
+                        return;
+                    }
+
+                    storage.deleteLocalItem(modelPk);
+
+                }.bind(this), function (e) {
+                    //pass silent
+                    console.log('push deleted', e);
+                });
+            }
+
+            if (action === 'created') {
+                app.storageContainer.getStorage(storageName).then(function (storage) {
+                    if (modelParentPk) {
+                        app.storageContainer.getStorage(storage.parentStorageName).then(function (parentStorage) {
+
+                            if (!parentStorage.checkIsItemLoaded(modelParentPk)) {
+                                return;
+                            } else {
+                                 storage.fetchObject(modelPk);
+                            }
+                        }, function (e) {
+
+                            //pass silent
+                            console.log('push created parent', e);
+                        });
+                    } else {
+                        storage.fetchObject(modelPk);
+                    }
+
+                }.bind(this), function (e) {
+
+                    //pass silent
+                    console.log('push created', e);
+                });
+            }
+
+        },
+
+        _getStorageNameByModelType: function (modelType) {
+            var storageName = modelType.replace(/\.?([A-Z])/g, function (x,y){return '-' + y.toLowerCase();}).replace(/^-/, '');
+
+            if (storageName === 'product-type' || storageName === 'story-type') {
+                return 'nested-product-type'; // FIXME: rework productType Endpoint to fullfill all needs
+            }
+
+            return storageName;
+        },
+
+        _openSocket: function () {
+            this._getStorage().then(function (storage) {
+                var socketUrl,
+                    mySocket;
+
+                try {
+                    socketUrl = storage.getWebServiceSingleEndPoint(this.pk, this.params);
+                } catch (e) {
+                    return;
+                }
+
+                mySocket = new WebSocket(socketUrl);
+                mySocket.onerror = this._onSocketError.bind(this);
+                mySocket.onmessage = this._onSocketMessage.bind(this);
+
+                this.set('_socket', mySocket);
+            }.bind(this));
+        },
+
+        _closeSocket: function () {
+            if (this._socket) {
+                this._socket.close();
+            }
+        }
+
+    };
+</script>

@@ -1,0 +1,74 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+
+<link rel="import" href="../model-lookup-value/view-model-lookup-value-form.html">
+
+
+<dom-module id="view-model-lookup-value-modal-new">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Add Lookup Value</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <view-model-lookup-value-form id="modal-dialog-form" lookup-pk="[[lookupPk]]"
+                                                  training-uses-container="[[trainingUsesContainer]]"
+                                                  on-model-save-success="handleResponse"></view-model-lookup-value-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Add Lookup Value</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-lookup-value-modal-new',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                lookupPk: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                _lookupValuesUseContainer: {
+                    type: Boolean,
+                    computed: '_computeLookupValuesUseContainer(trainingVersion, trainingPk)',
+                    notify: true
+                }
+
+            },
+
+            _computeLookupValuesUseContainer: function (trainingVersion) {
+                var versionInfo = trainingVersion.split('.');
+
+                if ((versionInfo[1] && versionInfo[1] >= 1) || versionInfo[0] > 3) {
+                    return true;
+                }
+
+                return false;
+            }
+        });
+
+    })();
+</script>

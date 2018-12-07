@@ -1,0 +1,201 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../model-property/view-model-property-selector.html">
+
+<dom-module id="trigger-select-fields">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            :host .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+
+        </style>
+
+        <paper-toolbar class="section-header">
+            <div class="flex-row">
+                <h4 hidden="[[noHeading]]">Triggers</h4>
+
+                <div style="margin-left: 2em" class="flex-row">
+                    <paper-toggle-button checked="{{autoTriggered}}"></paper-toggle-button>
+                    <span>Auto (always)</span>
+                </div>
+            </div>
+        </paper-toolbar>
+
+
+        <template is="dom-if" if="[[!autoTriggered]]">
+
+
+            <template is="dom-repeat" items="{{_selectedTriggers}}" >
+
+                <paper-item class="flex-row" toggles active="{{item._itemIsActive}}">
+                    <div class="paper-item-body flex">
+                         <div class="flex-row">
+                            <view-model-property-selector on-tap="stopPropagation" hidden="[[!_showItemInput(item._itemIsActive, item.identifier)]]" selected-property="{{item._itemSelectedProperty}}" class="flex" item-value-prop-name="id" parent-pk="[[trainingPk]]" value="{{item.identifier}}"></view-model-property-selector>
+                            <div hidden="[[_showItemInput(item._itemIsActive, item.identifier)]]">[[item._itemSelectedProperty.name]]</div>
+                            <paper-material hidden="[[!_showItemInput(item._itemIsActive, item.identifier)]]" elevation="0">is true</paper-material>
+                            <paper-icon-button hidden="[[!_showItemInput(item._itemIsActive, item.identifier)]]" icon="delete" raised on-tap="_removeTriggerProperty">
+                            </paper-icon-button>
+                        </div>
+                     </div>
+                </paper-item>
+            </template>
+            <div class="flex-row">
+                <paper-button on-tap="_addTriggerProperty"
+                              raised>
+                    [[addButtonLabel]]
+                </paper-button>
+            </div>
+        </template>
+
+    </template>
+</dom-module>
+<script>
+(function () {
+
+    var _idx = 0;
+
+    Polymer({
+        is: 'trigger-select-fields',
+
+        stopPropagation: function (event) {
+            event.stopPropagation();
+        },
+
+        properties: {
+
+            _triggerAuto: {
+                type: Boolean,
+                notify: true
+            },
+            _selectedTriggers: {
+                type: Array,
+                notify: true
+            },
+            trainingPk: {
+
+            },
+            triggers: {
+                notify: true
+            },
+            autoTriggered: {
+                type: Boolean,
+                notify: true
+            },
+            _idxCounter: {
+                type: Number,
+                value: 0
+            },
+            addButtonLabel: {
+                type: String,
+                notify: true,
+                value: 'Or...'
+            },
+            noHeading: {
+                type: Boolean,
+                reflectToAttribute: true,
+                value: false
+            }
+
+        },
+
+
+        observers: [
+          '_observeSelectedTriggers(_selectedTriggers, _selectedTriggers.length, _selectedTriggers.*)'
+        ],
+
+        attached: function () {
+            this._initSelectedTriggers(this.triggers);
+        },
+
+        _showItemInput: function (isActive, value) {
+            return isActive || !value;
+        },
+
+        _initSelectedTriggers: function (triggers) {
+            var selectedTriggers;
+
+            if (!triggers) {
+                selectedTriggers = [];
+            } else {
+                selectedTriggers = triggers.filter(function (triggerName, idx, arr) {
+                    return arr.indexOf(triggerName) === idx;
+                }).map(function (identifier, idx) {
+                   return {identifier: identifier, idx: _idx++, _itemIsActive: false} ;
+                });
+            }
+
+            if (!selectedTriggers.length) {
+                selectedTriggers.push({identifier: '', idx: _idx++,  _itemIsActive: false});
+            }
+
+            this.set('_selectedTriggers', selectedTriggers);
+        },
+
+        _observeSelectedTriggers: function (selectedTriggers) {
+            var triggers;
+            triggers = selectedTriggers.filter(function (x) {
+                    return x.identifier !== '';
+                }).map(function (x) {
+                return x.identifier;
+            }).filter(function (x, idx, arr) {
+                    return arr.indexOf(x) === idx;
+            });
+
+            this.set('triggers', triggers);
+        },
+
+        _isLastListIndex: function (idx, length) {
+            return idx - 0 === length - 1;
+        },
+
+        _addTriggerProperty: function (event) {
+            event.stopPropagation();
+            if (this._selectedTriggers === undefined) {
+                this.set('_selectedTriggers', []);
+            }
+            this.push('_selectedTriggers', {identifier: '', idx: _idx++, _itemIsActive: true});
+        },
+
+        _removeTriggerProperty: function (event) {
+            var idx = this._selectedTriggers.indexOf(event.model.item);
+            if (idx < 0) {
+                return;
+            }
+
+            this.splice('_selectedTriggers', idx, 1);
+            if (!this._selectedTriggers.length) {
+                this.push('_selectedTriggers', {identifier: '', idx: _idx++});
+            }
+        }
+
+    });
+})();
+</script>
+
+

@@ -1,0 +1,151 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+
+<link rel="import" href="../../bower_components/moment-js/moment-js.html">
+
+<dom-module id="view-model-training-action-export">
+
+    <template>
+         <style include="iron-flex">
+            :host {
+                display: block;
+            }
+            :host paper-card{
+                width: 100%;
+            }
+            :host paper-button{
+                margin-bottom: 15px;
+            }
+            :host .clickable {
+                cursor: pointer;
+            }
+        </style>
+        <form on-submit="submitAction">
+        </form>
+        <div id="atml-dl-link-container" style="display: none">
+
+        </div>
+        <template is="dom-if" if="[[exportData]]">
+            <paper-card>
+                <div class="header paper-card">
+                    <paper-item on-tap="downloadAtml" class="clickable">
+                        <paper-item-body
+                                two-line>
+                            <div>ATML Export</div>
+                            <div secondary>
+                                <moment-js date="[[exportData.timestamp]]" format="YYYY-MM-DD HH:mm:ss"></moment-js>
+                            </div>
+
+                        </paper-item-body>
+                        <div class="flex"></div>
+                        <div>
+                            <paper-icon-button on-tap="downloadAtml" title="Download as file" icon="icons:file-download"></paper-icon-button>
+
+                        </div>
+                    </paper-item>
+
+
+                </div>
+            </paper-card>
+        </template>
+        <template is="dom-if" if="[[!exportData]]">
+            No exports available at the moment.
+            <paper-button raised on-tap="submitAction">Create a new export now</paper-button>
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-training-action-export',
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'training',
+                    notify: true
+                },
+                exportData: {
+                    type: Object,
+                    notify: true
+                },
+                isDownloadAvailable: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                }
+            },
+
+            downloadAtml: function (event) {
+                event.stopPropagation();
+                this.model.getTrainingExportFile().then(function (req) {
+                   var blob = req.response,
+                       link = document.createElement('a');
+
+                    link.setAttribute('id', 'download-atml-link');
+                    link.setAttribute('target', '_blank');
+                    link.setAttribute('href', URL.createObjectURL(blob));
+                    link.setAttribute('download', 'training_export.atml3');
+                    this.$['atml-dl-link-container'].appendChild(link);
+                    link.click();
+
+                    
+                }.bind(this));
+            },
+
+
+            submitAction: function () {
+                return this.model.createTrainingExport().then(function (resp) {
+                    this.fire('model-action-success', resp);
+                }.bind(this), function (e) {
+                    this.fire('model-action-error', e);
+                }.bind(this));
+
+            },
+
+            _loadModel: function (modelPk) {
+                var p = AxWizard.BaseModelFormBehavior._loadModel.call(this, modelPk);
+
+                p.then(function (model) {
+                    model.getTrainingExport().then(function (request) {
+                                var exportData = request.response;
+                                exportData.timestamp = exportData['@timestamp'];
+                                this.set('exportData', exportData);
+                                this.set('isDownloadAvailable', true);
+                            }.bind(this),
+                            function () {
+                                this.set('exportData', null);
+                                this.set('isDownloadAvailable', false);
+                            }.bind(this));
+                }.bind(this),
+                function () {
+                    this.set('exportData', null);
+                    this.set('isDownloadAvailable', false);
+                }.bind(this));
+
+                return p;
+            },
+
+
+            cancel: function (event) {
+                this.set('exportData', null);
+                AxWizard.BaseModelFormBehavior.cancel.call(this, event);
+            }
+
+        });
+    })();
+</script>

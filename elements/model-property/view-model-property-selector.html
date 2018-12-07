@@ -1,0 +1,256 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+
+<dom-module id="view-model-property-selector">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host #btn {
+                margin: 0;
+                padding: 0;
+                position: relative;
+            }
+
+            :host #btn,
+            :host paper-dialog {
+                cursor: pointer;
+                width: 100%;
+            }
+            :host #search-field {
+                width: 100%;
+            }
+
+            :host paper-dialog {
+                margin: 0;
+                /*min-height: 128px;*/
+                position: absolute !important;
+                /*width: 100%;*/
+                min-width: 450px;
+            }
+
+            :host paper-toolbar {
+                background-color: grey;
+            }
+
+            :host #bbox {
+                position: relative;
+                width: 100%;
+            }
+
+        </style>
+
+        <div id="bbox" class="flex" style="position: relative;">
+            <template is="dom-if" if="[[!renderAsButton]]">
+                <paper-button hidden="[[dialogOpened]]" id="btn" active="{{dialogOpened}}"
+                          noink
+                          toggles>
+
+                    <paper-input tabindex="0" style="width: 100%;" label="[[label]]" value="[[selectedProperty.name]]"
+                                 readonly>
+
+                        <iron-icon suffix icon="icons:arrow-drop-down"></iron-icon>
+                    </paper-input>
+                </paper-button>
+            </template>
+            <template is="dom-if" if="[[renderAsButton]]">
+                <paper-button raised hidden="[[dialogOpened]]"  active="{{dialogOpened}}"
+                          toggles>
+                    <span>[[label]]</span>
+
+                </paper-button>
+            </template>
+            <template is="dom-if" if="[[dialogOpened]]" restamp>
+                <ax-search-field id="search-field" placeholder="Search Property" search-term="{{searchTerm}}"
+                                 display-opened-form
+                                 no-label-float="[[axSearchFieldNoLabelFloat]]"
+                                 leave-form-opened hidden="[[!dialogOpened]]">
+
+                    <paper-dialog on-iron-overlay-opened="_diaOpened" on-iron-overlay-closed="_diaClosed"
+
+                                  always-on-top
+                                  no-overlap
+                                  dynamic-align
+                                  id="dia"
+                                  opened="{{dialogOpened}}"
+                                  position-target="[[searchField]]">
+
+
+                        <paper-dialog-scrollable id="scroll-dia">
+
+                            <iron-list items="[[_sortedFilteredItems]]" as="item"
+                                       style="flex: 1 1 auto;"
+                                       selection-enabled
+                                       max-physical-count="100000">
+                                <template>
+                                    <paper-item class="clickable" on-tap="_selectItem">
+                                        <paper-item-body>
+                                            <div>[[item.name]]</div>
+                                            <div secondary title="[[item.comment]]">[[item.comment]]</div>
+                                        </paper-item-body>
+                                    </paper-item>
+                                </template>
+                            </iron-list>
+                        </paper-dialog-scrollable>
+
+                    </paper-dialog>
+
+                </ax-search-field>
+
+            </template>
+
+        </div>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-property-selector',
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            _selectItem: function (event) {
+                this.set('value', event.model.item[this.itemValuePropName]);
+
+                this.$$('#dia').close();
+            },
+
+            _diaClosed: function (event) {
+                event.stopPropagation();
+                this.set('searchTerm', '');
+                this.$$('#dia').resetFit();
+
+            },
+            _diaOpened: function (event) {
+                event.stopPropagation();
+                 var dia = this.$$('#dia');
+                    dia.refit();
+                this.$$('ax-search-field').focus();
+
+            },
+
+
+            ready: function () {
+                this.set('btn', this.$.btn);
+                this.set('searchField', this.$['search-field']);
+            },
+
+            _getIronListScrollTarget: function () {
+                return this.$$('iron-list').parentNode;
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            properties: {
+                axSearchFieldNoLabelFloat: {
+                    type: Boolean,
+                    value: false
+                },
+                selectedProperty: {
+                    type: Object,
+                    notify: true,
+                    value: function () {
+                        return {name: ''};
+                    }
+                },
+                _sortedFilteredItems: {
+                    type: Array
+                },
+                _showDataPropertyWizard: {
+                    type: Boolean,
+                    value: false
+                },
+                value: {
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                renderAsButton: {
+                    type: Boolean,
+                    notify: true,
+                    reflectToAttribute: true,
+                    value: false
+                },
+                label: {
+                    type: String,
+                    value: 'Property',
+
+                },
+                storageId: {
+                    type: String,
+                    value: 'storage-property',
+                    notify: true
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name',
+                            'comment'
+                        ];
+                    }
+                },
+                itemValuePropName: {
+                    type: String,
+                    value: 'id'
+                },
+
+            },
+
+            observers: [
+                '_computeSortedFilteredItems(data, searchTerm, data.length)',
+                '_computeSelectedProperty(data, value)',
+            ],
+
+
+            _computeSelectedProperty: function (data, id) {
+                var match;
+
+                if (!data || !data.length) {
+                    return;
+                }
+                match = data.filter(function (item) {
+                    return item[this.itemValuePropName] === id;
+                }.bind(this));
+                if (match.length) {
+                    this.set('selectedProperty', match[0]);
+                } else {
+                    this.set('selectedProperty', {name: ''});
+                }
+            },
+
+            _computeSortedFilteredItems: function (data, searchTerm) {
+                if (!data) {
+                    this.set('_sortedFilteredItems', []);
+                }
+                this.set('_sortedFilteredItems', this._filterAndSortData(data, searchTerm));
+            },
+
+            _filterAndSortData: function (data, searchTerm) {
+                var filterFn = this._filterList(searchTerm),
+                        sortFn = this._orderByObjectKey('name');
+                return data.filter(filterFn).sort(sortFn);
+            },
+
+        });
+    })();
+</script>

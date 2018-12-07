@@ -1,0 +1,161 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<script>
+  
+  window.Zecat = window.Zecat || {};
+  /*
+@polymerBehavior Zecat.PaperStepperBehavior
+*/
+  Zecat.PaperStepperBehavior = {
+
+    listeners: {
+      'continue-step': '_continueStep',
+      'skip-step': 'progress',
+      'back-step': 'back',
+      'progress': '_updatePreviousCompleted'
+    },
+
+    properties: {
+      /**
+       * Fired when all steps are completed.
+       *
+       * @event stepper-completed
+       */
+      backText: {
+        type: String,
+        value: 'BACK'
+      },
+      skipText: {
+        type: String,
+        value: 'skip'
+      },
+      continueText: {
+        type: String,
+        value: 'CONTINUE'
+      },
+      selected: {
+        type: Number,
+        value: 0,
+        observer: '_selectedChange'
+      },
+      linear: {
+        type: Boolean,
+        value: false
+      },
+      optionalText: {
+        type: String,
+        value: 'Optional'
+      },
+      stepsProperties: {
+        type: Array
+      },
+      completed: {
+        type: Boolean,
+        value: false,
+        readOnly: true,
+        observer: '_completedChange'
+      },
+      _backStepIndex: {
+        type: Number,
+        computed: '_compute_backStepIndex(selected)'
+      },
+      _hasBackStep: {
+        type: Boolean,
+        computed: '_compute_hasBackStep(_backStepIndex)'
+      }
+    },
+
+    _continueStep: function(e) {
+      var selectedItem = e.target;
+      if ( ( step = selectedItem.getEffectiveChildren()[0] )
+        && step.validate() ) {          
+        selectedItem.completed = true;
+        this.progress();
+      }
+    },
+
+    continue: function() {
+      if ( (this.$.stepSelector.selectedItem || this.progress())
+        && ( step = this.$.stepSelector.selectedItem.getEffectiveChildren()[0] )
+        && step.validate() ) {
+        this.$.stepSelector.selectedItem.completed = true;
+        this.progress();
+      }
+    },
+
+    _updatePreviousCompleted: function(e) {
+      var progressIdx = e.detail;
+      progressIdx == this.$.stepSelector.items.length ?
+        this._setCompleted(true) :
+        this.$.stepSelector.items[e.detail].previousCompleted = true;
+    },
+    /**
+     * Loops around the steps from the current (if no step opened, from the first one)
+     * in order to open the next selectable uncompleted step. Returns true if a step has been opened.
+     */
+    progress: function() {
+      if (this.completed) {
+        return false;
+      }
+      var selector = this.$.stepSelector;
+      var selectedIndex = selector.selected;
+      var items = selector.items;
+      var length = items.length;
+      if (selectedIndex == null || selectedIndex > length - 1) {
+        selectedIndex = 0;
+      }
+      for (var i=(selectedIndex+1)%length; i!=selectedIndex; i=(i+1)%length) {
+        if (items[i].selectable && !items[i].completed) {
+          selector.select(i);
+          return true;
+        }
+      }
+      return false;
+    },
+    /**
+     * Select a step from index if it is selectable. Return true if the step has been selected.
+     */
+    selectStep: function(index) {
+      this.selected = index;
+      return this.selected == index;
+    },
+    /**
+     * Select the previous selectable step if it exist. Return true if the step has been selected.
+     */
+    back: function() {
+      if (this._hasBackStep) {
+        this.selected = this._backStepIndex;
+        return true;
+      } else {
+        return false;
+      }
+    },
+    _completedChange: function(completed) {
+      if (completed) {
+        this.$.stepSelector.selected = null;
+        this.fire('completed');
+      }
+    },
+    _compute_backStepIndex: function(selected) {
+      for (i=selected - 1; i >= 0; i--) {
+        console.log(i);
+        if (this.$.stepSelector.items[i] && this.$.stepSelector.items[i].selectable) {
+          return i;
+        }
+      }
+      return null;
+    },
+    _compute_hasBackStep: function(_backStepIndex) {
+      return _backStepIndex != null;
+    },
+    /* Reset the old value if the step isn't selectable*/
+    _selectedChange: function(newValue, oldValue) {
+      if (newValue != null && this.$.stepSelector.items.length
+        && !( (step = this.$.stepSelector.items[newValue]) && step.selectable) ) {
+        this.selected = oldValue;
+      }
+    }
+  };
+
+
+</script>

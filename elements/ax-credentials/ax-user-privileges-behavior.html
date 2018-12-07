@@ -1,0 +1,19 @@
+<script>
+var AxWizard = AxWizard || {};
+AxWizard.AxUserPrivilegesBehavior = {
+
+    properties: {
+        modelUser: {
+            notify: true
+        }
+    },
+
+    ready: function () {
+        app.storageContainer.getObject('user').then(function (modelUser) {
+            this.set('modelUser', modelUser);
+        }.bind(this));
+    }
+
+
+};
+</script>

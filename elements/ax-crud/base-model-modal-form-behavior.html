@@ -1,0 +1,78 @@
+<script>
+    var AxWizard = AxWizard || {};
+    AxWizard.BaseModelModalFormBehavior = {
+
+        properties: {
+            pk: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            _isLoading: {
+                type: Boolean,
+                value: false
+            },
+            noCancelOnEscKey: {
+                type: Boolean,
+                value: false,
+                readOnly: true
+            },
+            opened: {
+                type: Boolean,
+                value: false,
+                notify: true
+            },
+            trainingPk: {
+                notify: true
+            },
+            trainingUsesContainer: {
+                notify: true
+            },
+            trainingVersion: {
+                notify: true
+            }
+        },
+
+
+        open: function () {
+            this.$['modal-dialog'].open();
+            app.fire('ax-ga-event', {category: 'Dialog', action: 'opened', label: this.is});
+        },
+
+        close: function () {
+            this.$['modal-dialog'].close();
+            app.fire('ax-ga-event', {category: 'Dialog', action: 'closed', label: this.is});
+        },
+
+        cancelModalForm: function (event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            try {
+                this.$$('#modal-dialog-form').cancel();
+            } catch (e) {
+                // FIXME think about what went wrong if we get here...
+            }
+            this.close();
+
+        },
+
+        submitModalForm: function (event) {
+            event.preventDefault();
+            var form = this.$$('#modal-dialog-form');
+            form.submitAction();
+        },
+
+        handleResponse: function () {
+            this.cancelModalForm();
+        },
+
+        _refreshForm: function () {
+            var form = this.$$('#modal-dialog-form');
+            if (form) {
+                form.refresh();
+            }
+        }
+
+    };
+</script>

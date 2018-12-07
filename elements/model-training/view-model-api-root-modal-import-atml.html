@@ -1,0 +1,45 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-api-root/view-model-api-root-action-import-atml.html">
+
+
+<dom-module id="view-model-api-root-modal-import-atml">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+        <paper-dialog  class="full-display" id="modal-dialog" modal>
+            <h2>Import ATML</h2>
+            <paper-dialog-scrollable>
+                <view-model-api-root-action-import-atml id="modal-dialog-form"
+                                                             on-model-action-success="handleResponse">
+
+                </view-model-api-root-action-import-atml>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Import ATML</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-api-root-modal-import-atml',
+            behaviors: [AxWizard.BaseModelModalFormBehavior]
+        });
+
+    })();
+</script>

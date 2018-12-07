@@ -1,0 +1,607 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../model-training/story-type-editor/story-type-editor-mode-behavior.html">
+<link rel="import" href="../container-mode/container-view-model-sentence-variant-list.html">
+<link rel="import" href="../container-mode/container-view-translate-model-sentence-variant-list.html">
+<link rel="import" href="../container-mode/container-view-model-property-translation-list-detail.html">
+<link rel="import" href="../model-sentence/view-model-sentence-form-triggers.html">
+
+<dom-module id="container-view-translate-model-sentence-list-detail">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+            :host paper-card {
+                width: 100%;
+            }
+            :host #buttons paper-menu-button {
+                padding: 0;
+            }
+            :host .flex-row {
+                align-items: stretch;
+            }
+            :host *[ax-sentence-style=heading] {
+                font-size: 150%;
+            }
+            :host *[ax-sentence-style=subheading] {
+                font-size: 130%;
+            }
+            :host *[ax-sentence-style=subsubheading] {
+                font-size: 120%;
+            }
+            :host *[ax-sentence-style=subsubsubheading] {
+                font-size: 110%;
+            }
+            :host #sentence-detail-container {
+                display: flex;
+                flex-basis: 25%;
+                margin-left: 16px;
+            }
+            :host .flex-column {
+                display: flex;
+                flex-direction: column;
+            }
+
+            :host paper-icon-button.mode-switch[active] ::content iron-icon {
+                border-bottom: 2px solid #77bc1f;
+            }
+            :host paper-button.trigger-none ::content span,
+            :host paper-icon-button.trigger-none ::content iron-icon {
+                color: red;
+            }
+            :host paper-button.trigger-auto ::content span,
+            :host paper-icon-button.trigger-auto ::content iron-icon {
+                color: #77bc1f;
+            }
+            :host paper-button.trigger-property ::content span,
+            :host paper-icon-button.trigger-property ::content iron-icon {
+                color: #3f51b5;
+            }
+            :host container-view-model-sentence-variant-list.trigger-none {
+                opacity: 0.6;
+            }
+
+            :host #translation-base-content {
+                flex-basis: 50%;
+                flex-grow: 0;
+            }
+
+            :host .translation-content {
+                display: flex;
+                flex-direction: row;
+                align-items: stretch;
+                flex-wrap: wrap;
+            }
+
+            :host paper-toolbar paper-icon-button,
+            :host paper-toolbar paper-icon-button ::content iron-icon {
+                color: inherit;
+            }
+            :host paper-toolbar {
+                background-color: grey;
+            }
+            :host paper-material {
+                padding: 16px;
+            }
+            :host paper-tabs {
+                --paper-tabs-selection-bar-color: #77bc1f;
+
+            }
+            :host paper-tabs paper-tab {
+                --paper-tab-ink: #77bc1f;
+            }
+            :host paper-material h4 {
+                margin: 0;
+                padding: 0;
+            }
+            :host[is-item-list-detail-expanded] > paper-card {
+                margin-bottom: 8px;
+            }
+            :host .story-mode-container {
+                padding-top: 8px;
+                padding-bottom: 8px;
+            }
+        </style>
+        <template is="dom-if" if="[[modelPk]]" restamp>
+
+            <template is="dom-if" if="[[model.isStoryMode]]" restamp>
+                <paper-card elevation="[[_getCardElevation(isItemListDetailExpanded)]]">
+                    <div class="header paper-card">
+                        <div class="flex-row story-mode-container" id="main-content">
+                            <iron-icon item-icon icon="editor:wrap-text" hidden="[[!model.data.command]]"></iron-icon>
+                            <div>Story Mode Command</div>
+                        </div>
+                    </div>
+                </paper-card>
+            </template>
+
+            <template is="dom-if" if="[[!model.isStoryMode]]" restamp>
+
+                <paper-card elevation="[[_getCardElevation(isItemListDetailExpanded)]]">
+
+
+                    <div class="header paper-card">
+                        <template is="dom-if" if="[[isItemListDetailExpanded]]">
+                            <paper-toolbar  >
+
+
+                                <div class="flex"></div>
+                                <paper-icon-button icon="{{itemExpandedIcon(isItemListDetailExpanded)}}" on-tap="toggleItemListDetail">
+                                </paper-icon-button>
+                            </paper-toolbar>
+                        </template>
+
+
+                        <div class="flex-row translation-content">
+                            <div class="flex" id="translation-base-content" >
+                                <paper-material elevation="0" hidden="[[!isItemListDetailExpanded]]">
+                                <h4>Base Variant</h4>
+                                </paper-material>
+                                <container-view-translate-model-sentence-variant-list
+                                        is-translation-base
+                                        active-mode="readOnly"
+                                        selected-variant-pk="{{selectedTranslationBaseVariantPk}}"
+                                        filter-list-facets="{{_getSentenceVariantListFacets(translateLanguage)}}"
+
+                                        training-uses-containers="[[trainingUsesContainers]]"
+                                        language="[[translateLanguage]]"
+                                        search-term="{{searchTerm}}"
+                                        id="sentence-variant-list"
+                                        parent-pk="[[modelPk]]">
+                                </container-view-translate-model-sentence-variant-list>
+
+                            </div>
+                            <div class="flex" id="translation-target-content" >
+                                <paper-material elevation="0" hidden="[[!isItemListDetailExpanded]]">
+                                    <h4>Translation</h4>
+                                </paper-material>
+                                <container-view-translate-model-sentence-variant-list
+                                        id="translation-target-variant-list"
+                                        is-translation-target
+                                        active-mode="[[_getActiveModeForStep(translationStep, isItemListDetailExpanded)]]"
+                                        selected-variant-pk="{{selectedTranslationTargetVariantPk}}"
+                                        translation-step="{{translationStep}}"
+                                        filter-list-facets="{{_getSentenceVariantListFacets(language)}}"
+
+                                        training-uses-containers="[[trainingUsesContainers]]"
+                                        language="[[language]]"
+
+                                        search-term="{{searchTerm}}"
+                                        id="sentence-variant-list"
+                                        parent-pk="[[modelPk]]">
+                                </container-view-translate-model-sentence-variant-list>
+                                <template is="dom-if" if="[[_allOf(isItemListDetailExpanded, writeStep)]]">
+                                    <paper-material elevation="0">
+                                        <form is="iron-form" id="new-sentence-variant-form"
+                                              on-submit="_createNewSentenceVariant">
+                                            <paper-textarea no-label-float id="new-variant-input" tabindex="1"
+                                                            value="{{_newSentenceVariantText}}"
+                                                            placeholder="Write a new Translation here">
+
+                                                <paper-icon-button hidden="[[!_newSentenceVariantText.length]]"
+                                                                   suffix
+                                                                   icon="clear"
+                                                                   on-tap="_cancelNewSentenceVariantForm"></paper-icon-button>
+                                                <paper-icon-button hidden="[[!_newSentenceVariantText.length]]"
+                                                                   suffix
+                                                                   icon="done"
+                                                                   on-tap="_createNewSentenceVariant"></paper-icon-button>
+                                            </paper-textarea>
+                                        </form>
+                                    </paper-material>
+
+                                </template>
+                                <template is="dom-if" if="[[_allOf(isItemListDetailExpanded, translatePhrasesStep)]]">
+                                    <paper-material elevation="0">
+                                        <h4 elevation="0">
+                                            Translate Property Outputs
+                                        </h4>
+                                        <div >
+                                            <template is="dom-repeat" items="[[_propertiesInVariantContainers]]">
+
+                                                    <container-view-model-property-translation-list-detail
+                                                            model-pk="[[item.property]]"
+                                                            language="[[language]]"
+                                                            container-pks="[[item.containers]]"
+                                                            translate-language="[[translateLanguage]]"
+                                                            no-delete
+                                                            no-clone
+                                                            >
+
+                                                            </container-view-model-property-translation-list-detail>
+
+
+                                                </template>
+                                        </div>
+                                        <div class="bottom-divider"></div>
+                                    </paper-material>
+                            </template>
+
+
+                            </div>
+                            <paper-icon-button title="Translate" hidden="[[isItemListDetailExpanded]]" icon="{{itemExpandedIcon(isItemListDetailExpanded)}}" on-tap="toggleItemListDetail" style="margin-right: 16px;">
+                            </paper-icon-button>
+                        </div>
+
+
+                    </div>
+
+
+                </paper-card>
+            </template>
+
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'container-view-translate-model-sentence-list-detail',
+            behaviors: [
+                AxWizard.StoryTypeEditorModeBehavior,
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            _triggerClass: function (isNone, isAuto, isProperty) {
+                if (isNone) {
+                    return 'trigger-none';
+                }
+                if (isAuto) {
+                     return 'trigger-auto';
+                }
+                if (isProperty) {
+                    return 'trigger-property';
+                }
+            },
+
+            _triggerTitle: function (isNone, isAuto, isProperty) {
+                if (isNone) {
+                    return 'Sentence will never be rendered.';
+                }
+                if (isAuto) {
+                    return 'Sentence will always be rendered.';
+                }
+                if (isProperty) {
+                    return 'Sentence will be rendered if Properties match.';
+                }
+            },
+
+            _trimString: function (str) {
+                if (!str) {return '';}
+                return ('' + str).replace(/^\s*/, '').replace(/\s*$/, '');
+            },
+
+            _catchSentenceDetailTap: function (event) {
+                this._stopPropagation(event);
+            },
+
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            _getSentenceVariantListFacets: function (language) {
+                if (language) {
+                    return {'language': language};
+                }
+
+                return {};
+            },
+
+            _toArray: function () {
+                return Array.prototype.slice.call(arguments);
+            },
+
+            _noneOf: function () {
+                return Array.prototype.slice.call(arguments).filter(function (x) {return !!x;}).length === 0;
+            },
+            _allOf: function () {
+                return Array.prototype.slice.call(arguments).filter(function (x) {return !!x;}).length === arguments.length;
+            },
+
+            properties: {
+                language: {
+                    type: String,
+                    notify: true
+                },
+                _newSentenceVariantText: {
+                    type: String,
+                    value: ''
+                },
+                translationStep: {
+                    type: String,
+                    notify: true,
+                    value: 'write'
+                },
+                translateMagicDetailMode: {
+                    type: String,
+                    notify: true,
+                    value: 'properties'
+                },
+                selectedTranslationBaseVariantPk: {
+                    notify: true
+                },
+                selectedTranslationTargetVariantPk: {
+                    notify: true,
+                    observer: '_selectedTranslationTargetVariantPkChanged'
+                },
+
+                _isInplaceEditComment: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isInplaceEditTriggers: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                isTriggerAuto: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggerNone: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggeredByProperty: {
+                    type: Boolean,
+                    notify: true
+                },
+
+                modelName: {
+                    type: String,
+                    value: 'sentence',
+                    readOnly: true
+                },
+
+
+                writeStep: {
+                    type: Boolean,
+                    computed: '_computeWriteStep(translationStep)',
+                    notify: true,
+                    observer: '_writeStepChanged'
+                },
+                magicStep: {
+                    type: Boolean,
+                    computed: '_computeMagicStep(translationStep)',
+                    notify: true,
+                    observer: '_magicStepChanged'
+                },
+                translatePhrasesStep: {
+                    type: Boolean,
+                    computed: '_computeTranslatePhrasesStep(translationStep)',
+                    notify: true,
+                    observer: '_translatePhrasesStepChanged'
+                },
+
+                _propertiesInVariantContainers: {
+                    type: Array,
+                    notify: true
+                },
+
+                isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+
+            },
+
+            _writeStepChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('_showNewSentenceVariant', true);
+                this.set('_showTranslationBaseContainerProperties', true);
+                this.set('_showTranslationTargetContainerProperties', false);
+                this.set('_showSelectedTranslationVariant', true);
+                this.set('_showSelectedBaseVariant', true);
+
+                this.set('_showPropertiesInTranslationTargetVariant', false);
+                this.set('_selectedTranslationTargetVariantActiveMode', 'write');
+            },
+
+            _magicStepChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('_showNewSentenceVariant', false);
+                this.set('_showTranslationBaseContainerProperties', true);
+                this.set('_showTranslationTargetContainerProperties', true);
+                this.set('_showSelectedTranslationVariant', true);
+                this.set('_showSelectedBaseVariant', false);
+
+                this.set('_showPropertiesInTranslationTargetVariant', false);
+                this.set('_selectedTranslationTargetVariantActiveMode', 'magic');
+            },
+
+            _translatePhrasesStepChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('_showNewSentenceVariant', false);
+                this.set('_showTranslationBaseContainerProperties', false);
+                this.set('_showTranslationTargetContainerProperties', true);
+                this.set('_showSelectedTranslationVariant', true);
+                this.set('_showSelectedBaseVariant', false);
+                this.set('_showPropertiesInTranslationTargetVariant', true);
+                this.set('_selectedTranslationTargetVariantActiveMode', 'magic');
+
+                this._computePropertiesInVariantContainers(this.selectedTranslationTargetVariantPk).then(function (propertiesInVariantContainers) {
+                    this.set('_propertiesInVariantContainers', propertiesInVariantContainers);
+                }.bind(this));
+            },
+
+            _selectedTranslationTargetVariantPkChanged: function (selectedTranslationTargetVariantPk) {
+                this.set('_propertiesInVariantContainers', null);
+                this._computePropertiesInVariantContainers(selectedTranslationTargetVariantPk).then(function (propertiesInVariantContainers) {
+                    this.set('_propertiesInVariantContainers', propertiesInVariantContainers);
+                }.bind(this));
+            },
+
+            _getCardElevation: function (isExpanded) {
+                return isExpanded ? 2 : 1;
+            },
+
+            _computeWriteStep: function (modeName) {
+                return modeName === 'write';
+            },
+            _computeMagicStep: function (modeName) {
+                return modeName === 'magic';
+            },
+            _computeTranslatePhrasesStep: function (modeName) {
+                return modeName === 'translatePhrases';
+            },
+
+
+            _modelPkChanged: function (event) {
+                this.refresh();
+            },
+
+            observers: [
+                '_observeIsTriggerAuto(model.isTriggerAuto, model, model.data)',
+                '_observeIsTriggerNone(model.isTriggerNone, model, model.data)',
+                '_observeIsTriggeredByProperty(model.isTriggerAuto, model.isTriggerNone, model, model.data)'
+            ],
+
+            listeners: {
+                'ax-sentence-variant-added': '_sentenceVariantAdded',
+                'ax-open-training-dialog': '_openContainerDialog'
+            },
+
+
+            _observeIsTriggerAuto: function (isTriggerAuto) {
+                this.set('isTriggerAuto', isTriggerAuto);
+            },
+
+            _observeIsTriggerNone: function (isTriggerNone) {
+                this.set('isTriggerNone', isTriggerNone);
+            },
+
+            _observeIsTriggeredByProperty: function (isTriggerAuto, isTriggerNone) {
+                this.set('isTriggeredByProperty', !isTriggerAuto && !isTriggerNone);
+            },
+
+            saveItem: function () {
+                return this.model.save();
+            },
+
+            _validateSentenceVariants: function (event) {
+                event.stopPropagation();
+                this.model.validateSentenceVariants();
+            },
+
+             _createNewSentenceVariant: function (event) {
+                event.stopPropagation();
+                var language = this.language;
+                return app.storageContainer.getNewObject('sentence-variant').then(function (model) {
+                        model.save(null, {sentence: this.modelPk, language: this.language, text: this._newSentenceVariantText}).then(function () {
+                            this._cancelNewVariantForm();
+                            this.fire('ax-sentence-variant-added');
+                        }.bind(this));
+                }.bind(this));
+            },
+
+            _cancelNewVariantForm: function (event) {
+                if (event) {
+                    event.stopPropagation();
+                }
+                this.set('_newSentenceVariantText', '');
+            },
+
+
+            _sentenceVariantAdded: function (event) {
+                this.$$('#translation-target-variant-list').selectLastVariant();
+            },
+
+
+            _openContainerDialog: function (event, details) {
+                if (details.elementType === 'view-model-container-modal-split') {
+                    details.params = details.params || {};
+                    details.params.baseVariantPk = this.get('selectedTranslationBaseVariantPk');
+                }
+            },
+
+            toggleItemListDetail: function (event) {
+                event.stopPropagation();
+                this.set('isItemListDetailExpanded', !this.isItemListDetailExpanded);
+//                this.fire('iron-resize');
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'icons:close' : 'icons:translate';
+            },
+
+            _getActiveModeForStep: function (step, isItemListDetailExpanded) {
+                if (!isItemListDetailExpanded) {
+                    return 'readOnly';
+                }
+                if (step === 'write') {
+                    return 'write';
+                }
+                if (step === 'magic') {
+                    return 'magic';
+                }
+                if (step === 'translatePhrases') {
+                    return 'translatePhrases';
+                }
+
+                return 'readOnly';
+            },
+
+
+            _computePropertiesInVariantContainers: function (sentenceVariantPk) {
+
+                if (!sentenceVariantPk) {
+                    return Promise.resolve([]);
+                }
+                var containersP = app.storageContainer.getList('sentence-variant-container', sentenceVariantPk, {'sentence_variant': sentenceVariantPk});
+                return containersP.then(function (containers) {
+                    var propertyContainers = containers.filter(function (c) {return c.containerProperty;});
+
+                    var propertiesConnected = {};
+                    propertyContainers.forEach(function (c) {
+                        propertiesConnected[c.containerProperty] = propertiesConnected[c.containerProperty] || {containers: []};
+                        propertiesConnected[c.containerProperty].containers.push(c.id);
+
+                    });
+                    var ret = Object.keys(propertiesConnected).map(function (propertyPk) {
+                        return {'property': propertyPk, containers: propertiesConnected[propertyPk].containers};
+                    });
+
+                    return ret;
+                }.bind(this));
+
+//                return containersP;
+            },
+
+
+            _getVocabularyListFacets: function (filterLanguage) {
+                if (filterLanguage) {
+                    return {'language': filterLanguage};
+                }
+                return {};
+            },
+
+        });
+    })();
+</script>

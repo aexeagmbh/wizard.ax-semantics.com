@@ -1,0 +1,61 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-synonym-wizard.html">
+
+
+<dom-module id="view-model-sentence-variant-synonym-wizard-modal">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+
+        <paper-dialog class="full-display" id="modal-dialog" modal
+                      on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Variant Synonyms Wizard</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                    <view-model-sentence-variant-synonym-wizard language="{{language}}" id="modal-dialog-form"
+                                                                variant-pk="[[variantPk]]"
+                                                                training-uses-container="[[trainingUsesContainer]]"
+                            ></view-model-sentence-variant-synonym-wizard>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Close Variant Synonyms Wizard</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-sentence-variant-synonym-wizard-modal',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                variantPk: {
+                    type: String,
+                    value: '',
+                    notify: true
+                }
+            }
+
+        });
+
+    })();
+</script>

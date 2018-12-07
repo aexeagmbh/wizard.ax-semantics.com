@@ -1,0 +1,596 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+
+<dom-module id="view-model-container-action-split">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            .container-avatar {
+                width:100%;
+                flex-direction: column;
+                align-items: center;
+                display: flex;
+                width: 32px;
+                height: 32px;
+                border-radius: 16px;
+                border: 4px solid;
+                color: #77bc1f;
+                box-sizing: border-box;
+                font-weight: bold;
+                opacity: 0.7;
+            }
+            :host base-model-list-select ::content .dropdown-content {
+                max-width: none !important;
+            }
+        </style>
+
+         <view-model-container-list
+                storage-id="[[storageId]]"
+                model-name="[[storageId]]"
+                parent-model-name=""
+                active-mode="createOnly"
+                no-expand
+                filter-list-facets="[[_getFilterListFacets(model)]]"
+                parent-pk="[[model.parentPk]]">
+        </view-model-container-list>
+
+
+
+        <form on-submit="saveModel" is="iron-form">
+            <h4>Your selection for the new Container:</h4>
+            <p>[[_showWhitespace(_selectedText)]]</p>
+            <template is="dom-if" if="[[baseVariantPk]]">
+                 <base-model-list-select
+                        selected="{{baseContainerPk}}"
+                        filter-list-facets="[[_getBaseContainerSelectFacets()]]"
+                        show-empty-option
+                        template-id="list-select-base-container-template"
+                        label="Same container as"
+                        storage-id="[[storageId]]"
+                        parent-pk="[[baseVariantPk]]">
+                    <template id="list-select-base-container-template" is="dom-template">
+                        <view-model-container-list-item
+                            no-edit
+                            model-name="[[storageId]]"
+                            model-pk="[[baseModelListItem.id]]"
+                            label="[[baseModelListItem.source]]"
+                            value="[[baseModelListItem.id]]"
+                            ></view-model-container-list-item>
+                    </template>
+                </base-model-list-select>
+
+                <template is="dom-if" if="[[_baseContainer]]" restamp>
+
+                    <!-- some fields might reference other containers... ask user to update references -->
+
+                     <template is="dom-if" if="[[_baseContainer.data.attributes.copy_grammar_from]]" restamp>
+                        <div class="flex-row">
+                            <i>Uses same Grammar as:&nbsp;</i>
+                            <view-model-container-detail-chip
+                                    model-name="[[storageId]]"
+                                    model-pk="[[_baseContainer.data.attributes.copy_grammar_from]]">
+
+                            </view-model-container-detail-chip>
+                            <paper-dropdown-menu label="In Translation use"
+                                                 on-iron-overlay-opened="_stopPropagation">
+
+                                <paper-menu class="dropdown-content" attr-for-selected="value"
+                                            selected="{{_additionalFormData.copy_grammar_from}}">
+                                    <paper-item value="" label="Do not refer to other Container in Translation"></paper-item>
+                                    <template is="dom-repeat" items="[[_existingContainers]]">
+                                        <view-model-container-list-item
+                                                no-edit
+                                                model-name="[[storageId]]"
+                                                model-pk="[[item.id]]"
+                                                label="[[item.source]]"
+                                                value="[[item.id]]"
+                                                ></view-model-container-list-item>
+                                    </template>
+
+                                </paper-menu>
+                            </paper-dropdown-menu>
+                        </div>
+                    </template>
+                    <template is="dom-if" if="[[_baseContainer.data.attributes.copy_grammar_from_case]]" restamp>
+                        <div class="flex-row">
+                            <i>Uses same Case as:&nbsp;</i>
+                            <view-model-container-detail-chip
+                                    model-name="[[storageId]]"
+                                    model-pk="[[_baseContainer.data.attributes.copy_grammar_from_case]]"></view-model-container-detail-chip>
+                            <paper-dropdown-menu label="In Translation use"
+                                                 on-iron-overlay-opened="_stopPropagation">
+
+                                <paper-menu class="dropdown-content" attr-for-selected="value"
+                                            selected="{{_additionalFormData.copy_grammar_from_case}}">
+                                    <paper-item value="" label="Do not refer to other Container in Translation"></paper-item>
+                                    <template is="dom-repeat" items="[[_existingContainers]]">
+                                        <view-model-container-list-item
+                                                no-edit
+                                                model-name="[[storageId]]"
+                                                model-pk="[[item.id]]"
+                                                label="[[item.source]]"
+                                                value="[[item.id]]"
+                                                ></view-model-container-list-item>
+                                    </template>
+
+                                </paper-menu>
+                            </paper-dropdown-menu>
+                        </div>
+                    </template>
+
+                    <template is="dom-if" if="[[_baseContainer.data.attributes.copy_grammar_from_number]]" restamp>
+                        <div class="flex-row">
+                            <i>Uses same Number as:&nbsp;</i>
+                            <view-model-container-detail-chip
+                                    model-name="[[storageId]]"
+                                    model-pk="[[_baseContainer.data.attributes.copy_grammar_from_number]]"></view-model-container-detail-chip>
+                            <paper-dropdown-menu label="In Translation use"
+                                                 on-iron-overlay-opened="_stopPropagation">
+
+                                <paper-menu class="dropdown-content" attr-for-selected="value"
+                                            selected="{{_additionalFormData.copy_grammar_from_number}}">
+                                    <paper-item value="" label="Do not refer to other Container in Translation"></paper-item>
+                                    <template is="dom-repeat" items="[[_existingContainers]]">
+                                        <view-model-container-list-item
+                                                no-edit
+                                                model-name="[[storageId]]"
+                                                model-pk="[[item.id]]"
+                                                label="[[item.source]]"
+                                                value="[[item.id]]"
+                                                ></view-model-container-list-item>
+                                    </template>
+
+                                </paper-menu>
+                            </paper-dropdown-menu>
+                        </div>
+                    </template>
+
+                    <template is="dom-if" if="[[_baseContainer.data.attributes.copy_grammar_from_gender]]" restamp>
+                        <div class="flex-row">
+                            <i>Uses same Gender as:&nbsp;</i>
+                            <view-model-container-detail-chip
+                                    model-name="[[storageId]]"
+                                    model-pk="[[_baseContainer.data.attributes.copy_grammar_from_gender]]"></view-model-container-detail-chip>
+                            <paper-dropdown-menu label="In Translation use"
+                                                 on-iron-overlay-opened="_stopPropagation">
+
+                                <paper-menu class="dropdown-content" attr-for-selected="value"
+                                            selected="{{_additionalFormData.copy_grammar_from_gender}}">
+                                    <paper-item value="" label="Do not refer to other Container in Translation"></paper-item>
+                                    <template is="dom-repeat" items="[[_existingContainers]]">
+                                        <view-model-container-list-item
+                                                no-edit
+                                                model-name="[[storageId]]"
+                                                model-pk="[[item.id]]"
+                                                label="[[item.source]]"
+                                                value="[[item.id]]"
+                                                ></view-model-container-list-item>
+                                    </template>
+
+                                </paper-menu>
+                            </paper-dropdown-menu>
+                        </div>
+                    </template>
+
+                    <template is="dom-if" if="[[_baseContainer.data.attributes.copy_grammar_from_person]]" restamp>
+                        <div class="flex-row">
+                            <i>Uses same Person as:&nbsp;</i>
+                            <view-model-container-detail-chip
+                                    model-name="[[storageId]]"
+                                    model-pk="[[_baseContainer.data.attributes.copy_grammar_from_person]]"></view-model-container-detail-chip>
+                            <paper-dropdown-menu label="In Translation use"
+                                                 on-iron-overlay-opened="_stopPropagation">
+
+                                <paper-menu class="dropdown-content" attr-for-selected="value"
+                                            selected="{{_additionalFormData.copy_grammar_from_person}}">
+                                    <paper-item value="" label="Do not refer to other Container in Translation"></paper-item>
+                                    <template is="dom-repeat" items="[[_existingContainers]]">
+                                        <view-model-container-list-item
+                                                no-edit
+                                                model-name="[[storageId]]"
+                                                model-pk="[[item.id]]"
+                                                label="[[item.source]]"
+                                                value="[[item.id]]"
+                                                ></view-model-container-list-item>
+                                    </template>
+
+                                </paper-menu>
+                            </paper-dropdown-menu>
+                        </div>
+                    </template>
+
+                    <template is="dom-if" if="[[_baseContainer.data.attributes.copy_grammar_from_tense]]" restamp>
+                        <div class="flex-row">
+                            <i>Uses same Tense as:&nbsp;</i>
+                            <view-model-container-detail-chip
+                                    model-name="[[storageId]]"
+                                    model-pk="[[_baseContainer.data.attributes.copy_grammar_from_tense]]"></view-model-container-detail-chip>
+                            <paper-dropdown-menu label="In Translation use"
+                                                 on-iron-overlay-opened="_stopPropagation">
+
+                                <paper-menu class="dropdown-content" attr-for-selected="value"
+                                            selected="{{_additionalFormData.copy_grammar_from_tense}}">
+                                    <paper-item value="" label="Do not refer to other Container in Translation"></paper-item>
+                                    <template is="dom-repeat" items="[[_existingContainers]]">
+                                        <view-model-container-list-item
+                                                no-edit
+                                                model-name="[[storageId]]"
+                                                model-pk="[[item.id]]"
+                                                label="[[item.source]]"
+                                                value="[[item.id]]"
+                                                ></view-model-container-list-item>
+                                    </template>
+
+                                </paper-menu>
+                            </paper-dropdown-menu>
+                        </div>
+                    </template>
+
+                    <template is="dom-if" if="[[_baseContainer.data.attributes.reference_grammar_from]]" restamp>
+                        <div class="flex-row">
+                            <i>References Grammar:&nbsp;</i>
+                            <view-model-container-detail-chip
+                                    model-name="[[storageId]]"
+                                    model-pk="[[_baseContainer.data.attributes.reference_grammar_from]]"></view-model-container-detail-chip>
+                            <paper-dropdown-menu label="In Translation use"
+                                                 on-iron-overlay-opened="_stopPropagation">
+
+                                <paper-menu class="dropdown-content" attr-for-selected="value"
+                                            selected="{{_additionalFormData.reference_grammar_from}}">
+                                    <paper-item value="" label="Do not refer to other Container in Translation"></paper-item>
+                                    <template is="dom-repeat" items="[[_existingContainers]]">
+                                        <view-model-container-list-item
+                                                no-edit
+                                                model-name="[[storageId]]"
+                                                model-pk="[[item.id]]"
+                                                label="[[item.source]]"
+                                                value="[[item.id]]"
+                                                ></view-model-container-list-item>
+                                    </template>
+
+                                </paper-menu>
+                            </paper-dropdown-menu>
+                        </div>
+                    </template>
+
+
+
+                </template>
+
+
+            </template>
+        </form>
+    </template>
+</dom-module>
+<script>
+
+
+    (function () {
+        Polymer({
+            is: 'view-model-container-action-split',
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            properties: {
+                storageId: {
+                    type: String,
+//                    value: 'container',
+                    notify: true
+                },
+                actionName: {
+                    type: String,
+                    value: 'splitContainer',
+                    readOnly: true
+                },
+                allowedFields: {
+                    type: Array,
+                    value: function () {
+                        return ['start', 'end'];
+                    },
+                    notify: true
+                },
+                loadModel: {
+                    type: Boolean,
+                    value: true,
+                    readOnly: true
+                },
+                startPos: {
+                    type: Number,
+                    notify: true
+                },
+                endPos: {
+                    type: Number,
+                    notify: true
+                },
+                baseVariantPk: {
+                    notify: true
+                },
+                baseContainerPk: {
+                    notify: true,
+                    observer: '_loadBaseContainer'
+                },
+                _baseContainer: {
+                    notify: true
+                },
+                _existingContainers: {
+                    type: Array,
+                    notify: true
+                },
+                _additionalFormData: {
+                    type: Object,
+                    value: function () {
+                        return {
+                            'copy_grammar_from': '',
+                            'copy_grammar_from_case': '',
+                            'copy_grammar_from_number': '',
+                            'copy_grammar_from_gender': '',
+                            'copy_grammar_from_person': '',
+                            'copy_grammar_from_tense': '',
+                            'reference_grammar_from': ''
+                        };
+                    },
+                    notify: true
+                }
+            },
+
+            observers: [
+                '_initSelectedText(model.data.text, startPos, endPos, model, model.data)'
+            ],
+
+            _initFormData: function (model) {
+                var selectableContainerTypes = [
+                            'grammar',
+                            'text',
+                            'phrase',
+                            'group'
+                    ];
+                app.storageContainer.getList(this.storageId, model.get('parentPk')).then(function (containers) {
+                    this.set('_existingContainers', containers.filter(function (containerData) {
+                        return selectableContainerTypes.indexOf(containerData.containerType) > -1;
+                    }));
+                }.bind(this));
+            },
+
+            _cleanAdditionalFormData: function (additionalFormData) {
+                var cleanAdditionalFormData = {},
+                    hasAdditionalFormData = false;
+                Object.keys(additionalFormData).forEach(function (additionalFormDataFieldName) {
+                    var fieldValue = additionalFormData[additionalFormDataFieldName];
+                    if (fieldValue) {
+                        cleanAdditionalFormData[additionalFormDataFieldName] = fieldValue;
+                        hasAdditionalFormData = true;
+                    }
+                });
+
+                if (hasAdditionalFormData) {
+                    return cleanAdditionalFormData;
+                }
+                return null;
+            },
+
+            _loadBaseContainer: function (baseContainerPk) {
+                this.set('_baseContainer', null);
+                if (!this.baseContainerPk) {
+                    return;
+                }
+
+                app.storageContainer.getObject(this.storageId, baseContainerPk).then(function (baseContainer) {
+                    this.set('_baseContainer', baseContainer);
+
+                }.bind(this));
+
+            },
+
+            _preSaveModel: function () {
+                var positions = [parseInt(this.startPos, 10), parseInt(this.endPos, 10)].sort(function (a,b) {return a - b;});
+                this.set('formData', {
+                    start: positions[0],
+                    end: positions[1]
+                });
+            },
+
+            _showWhitespace: function (str) {
+                if (!str) {
+                    return '';
+                }
+                return str.split(' ').join('·');
+            },
+
+            _initSelectedText: function (containerContent, startPos, endPos) {
+                var positions = [parseInt(startPos, 10), parseInt(endPos, 10)].sort(function (a,b) {return a - b;});
+
+                this.set('_selectedText', (containerContent || '').slice(positions[0], positions[1]));
+            },
+
+            _getBaseContainerSelectFacets: function () {
+                return {
+                    containerType: [
+                            'grammar',
+                            'text',
+                            'phrase',
+                            'group'
+                    ]
+                };
+            },
+
+
+            saveModel: function () {
+                var self = this,
+                    p,
+                    model = self.model,
+                    actionName = self.actionName;
+
+
+                self.set('_isLoading', true);
+                self._preSaveModel();
+
+                if (this.get('baseContainerPk')) {
+                    p = this._createContainerLikeBaseContainer(model, this.formData, this.baseContainerPk);
+                } else {
+                    p = this._splitContainer(model, this.formData);
+                }
+
+
+                return p;
+            },
+
+            _createContainerLikeBaseContainer: function (model, formData, baseContainerPk) {
+                var self = this,
+                        p;
+
+                p = model.cloneContainer({start: formData.start, end: formData.end, source: baseContainerPk});
+                p.then(function (containers) {
+
+                    self._editNewContainer(containers, formData.start, self._additionalFormData);
+
+                }, function (e) {
+                    console.log('model-save-error', e);
+                    self.set('_isLoading', false);
+                    self.fire('model-action-error', e);
+                });
+
+                return p;
+
+            },
+
+            _splitContainer: function (model, formData) {
+                var self = this,
+                        p;
+
+                p = model.splitContainer(formData);
+                p.then(function (containers) {
+                    self._editNewContainer(containers, formData.start, self._additionalFormData);
+                }, function (e) {
+                    console.log('model-save-error', e);
+                    self.set('_isLoading', false);
+                    self.fire('model-action-error', e);
+                });
+
+                return p;
+            },
+
+
+            _editNewContainer: function (containers, startPos, additionalFormData) {
+                var self = this,
+                    newContainer,
+                    cleanAdditionalFormData = this._cleanAdditionalFormData(additionalFormData);
+
+                if (!containers) {
+                    return;
+                }
+
+                newContainer = containers[startPos ? 1 : 0];
+
+                if (newContainer && newContainer.id && cleanAdditionalFormData) {
+                    app.storageContainer.getObject(this.storageId, newContainer.id).then(function (m) {
+                        m.refresh(true).then(function (model) {
+                            var dataAttributes = model.get('data.attributes');
+
+                            Object.keys(cleanAdditionalFormData).forEach(function (fieldName) {
+                                dataAttributes[fieldName] = cleanAdditionalFormData[fieldName];
+                            });
+
+                            model.save(['attributes'], {attributes: dataAttributes}).then(function () {
+
+                                this.fire('ax-open-training-dialog',  {elementType: 'view-model-container-modal-edit', params: {modelPk: newContainer.id, modelName: this.storageId}});
+                                self.fire('model-save-success');
+                                self.set('_isLoading', false);
+                                self.set('formData', {});
+                                self.set('_additionalFormData', {
+                                    'copy_grammar_from': '',
+                                    'copy_grammar_from_case': '',
+                                    'copy_grammar_from_number': '',
+                                    'copy_grammar_from_gender': '',
+                                    'copy_grammar_from_person': '',
+                                    'copy_grammar_from_tense': '',
+                                    'reference_grammar_from': ''
+                                });
+                            }.bind(this));
+                        }.bind(this));
+                    }.bind(this));
+                } else if (newContainer && newContainer.id) {
+
+                    this.fire('ax-open-training-dialog',  {elementType: 'view-model-container-modal-edit', params: {modelPk: newContainer.id, modelName: this.storageId}});
+                    self.fire('model-save-success');
+                            self.set('_isLoading', false);
+                            self.set('formData', {});
+                            self.set('_additionalFormData', {
+                                'copy_grammar_from': '',
+                                'copy_grammar_from_case': '',
+                                'copy_grammar_from_number': '',
+                                'copy_grammar_from_gender': '',
+                                'copy_grammar_from_person': '',
+                                'copy_grammar_from_tense': '',
+                                'reference_grammar_from': ''
+                            });
+                } else {
+                    self.fire('model-save-success');
+                            self.set('_isLoading', false);
+                            self.set('formData', {});
+                            self.set('_additionalFormData', {
+                                'copy_grammar_from': '',
+                                'copy_grammar_from_case': '',
+                                'copy_grammar_from_number': '',
+                                'copy_grammar_from_gender': '',
+                                'copy_grammar_from_person': '',
+                                'copy_grammar_from_tense': '',
+                                'reference_grammar_from': ''
+                            });
+                }
+            },
+
+             _containerTypeAvatar: function (containerType) {
+                if (containerType === 'phrase' || containerType === 'group') {
+                    return 'P';
+                }
+                if (containerType === 'grammar') {
+                    return 'G';
+                }
+                if (containerType === 'text') {
+                    return 'T';
+                }
+
+                return '';
+            },
+
+            /**
+             * Looks for duplicate argument
+             * @returns {boolean}
+             * @private
+             */
+            _equalsOneOf: function () {
+                var args = Array.prototype.slice.call(arguments);
+
+                return args.filter(function (x, idx, ls) {
+                   return ls.indexOf(x) === idx;
+                }).length < args.length;
+            },
+
+            _getFilterListFacets: function (model) {
+
+                if (model.get('data.lookupValueType')) {
+                    return {lookupValueType: [model.get('data.lookupValueType')]};
+                } else if (model.get('data.vocabularyType')) {
+                    return {vocabularyType: [model.get('data.vocabularyType')]};
+                } else {
+                    return null;
+                }
+
+            }
+
+        });
+    })();
+</script>

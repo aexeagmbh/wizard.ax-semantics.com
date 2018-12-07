@@ -1,0 +1,237 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+
+<dom-module id="view-model-training-form">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+            :host  .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            :host .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+        </style>
+
+        <form on-submit="saveModel" hidden="[[isUploadForm]]" is="iron-form" id="model-form">
+            <input type="submit" value="save" style="display: none;">
+
+            <paper-input value="{{formData.name}}" label="Name" autofocus required error-message="This field is required."></paper-input>
+            <paper-textarea
+                    label="Description"
+                    value="{{formData.description}}"
+                    >
+            </paper-textarea>
+
+            <h4>Languages in this Training</h4>
+            <paper-material elevation="0"><p>You can restrict the selectable languages in your Training.</p>
+            </paper-material>
+            <paper-material hidden="[[languages.length]]" elevation="0"><p>Currently all available languages are configured to be selectable in this Training.</p>
+            </paper-material>
+
+            <ax-multi-select choices="[[languageChoices]]"
+                                         selected-values="{{languages}}"></ax-multi-select>
+            <div class="input-container flex-row">
+                <paper-toggle-button checked="{{formData.autoDraft}}"><span>Automatically draft all changes to the text engine</span></paper-toggle-button>
+            </div>
+
+
+
+        </form>
+        <form on-submit="uploadAtml" hidden="[[!isUploadForm]]" is="iron-form" id="model-upload-form">
+            <paper-textarea id="atml-string" value="{{atml}}" label="ATML" max-rows="10" autofocus required error-message="This field is required."></paper-textarea>
+        </form>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-training-form',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'training',
+                    notify: true
+                },
+                isUploadForm: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                allowedFields: {
+                    type: Array,
+
+                    value: function () {
+                        return ['name', 'description', 'autoDraft', 'languages'];
+                    },
+                    notify: true
+                },
+                atml: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                languageChoices: {
+                    type: Array,
+                    notify: true
+                }
+            },
+
+
+            _initFormData: function (model) {
+                AxWizard.BaseModelFormBehavior._initFormData.call(this, model);
+                this.set('languages', model.data.languages || []);
+            },
+
+            _loadModel: function (modelPk) {
+                var p = AxWizard.BaseModelFormBehavior._loadModel.call(this, modelPk);
+                p.then(function () {
+                    this._loadLanguageChoices();
+                }.bind(this));
+                return p;
+            },
+
+            _loadLanguageChoices: function () {
+                var self = this;
+                self._getStorage('language').then(function (storage) {
+                    storage.list('').then(function (list) {
+                        self.set('languageChoices', list.map(function (languageItem) {
+                            return {
+                                'display_name': languageItem.name,
+                                'value': languageItem.id
+                            };
+                        }));
+                    });
+                });
+            },
+
+            _preSaveModel: function () {
+                if (this.languages && this.languages.length) {
+                    this.set('formData.languages', this.languages);
+                } else {
+                    this.set('formData.languages', null);
+                }
+            },
+
+            _modelChanged: function (model) {
+
+            },
+
+            saveModel: function () {
+                if (this.$['model-form'].validate()) {
+                    return AxWizard.BaseModelFormBehavior.saveModel.call(this);
+                } else {
+                    return;
+                }
+            },
+
+            _validateAtml: function (atmlStr) {
+                var atml,
+                    atmlStringFormField = this.$$('#atml-string');
+
+                try {
+                   atml = JSON.parse(atmlStr);
+                } catch (e) {
+                    return false;
+                }
+
+                return true;
+            },
+
+            uploadAtml: function () {
+                var p,
+                    atmlStringFormField = this.$$('#atml-string'),
+                    atml,
+                    atmlSaveString;
+
+                atmlStringFormField.set('invalid', false);
+                atmlStringFormField.set('errorMessage', 'This field is required.');
+
+                if (!this.$['model-upload-form'].validate()) {
+                    return;
+                }
+
+                if (!this._validateAtml(this.atml)) {
+                    atmlStringFormField.set('errorMessage', 'Your ATML3 is not valid JSON');
+                    atmlStringFormField.set('invalid', true);
+                    return;
+                }
+
+                atml = JSON.parse(this.atml);
+                if (Object.keys(atml).indexOf('atml') < 0) {
+                    atml = {'atml': atml};
+                }
+
+                atmlSaveString = JSON.stringify(atml);
+
+                this.set('_isLoading', true);
+                if (!this.loadModel) {
+                    p = this.model.importNewTraining(atmlSaveString);
+                } else {
+                    this.fire('model-pushable-close');
+                    p = this.model.importOverwriteTraining(atmlSaveString);
+                }
+
+
+                p.then(function () {
+                    this.set('atml', '');
+                    this.set('_isLoading', false);
+                    this.fire('model-save-success', this.model);
+                    this.fire('model-pushable-open');
+                }.bind(this), function (e) {
+                    console.log('model-save-error', e);
+                    this.set('_isLoading', false);
+                    this.fire('model-save-error', e);
+                    this.fire('model-pushable-open');
+                }.bind(this));
+
+                return p;
+            },
+
+            cancel: function (event) {
+                var self = this;
+                if (event) {
+                    event.preventDefault();
+                }
+                self.model.refresh().then(function (m) {
+                    self.set('model', m);
+                    self.set('model.data', m.data);
+                    self.set('formData', JSON.parse(JSON.stringify(m.data)));
+                    self.set('atml', '');
+                    self.fire('form-cancel');
+                });
+            },
+
+            refresh: function () {
+                this.set('atml', '');
+                return this._loadModel(this.modelPk);
+            }
+
+        });
+    })();
+</script>

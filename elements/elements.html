@@ -1,0 +1,158 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<!-- Iron elements -->
+
+<link rel="import" href="../bower_components/paper-badge/paper-badge.html">
+<link rel="import" href="../bower_components/paper-tooltip/paper-tooltip.html">
+
+
+<link rel="import" href="../bower_components/iron-meta/iron-meta.html">
+
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/iron-icons/hardware-icons.html">
+<link rel="import" href="../bower_components/iron-icons/communication-icons.html">
+<link rel="import" href="../bower_components/iron-icons/av-icons.html">
+<link rel="import" href="../bower_components/iron-icons/editor-icons.html">
+<link rel="import" href="../bower_components/iron-icons/image-icons.html">
+
+<link rel="import" href="../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../bower_components/iron-signals/iron-signals.html">
+<link rel="import" href="../bower_components/iron-collapse/iron-collapse.html">
+
+<!--<!-- Paper elements -->-->
+<link rel="import" href="../bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="../bower_components/paper-header-panel/paper-header-panel.html">
+<link rel="import" href="../bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../bower_components/paper-menu/paper-menu.html">
+
+<link rel="import" href="../bower_components/paper-styles/classes/typography.html">
+
+<link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
+
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+
+<link rel="import" href="../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tab.html">
+
+
+
+<!--BROKEN!! -->
+    <link rel="import" href="../bower_components/app-layout/app-layout.html">
+    <link rel="import" href="../bower_components/ax-nlg-cloud-nav/ax-nlg-cloud-nav.html">
+
+
+ <!--Add your elements here -->
+<link rel="import" href="../styles/app-theme.html">
+
+<!-- Behaviors -->
+
+<link rel="import" href="ax-page-routing/page-routing-behavior.html">
+<link rel="import" href="ax-crud/base-model-view-behavior.html">
+<link rel="import" href="ax-crud/base-model-list-view-behaviour.html">
+<link rel="import" href="ax-crud/base-model-behaviour.html">
+<link rel="import" href="ax-crud/base-model-form-behavior.html">
+<link rel="import" href="ax-crud/base-model-duplicatable-behavior.html">
+<link rel="import" href="ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="ax-crud/model-pushable-behavior.html">
+<link rel="import" href="ax-crud-store/ax-crud-store-behavior.html">
+<link rel="import" href="ax-crud-store/ax-crud-rest-store-behavior.html">
+<link rel="import" href="ax-credentials/ax-user-privileges-behavior.html">
+
+
+
+<!--<!-- Configure your routes here -->-->
+<link rel="import" href="app-globals/app-globals.html">
+<link rel="import" href="routing.html">
+
+<link rel="import" href="ax-auth/ax-auth.html">
+<link rel="import" href="ax-credentials/ax-credentials.html">
+
+
+<link rel="import" href="ax-components/ax-ga-events.html">
+
+<link rel="import" href="ax-crud/ax-crud.html">
+<link rel="import" href="ax-crud/base-model-inplace-form.html">
+
+<link rel="import" href="ax-crud-store/ax-crud-store.html">
+<link rel="import" href="ax-crud-store-container/ax-crud-store-container.html">
+
+<link rel="import" href="user-notifier/user-notifier.html">
+
+
+
+<link rel="import" href="model-training/model-training.html">
+<link rel="import" href="model-aso-request/model-aso-request.html">
+
+<link rel="import" href="model-user/model-user.html">
+<link rel="import" href="model-sentence/model-sentence.html">
+<link rel="import" href="model-sentence-variant/model-sentence-variant.html">
+<link rel="import" href="model-sentence-variant-synonym/model-sentence-variant-synonym.html">
+<link rel="import" href="model-container/model-lookup-value-container.html">
+<link rel="import" href="model-container/model-sentence-variant-container.html">
+<link rel="import" href="model-container/model-vocabulary-container.html">
+<link rel="import" href="model-sentence-variant-synonym-value/model-sentence-variant-synonym-value.html">
+<link rel="import" href="model-property/model-property.html">
+<link rel="import" href="model-vocabulary/model-vocabulary.html">
+<link rel="import" href="model-lookup/model-lookup.html">
+<link rel="import" href="model-lookup-table/model-lookup-table.html">
+<link rel="import" href="model-nested-product-type/model-nested-product-type.html">
+<link rel="import" href="model-sentence-group/model-sentence-group.html">
+<link rel="import" href="model-lookup-value/model-lookup-value.html">
+<link rel="import" href="model-validation-data/model-validation-data.html">
+<link rel="import" href="model-myax-collection/model-myax-collection.html">
+<link rel="import" href="model-myax-document/model-myax-document.html">
+<link rel="import" href="model-grammar-definition/model-grammar-definition.html">
+<link rel="import" href="model-language/model-language.html">
+
+
+
+
+<link rel="import" href="model-training/view-model-training-list-light.html">
+
+
+<link rel="import" href="ax-external/ax-external.html">
+<link rel="import" href="ax-components/ax-breadcrumb.html">
+<link rel="import" href="ax-components/ax-multi-select.html">
+<link rel="import" href="ax-components/ax-delete-ask-button.html">
+<link rel="import" href="ax-components/ax-list-view-add-element-card.html">
+<link rel="import" href="ax-components/ax-ga-events.html">
+<link rel="import" href="ax-components/ax-close-unsaved-ask-button.html">
+
+
+<link rel="import" href="model-user/view-model-user-profile.html">
+
+
+<link rel="import" href="model-user-editor-settings/view-model-user-editor-settings-form.html">
+<link rel="import" href="model-user-editor-settings/ctrl-user-settings.html">
+
+
+<link rel="import" href="model-training/page-training-detail.html">

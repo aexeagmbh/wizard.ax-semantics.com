@@ -1,0 +1,7 @@
+{
+  "name": "qax.io Wizard",
+  "short_name": "qax.io",
+  "icons": [],
+  "start_url": "/#!/",
+  "display": "standalone"
+}

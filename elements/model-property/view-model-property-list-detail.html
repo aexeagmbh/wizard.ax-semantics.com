@@ -1,0 +1,300 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../ax-components/ax-atml-vertigo-highlighter/ax-atml-vertigo-highlighter.html">
+
+<link rel="import" href="../model-property/view-model-property-detail-inplace-fields.html">
+
+<dom-module id="view-model-property-list-detail">
+
+    <template>
+
+         <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host .horizontal-section-container {
+                @apply(--layout-horizontal);
+                @apply(--layout-wrap);
+            }
+
+            :host .horizontal-section-container > * {
+                min-width: 50%;
+            }
+
+            :host .horizontal-section {
+                position: relative;
+            }
+
+            :host paper-card .title {
+                @apply(--layout-horizontal);
+                @apply(--layout-justified);
+                @apply(--layout-wrap);
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host .card-content-body-form-container .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host paper-icon-item,
+            :host paper-icon-item.list-summary-item {
+                cursor: pointer;
+                position: relative;
+            }
+            :host #highlight-truth-expression {
+                position: absolute;
+                margin: 44px 32px 24px 16px;
+                z-index: 1;
+                line-height: 24px;
+            }
+
+            :host .clickable {
+                cursor: pointer;
+            }
+
+            :host paper-badge,
+            :host .card-header paper-toolbar paper-badge {
+                --paper-badge-text-color: #ffffff;
+                --paper-badge-background: #727272;
+            }
+        </style>
+
+        <div class="list-view-list-item-detail-wrapper">
+            <paper-card>
+                <!-- Card Header -->
+                <div class="header paper-card">
+                    <paper-icon-item on-tap="toggleItemListDetail">
+                        <iron-icon item-icon icon="icons:apps"></iron-icon>
+                        <paper-item-body three-line$="[[_bool(language)]]" two-line$="[[!_bool(language)]]">
+                            <div>[[model.data.name]] <paper-badge icon="[[itemValidityIcon(model.data.valid)]]" title="[[itemValidityMessage(model.data.valid)]]"
+                                 label="[itemValidityMessage(model.data.valid)]]]"></paper-badge></div>
+                            <div secondary title="[[model.data.comment]]">[[model.data.comment]]</div>
+                            <template is="dom-if" if="[[language]]" restamp>
+                                <div secondary title="[[itemVocForLanguageMessage(_hasPropertyOutputForLanguage)]]">Output for [[language]] <iron-icon icon="[[itemValidityIcon(_hasPropertyOutputForLanguage)]]"></iron-icon></div>
+                            </template>
+                        </paper-item-body>
+
+                        <template is="dom-if" if="[[!noClone]]">
+                            <paper-icon-button icon="icons:content-copy" title="Duplicate" on-tap="_duplicateModel"
+                                               hidden="[[!isItemListDetailExpanded]]">
+                            </paper-icon-button>
+                        </template>
+                        <template is="dom-if" if="[[!noDelete]]">
+                            <ax-delete-ask-button on-ax-delete-ask-button-confirmed="_deleteModel"
+                                                  hidden="[[!isItemListDetailExpanded]]"></ax-delete-ask-button>
+                        </template>
+                        <paper-icon-button icon="{{itemExpandedIcon(isItemListDetailExpanded)}}">
+                        </paper-icon-button>
+                    </paper-icon-item>
+                </div>
+
+                <template is="dom-if" if="[[isItemListDetailExpanded]]">
+                    <div class="card-content">
+                        <view-model-property-detail-inplace-fields
+                                on-ax-list-length-changed="_onAxListLengthChanged"
+                                hide-vocabulary="[[hideVocabulary]]" model-pk="[[modelPk]]"></view-model-property-detail-inplace-fields>
+                    </div>
+                </template>
+            </paper-card>
+        </div>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-property-list-detail',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                hideVocabulary: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                modelName: {
+                    type: String,
+                    value: 'property',
+                    readOnly: true
+                },
+                isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                _isInplaceEditMappingExpression: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isInplaceEditTruthExpression: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                noDelete: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                noClone: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                language: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                _hasPropertyOutputForLanguage: {
+                    type: Boolean,
+                    notify: true,
+                    value: null
+                }
+            },
+
+            _bool: function (x) {
+                return !!x;
+            },
+
+            _editModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-property-modal-edit', params: {modelPk: this.modelPk}});
+            },
+
+            _duplicateModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-property-modal-duplicate', params: {modelPk: this.modelPk}});
+            },
+
+            _inplaceEditMappingExpression: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditMappingExpression', true);
+            },
+            _stopInplaceEditMappingExpression: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditMappingExpression', false);
+            },
+
+            _inplaceEditTruthExpression: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditTruthExpression', true);
+            },
+            _stopInplaceEditTruthExpression: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditTruthExpression', false);
+            },
+
+
+            toggleItemListDetail: function (event) {
+//                event.stopPropagation();
+                this.set('isItemListDetailExpanded', !this.isItemListDetailExpanded);
+                this.fire('iron-resize');
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            _toArray: function () {
+                return Array.prototype.slice.call(arguments);
+            },
+
+            onAxModelDataChanged: function () {
+                AxWizard.BaseModelViewBehavior.onAxModelDataChanged.apply(this, arguments);
+                this.fire('iron-resize');
+            },
+
+            itemValidityIcon: function (validity) {
+                if (validity === false) {
+                    return 'icons:warning';
+                }
+                if (validity === true) {
+                    return 'icons:check';
+                }
+                return 'icons:hourglass-empty';
+            },
+            itemValidityMessage: function (validity) {
+                if (validity === false) {
+                    return 'Invalid Expression';
+                }
+                if (validity === true) {
+                    return 'Valid';
+                }
+                return 'Validity not yet checked.';
+
+            },
+
+            itemVocForLanguageMessage: function (validity) {
+                if (validity === false) {
+                    return 'No suitable Property Output available for this language.';
+                }
+                if (validity === true) {
+                    return 'Property Output for this language available.';
+                }
+                return 'Available Property Outputs not yet checked.';
+            },
+
+            modelChanged: function (model) {
+                model.refresh(true);
+                this._checkHasPropertyOutputForLanguage();
+            },
+
+            _checkHasPropertyOutputForLanguage: function () {
+                var language = this.language,
+                    usableLanguages = this._getVocabularyUsableLangugages(language);
+                if (!language) {
+                    return;
+                }
+
+                 app.storageContainer.getList('vocabulary', this.modelPk).then(function (vocabularies) {
+                    var hasUsableVoc = vocabularies.filter(function (voc) {
+                        return usableLanguages.indexOf(voc.language) > -1;
+                    }).length > 0;
+                    this.set('_hasPropertyOutputForLanguage', hasUsableVoc);
+                }.bind(this));
+            },
+
+
+            _getVocabularyUsableLangugages: function (filterLanguage) {
+                var languageParts = ('' + filterLanguage).split('-'),
+                    filterLanguages = ['*', filterLanguage];
+
+                if (languageParts[0]) {
+                    filterLanguages.push(languageParts[0] + '-*');
+                }
+                return filterLanguages;
+            },
+
+            _onAxListLengthChanged: function () {
+                this._checkHasPropertyOutputForLanguage();
+            }
+
+        });
+    })();
+</script>

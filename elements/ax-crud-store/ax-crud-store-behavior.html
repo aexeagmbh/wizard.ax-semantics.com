@@ -1,0 +1,588 @@
+<script>
+var AxWizard = AxWizard || {};
+AxWizard.AxCrudStoreBehavior = {
+
+    properties: {
+        params: {
+            type: Object,
+            notify: true
+        },
+        verboseSingleName: {
+            type: String,
+            value: '',
+            notify: true
+        },
+        verbosePluralName: {
+            type: String,
+            value: '',
+            notify: true
+        },
+        notifierId: {
+            type: String,
+            value: '',
+            notify: true
+        },
+        modelName: {
+            type: String,
+            value: '',
+            notify: true
+        },
+        items: {
+            type: Array,
+            value: function () {
+                return [];
+            },
+            notify: true,
+            observer: '_itemsChanged'
+        },
+        itemsByParentPk: {
+            type: Object,
+            value: function () {
+                return {};
+            },
+            notify: true
+        },
+        objectMap: {
+            type: Object,
+            value: function () {
+                return Object.create(null);
+            },
+            notify: true
+        },
+        getPromiseMap: {
+            type: Object,
+            value: function () {
+                return Object.create(null);
+            },
+            notify: true
+        },
+        listPromiseMap: {
+            type: Object,
+            value: function () {
+                return Object.create(null);
+            },
+            notify: true
+        },
+        optionsPromise: {
+            type: Object,
+            notify: true
+        },
+        itemIdPropertyName: {
+            type: String,
+            value: 'id'
+        },
+        itemParentIdPropertyName: {
+            type: String,
+            value: ''
+        },
+        listResponseItemRoot: {
+            type: String,
+            value: ''
+        },
+        parentStorageName: {
+            type: String,
+            notify: true
+        },
+        _isListLoaded: {
+            type: Object,
+            value: function () {
+                return {};
+            }
+        },
+        singleStorageItemPk: {
+            type: String,
+            value: ''
+        },
+        storeItemWithParentId: {
+            type: Boolean,
+            value: false
+        }
+    },
+
+    ready: function () {
+        app.modelInstances[this.modelName] = {};
+    },
+
+
+    purgeAll: function () {
+        this._clearObjects();
+        app.modelInstances[this.modelName] = {};
+        this.set('itemsByParentPk', {});
+        this.set('_isListLoaded', {});
+        this.set('items', []);
+        this.set('objectMap', Object.create(null));
+        this.set('listPromiseMap', Object.create(null));
+        this.set('getPromiseMap', Object.create(null));
+    },
+
+    /**
+     *
+     * @param Simple Object item
+     * @param String defaultValue
+     * @returns String
+     * @public
+     */
+    getItemIdOrDefault: function (item, defaultValue) {
+        var itemId = this._getItemId(item);
+        return itemId !== undefined ? itemId : defaultValue;
+    },
+
+    getItemStorageIdOrDefault: function (item, defaultValue) {
+        var itemStorageId = this._getItemStorageId(item);
+        return itemStorageId !== undefined ? itemStorageId : defaultValue;
+    },
+
+    _getItemStorageId: function (item) {
+        var itemId = this._getItemId(item),
+            itemParentId;
+
+
+        if (!this.storeItemWithParentId) {
+            return itemId;
+        }
+
+
+        itemParentId = item[this.itemParentIdPropertyName];
+        return '_PARENT_' + itemParentId + '_ITEM_' + itemId;
+    },
+
+
+    /**
+     *
+     * @param Simple Object item
+     * @returns String
+     * @private
+     */
+    _getItemId: function (item) {
+        if (!item) {
+            return undefined;
+        }
+        if (this.singleStorageItemPk) {
+            return this.singleStorageItemPk;
+        }
+        return item[this.itemIdPropertyName];
+    },
+
+    getItemParentIdOrDefault: function (item, defaultValue) {
+        var itemParentId = this._getItemParentId(item);
+        return itemParentId !== undefined ? itemParentId : defaultValue;
+    },
+
+    _getItemParentId: function (item) {
+        if (!item) {
+            return undefined;
+        }
+        if (item[this.itemParentIdPropertyName] === undefined) {
+            return item['__ax-crud-parent-pk'];
+        }
+
+        return item[this.itemParentIdPropertyName];
+
+    },
+
+    /**
+     *
+     * @param Simple Object item
+     * @param String id
+     * @returns Simple Object item
+     * @private
+     */
+    _setItemId: function (item, id) {
+        if (this.singleStorageItemPk) {
+           item[this.itemIdPropertyName] = this.singleStorageItemPk;
+        } else {
+            item[this.itemIdPropertyName] = id;
+        }
+
+        return item;
+    },
+
+    /**
+     *
+     * @param Array items
+     * @private
+     */
+    _itemsChanged: function (items) {
+
+    },
+
+    /**
+     *
+     * @param String pk
+     * @returns Promise
+     * @private
+     */
+    _createObject: function (item) {
+        var self = this,
+            itemStorageId = self._getItemStorageId(item);
+
+        if (self.objectMap[itemStorageId]) {
+            return self.objectMap[itemStorageId];
+        }
+        self.objectMap[itemStorageId] = new Promise(function (resolve, reject) {
+            var obj = document.createElement(self.modelName),
+                itemPk = self._getItemId(item),
+                itemParentPk = self._getItemParentId(item),
+                modelInstances;
+
+            app.modelInstances[self.modelName]['' + itemParentPk] = app.modelInstances[self.modelName]['' + itemParentPk] || [];
+            modelInstances = app.modelInstances[self.modelName]['' + itemParentPk];
+
+            if (obj._setOrig !== undefined) {
+                try {
+                    obj._setOrig('pk', '' + itemPk); // in case pk is readOnly
+                } catch (e) {
+                }
+
+                try {
+                    obj._setOrig('parentPk', '' + itemParentPk); // in case parentPk is readOnly
+                } catch (e) {
+                }
+
+                obj._setOrig('data', item);
+                obj._setOrig('storage', self);
+            } else {
+
+                delete self.objectMap[itemStorageId];
+                reject('No _setOrig');
+                return;
+            }
+
+            self.objectMap[itemStorageId] = obj;
+            modelInstances.push(obj);
+            resolve(obj);
+        });
+
+        return self.objectMap[itemStorageId];
+    },
+
+    /**
+     *
+     * @param String pk
+     * @returns Promise
+     * @private
+     */
+    _getObject: function (item) {
+        var self = this,
+            p;
+
+        p = new Promise(function (resolve, reject) {
+            var itemStorageId = self._getItemStorageId(item),
+                obj = self.objectMap[itemStorageId];
+
+            if (obj) {
+                resolve(obj);
+            } else {
+                reject();
+            }
+        });
+
+        return p;
+    },
+
+    getOrCreateObject: function (data) {
+        return this._getOrCreateObject(data);
+    },
+
+    /**
+     *
+     * @param String pk
+     * @returns Promise
+     * @private
+     */
+    _getOrCreateObject: function (item) {
+        var self = this,
+            p;
+        p = new Promise(function (resolve, reject) {
+            self._getObject(item).then(function (obj) {
+                resolve(obj);
+            }, function () {
+                self._createObject(item).then(function (obj) {
+                    resolve(obj);
+                });
+            });
+        });
+
+        return p;
+    },
+
+
+    /**
+     *
+     * @param String pk
+     * @returns Promise
+     * @public
+     */
+    fetchObject: function (pk) {
+        var self = this,
+                p;
+        p = new Promise(function (resolve, reject) {
+
+            self.promiseGet(pk).then(function (item) {
+                self._getOrCreateObject(item).then(function (obj) {
+                    resolve(obj);
+                });
+
+            }, function (e) {
+                reject(e);
+            });
+        });
+        return p;
+    },
+
+    getNewObject: function () {
+        var self = this,
+            p;
+
+        p = new Promise(function (resolve, reject) {
+            var obj = document.createElement(self.modelName);
+            obj._setOrig('storage', self);
+            obj._setOrig('data', obj.defaultData);
+
+            resolve(obj);
+        });
+        return p;
+    },
+
+
+    /**
+     *
+     * @param Array items
+     * @private
+     */
+    _setItems: function (items, parentPk) {
+
+        var p;
+        p = new Promise(function (resolve) {
+            this._clearObjects(parentPk);
+            this._clearItemsByParentPk(parentPk);
+            items.forEach(function (item) {
+                item['__ax-crud-parent-pk'] = this.getItemParentIdOrDefault(item, parentPk);
+                this._setItem(item);
+            }.bind(this));
+
+            resolve(this._getItemsByParentPk(parentPk));
+        }.bind(this));
+
+        return p;
+    },
+
+    _getItemsByParentPk: function (parentPk) {
+        return this.get('itemsByParentPk.' + (parentPk || 0));
+    },
+
+    _clearItemsByParentPk: function (parentPk) {
+        this.set('itemsByParentPk.' + (parentPk || 0), []);
+    },
+
+
+    _clearObjects: function (parentPk) {
+        var self = this;
+        var rootElement = Polymer.dom(this.root);
+        this.objectMap = Object.create(null);
+        rootElement.querySelectorAll(this.modelName).forEach(function (ele) {
+            if (parentPk === undefined || ele.data['__ax-crud-parent-pk'] === parentPk) {
+                rootElement.removeChild(ele);
+            } else {
+                var eleStorageId = self._getItemStorageId(ele.data);
+                if (eleStorageId) {
+                     self.objectMap[eleStorageId] = ele;
+                }
+
+            }
+        });
+
+        if (parentPk !== undefined && parentPk !== 'undefined') {
+           delete app.modelInstances[this.modelName]['' + parentPk];
+        }
+
+
+    },
+
+
+    _extractListResponse: function (request) {
+        if (this.listResponseItemRoot) {
+            return request.get('response.' + this.listResponseItemRoot) || [];
+        }
+        return request.get('response');
+    },
+
+    /**
+     *
+     * @param Simple Object item
+     * @returns Promise
+     * @private
+     */
+    _setItem: function (item) {
+        var self = this,
+            itemStorageId = this._getItemStorageId(item),
+            p;
+
+        item['__ax-crud-parent-pk'] = this.getItemParentIdOrDefault(item, 0);
+        this._addOrUpdateItem(item);
+        this._addOrUpdateItemToParent(item);
+
+        return Promise.resolve(item);
+    },
+
+    /**
+     *
+     * @param Simple Object item
+     * @returns Promise
+     * @public
+     */
+    setItem: function (item) {
+        return this._setItem(item);
+    },
+
+    _addOrUpdateItem: function (item) {
+        var itemStorageId = this._getItemStorageId(item),
+            itemIdx = this._getItemIdx(itemStorageId);
+
+        if (itemIdx !== undefined) {
+            this.set('items.' + itemIdx + '', item);
+        } else {
+            this.push('items', item);
+        }
+    },
+
+    _addOrUpdateItemToParent: function (item) {
+
+        var parentId = '' + this.getItemParentIdOrDefault(item, 0),
+            itemStorageId = this._getItemStorageId(item),
+            itemIdxAtParent = this._getItemIdxAtParent(itemStorageId, parentId);
+
+        if (itemIdxAtParent !== undefined) {
+            this.set('itemsByParentPk.' + parentId + '.' + itemIdxAtParent, item);
+        } else {
+            if (this.itemsByParentPk[parentId] === undefined) {
+                this.set('itemsByParentPk.' + parentId, []);
+            }
+            this.push('itemsByParentPk.' + parentId, item);
+
+        }
+         this.fire('store-items-by-parent-pk-updated', {parentPk: parentId, path: 'splices', value: this.itemsByParentPk[parentId]});
+    },
+
+
+    /**
+     *
+     * @param String id
+     * @returns Number || undefined
+     * @private
+     */
+    _getItemIdx: function (itemStorageId) {
+        var self = this,
+                retIdx;
+        this.items.forEach(function (storedItem, idx) {
+            if ('' + self._getItemStorageId(storedItem) === '' + itemStorageId) {
+                retIdx = idx;
+                return false;
+            }
+        });
+        return retIdx;
+    },
+
+    _getItemIdxAtParent: function (itemStorageId, parentId) {
+        var retIdx;
+        if (this.itemsByParentPk[parentId] === undefined) {
+            return retIdx;
+        }
+
+        this.itemsByParentPk[parentId].forEach(function (item, idx) {
+            if ('' + this._getItemStorageId(item) === '' + itemStorageId) {
+                retIdx = idx;
+                return false;
+            }
+        }.bind(this));
+        return retIdx;
+    },
+
+    /**
+     *
+     * @param String id
+     * @returns Simple Object || undefined
+     * @private
+     */
+    _getItem: function (id) {
+        var self = this,
+            itemId = this.singleStorageItemPk || id,
+            ret;
+        ret = this.items.filter(function (item, idx) {
+            return '' + self._getItemId(item) === '' + itemId;
+        }) || [];
+        return ret[0];
+    },
+
+    checkIsItemLoaded: function (pk) {
+        return this._getItem(pk) !== undefined;
+    },
+
+    _deleteItemFromParent: function (id) {
+        var item = this._getItem('' + id),
+            itemParentId = this._getItemParentId(item),
+            itemIdxAtParent = this._getItemIdxAtParent(id, itemParentId);
+
+        if (itemParentId === undefined) {
+            return;
+        }
+        if (this.itemsByParentPk[itemParentId] === undefined) {
+            return;
+        }
+
+        this.splice('itemsByParentPk.' + itemParentId, itemIdxAtParent, 1);
+        this.fire('store-items-by-parent-pk-updated', {parentPk: itemParentId, path: 'splices', value: this.itemsByParentPk[itemParentId]});
+    },
+
+    /**
+     *
+     * @param String id
+     * @private
+     */
+    _deleteItem: function (pk) {
+        var item = this._getItem('' + pk),
+            itemStorageId = this._getItemStorageId(item),
+            itemIdx = this._getItemIdx(itemStorageId);
+
+        delete this.objectMap[itemStorageId];
+        this._deleteItemFromParent(itemStorageId, item);
+        this.splice('items', itemIdx, 1);
+    },
+
+    deleteLocalItem: function (pk) {
+        return Promise.resolve(
+            this._deleteItem(pk)
+        );
+    },
+
+    /**
+     *
+     * @param String msg
+     * @private
+     */
+    _displayMessage: function (msg) {
+        var notifier = document.querySelector('#userNotifier');
+        if (notifier) {
+            notifier.notify(msg);
+        }
+    },
+
+    /**
+     *
+     * @returns Element ax-crud
+     */
+    getCrud: function () {
+        return this.$.drfCrud;
+    },
+
+    optionsPost: function () {
+        console.warn('optionsPost not implemented');
+    },
+
+    getFields: function () {
+        return this.optionsPost();
+    }
+
+
+};
+</script>

@@ -1,0 +1,261 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../ax-components/ax-atml-vertigo-highlighter/ax-atml-vertigo-highlighter.html">
+
+<dom-module id="view-model-lookup-detail-inplace-fields">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host h4 {
+                display: inline-block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host .horizontal-section-container {
+                @apply(--layout-horizontal);
+                @apply(--layout-wrap);
+            }
+
+            :host .horizontal-section-container > * {
+                min-width: 33%;
+                max-width: 33%;
+            }
+
+            :host .horizontal-section {
+                position: relative;
+            }
+
+            :host paper-card .title {
+                @apply(--layout-horizontal);
+                @apply(--layout-justified);
+                @apply(--layout-wrap);
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host .card-content-body-form-container .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host paper-icon-item,
+            :host paper-icon-item.list-summary-item {
+                cursor: pointer;
+                position: relative;
+            }
+            :host #highlight-truth-expression {
+                position: absolute;
+                margin: 44px 32px 24px 16px;
+                z-index: 1;
+                line-height: 24px;
+            }
+
+            :host .clickable {
+                cursor: pointer;
+            }
+
+            :host paper-badge,
+            :host .card-header paper-toolbar paper-badge {
+                --paper-badge-text-color: #ffffff;
+                --paper-badge-background: #727272;
+                /*--paper-badge-background: #77bc1f;*/
+            }
+        </style>
+        <paper-card>
+
+                <div class="card-content">
+                    <section class="card-content-body-container">
+                        <div class="card-content-body-form-container">
+
+                            <div>
+                                <h4 on-tap="_inplaceEditReferringWord">Referring Word<paper-icon-button hidden="[[_isInplaceEditReferringWord]]" icon="editor:mode-edit"></paper-icon-button></h4>
+                                <paper-material class="model-list-section-header-description" elevation="0"
+                                     on-tap="_inplaceEditReferringWord"
+                                     hidden="[[_isInplaceEditReferringWord]]"
+                                        >
+                                                [[model.data.referringWord]]
+
+                                </paper-material>
+                                <template is="dom-if" if="[[_isInplaceEditReferringWord]]" restamp>
+                                    <base-model-inplace-form form-data={{referringWordFormData}}
+                                                             id="inplace-referring-word"
+                                                             hide-buttons
+                                                             hidden="[[!_isInplaceEditReferringWord]]"
+                                                             on-form-cancel="_stopInplaceEditReferringWord"
+                                                             on-model-save-success="_stopInplaceEditReferringWord"
+                                                             model-pk="[[modelPk]]"
+                                                             allowed-fields="{{_toArray('referringWord')}}"
+                                                             storage-id="lookup">
+                                        <paper-input
+                                                required error-message="This field is required."
+                                                value="{{referringWordFormData.referringWord}}"
+                                                tabindex="-1"
+                                                label="Referring Word">
+                                            <paper-icon-button suffix icon="clear" on-tap="_cancelInplaceReferringWord"></paper-icon-button>
+                                            <paper-icon-button suffix icon="done" on-tap="_saveInplaceReferringWord"></paper-icon-button>
+                                        </paper-input>
+                                    </base-model-inplace-form>
+                                </template>
+                            </div>
+
+                            <div>
+
+
+                                <h4 on-tap="_inplaceEditLanguage">Language<paper-icon-button hidden="[[_isInplaceEditLanguage]]" icon="editor:mode-edit"></paper-icon-button></h4>
+                                <paper-material class="model-list-section-header-description" elevation="0"
+                                     on-tap="_inplaceEditLanguage"
+                                     hidden="[[_isInplaceEditLanguage]]"
+                                        >
+                                                [[model.data.language]]
+
+                                </paper-material>
+                                <template is="dom-if" if="[[_isInplaceEditLanguage]]" restamp>
+                                    <base-model-inplace-form form-data={{languageFormData}}
+                                                             id="inplace-language"
+                                                             hide-buttons
+                                                             hidden="[[!_isInplaceEditLanguage]]"
+                                                             on-form-cancel="_stopInplaceEditLanguage"
+                                                             on-model-save-success="_stopInplaceEditLanguage"
+                                                             model-pk="[[modelPk]]"
+                                                             allowed-fields="{{_toArray('language')}}"
+                                                             storage-id="lookup">
+                                        <div class="flex-row">
+                                        <paper-dropdown-menu required label="Language" on-iron-overlay-opened="_stopPropagation" error-message="This field is required.">
+                                            <paper-menu class="dropdown-content" attr-for-selected="value"
+                                                        selected="{{languageFormData.language}}" >
+                                                <template is="dom-repeat" items="[[languageChoices]]">
+                                                    <paper-item value="[[item.id]]">[[item.name]]</paper-item>
+                                                </template>
+                                            </paper-menu>
+
+                                        </paper-dropdown-menu>
+
+                                            <paper-icon-button suffix icon="clear" on-tap="_cancelInplaceLanguage"></paper-icon-button>
+                                            <paper-icon-button suffix icon="done" on-tap="_saveInplaceLanguage"></paper-icon-button>
+                                            </div>
+                                    </base-model-inplace-form>
+                                </template>
+                            </div>
+
+                        </div>
+                    </section>
+                     <view-model-lookup-value-list parent-pk="[[modelPk]]"></view-model-lookup-value-list>
+                </div>
+        </paper-card>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-lookup-detail-inplace-fields',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                modelName: {
+                    type: String,
+                    value: 'lookup',
+                    readOnly: true
+                },
+
+                _isInplaceEditReferringWord: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isInplaceEditLanguage: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                languageChoices: {
+                    type: Array,
+                    notify: true
+                },
+                hasUnsavedChanges: {
+                    type: Boolean,
+                    computed: '_checkHAsUnsavedChanges(_isInplaceEditLanguage, _isInplaceEditReferringWord)',
+                    notify: true
+                }
+            },
+
+            _checkHAsUnsavedChanges: function () {
+                var args = Array.prototype.slice.call(arguments);
+                return args.filter(function (a) {
+                   return !!a;
+                }).length > 0;
+            },
+
+            _toArray: function () {
+                return Array.prototype.slice.call(arguments);
+            },
+
+            _inplaceEditReferringWord: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditReferringWord', true);
+            },
+            _stopInplaceEditReferringWord: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditReferringWord', false);
+            },
+
+            _cancelInplaceReferringWord: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-referring-word').cancel(event);
+            },
+            _saveInplaceReferringWord: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-referring-word').saveModel(event);
+            },
+
+            _inplaceEditLanguage: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditLanguage', true);
+            },
+            _stopInplaceEditLanguage: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditLanguage', false);
+            },
+            _cancelInplaceLanguage: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-language').cancel(event);
+            },
+            _saveInplaceLanguage: function (event) {
+                event.stopPropagation();
+                this.$$('#inplace-language').saveModel(event);
+            },
+
+            modelChanged: function (model) {
+                this._loadLanguageChoices();
+            },
+
+            _loadLanguageChoices: function () {
+                this.fire('ax-get-training-languages', {}).detail.languages.then(function (list) {
+                    this.set('languageChoices', list);
+                }.bind(this));
+            },
+
+
+        });
+    })();
+</script>

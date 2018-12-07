@@ -1,0 +1,104 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+
+<dom-module id="view-model-training-form-product-type-order">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+        <sortable-js id="sortable-list" on-update="_onSelectedSortChange" handle=".sortable-drag-handle">
+            <template data-id="__ax-snape-sortable-list-items" id="sortable-list-items" is="dom-repeat" items="[[productTypes]]">
+                <div data-id$="[[item.id]]"  value="[[item.id]]" style="width: 100%;">
+                    <paper-item>
+                        <paper-item-body>
+                            [[item.name]]
+                        </paper-item-body>
+                        <iron-icon title="Change Order" class="sortable-drag-handle" item-icon icon="editor:format-line-spacing"></iron-icon>
+                    </paper-item>
+                </div>
+            </template>
+        </sortable-js>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-training-form-product-type-order',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'training',
+                    notify: true
+                },
+                productTypes: {
+                    notify: true
+                }
+            },
+
+            _loadModel: function (modelPk) {
+                var p = AxWizard.BaseModelFormBehavior._loadModel.call(this, modelPk);
+                p.then(function () {
+                    this._loadProductTypeList(modelPk);
+                }.bind(this));
+                return p;
+            },
+
+            _loadProductTypeList: function (trainingPk) {
+                this.set('productTypes', null);
+                app.storageContainer.getList('nested-product-type', trainingPk, null, true).then(function (list) {
+                    this.set('productTypes', list);
+                }.bind(this), function () {
+                    this.set('productTypes', null);
+                }.bind(this));
+            },
+
+            _preSaveModel: function () {
+
+            },
+
+            _modelChanged: function (model) {
+
+            },
+
+            saveModel: function () {
+
+            },
+
+            _onSelectedSortChange: function (event, targetEvent) {
+                var self = this;
+                if (!targetEvent) {
+                    return;
+                }
+
+                var itemPk = targetEvent.item.value;
+                var newPos = targetEvent.newIndex;
+
+                app.storageContainer.getObject('nested-product-type', itemPk).then(function (model) {
+                    model.moveTo({position: newPos}).then(function () {
+                        self.refresh();
+                    });
+                });
+            }
+
+        });
+    })();
+</script>

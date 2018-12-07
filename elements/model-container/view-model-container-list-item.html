@@ -1,0 +1,156 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+<link rel="import" href="../model-property/view-model-property-detail-chip.html">
+
+<dom-module id="view-model-container-list-item">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                /*display: inline-block;*/
+                font-size: initial !important;
+            }
+
+            .container-avatar {
+                width:100%;
+                flex-direction: column;
+                align-items: center;
+                display: flex;
+                width: 32px;
+                height: 32px;
+                border-radius: 16px;
+                border: 4px solid;
+                color: #77bc1f;
+                box-sizing: border-box;
+                font-weight: bold;
+                opacity: 0.7;
+            }
+
+        </style>
+        <paper-icon-item>
+            <div item-icon>
+                <div class="container-avatar">
+                    <div class="flex">
+                        [[_containerTypeAvatar(model.data.containerType)]]
+                    </div>
+                </div>
+            </div>
+            <paper-item-body three-line>
+                <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'group', 'phrase', model.data)]]" restamp>
+                    <div><i>PropertyOutput of&nbsp;</i><view-model-property-detail-chip model-pk="[[model.data.containerProperty]]"></view-model-property-detail-chip></div>
+                </template>
+                <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'grammar', model.data)]]" restamp>
+                    <div><i>[[model.data.attributes.word_type]]:&nbsp;</i>[[model.data.text]]</div>
+                </template>
+                <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'text', model.data)]]" restamp>
+                    <div><i>Plain Text:&nbsp;</i>[[model.data.text]]</div>
+                </template>
+
+                <div secondary><i>Source:&nbsp;</i>[[model.data.source]]</div>
+                <div secondary><i>Alternative:&nbsp;</i>[[_showWhitespace(model.alternativeText)]]</div>
+            </paper-item-body>
+            <paper-icon-button hidden="[[noEdit]]" icon="editor:mode-edit" on-tap="_editModel"></paper-icon-button>
+
+        </paper-icon-item>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-container-list-item',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                noExpand: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                noEdit: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                modelName: {
+                    type: String,
+//                    value: 'container',
+//                    readOnly: true
+                }
+
+            },
+
+
+            _showWhitespace: function (str) {
+                if (!str) {
+                    return '';
+                }
+                return str.split(' ').join('·');
+            },
+
+            _equals: function (a, b) {
+                return a === b;
+            },
+
+            /**
+             * Looks for duplicate argument
+             * @returns {boolean}
+             * @private
+             */
+            _equalsOneOf: function () {
+                var args = Array.prototype.slice.call(arguments);
+
+                return args.filter(function (x, idx, ls) {
+                   return ls.indexOf(x) === idx;
+                }).length < args.length;
+            },
+
+
+            _containerTypeAvatar: function (containerType) {
+                if (containerType === 'phrase' || containerType === 'group') {
+                    return 'P';
+                }
+                if (containerType === 'grammar') {
+                    return 'G';
+                }
+                if (containerType === 'text') {
+                    return 'T';
+                }
+
+                return '';
+            },
+
+
+
+            _editModel: function (event) {
+
+                if (this.noEdit) {
+                    return;
+                }
+                if (event) {
+                    event.stopPropagation();
+                }
+                
+
+                this.fire('ax-open-training-dialog',  {elementType: 'view-model-container-modal-edit', params: {modelPk: this.modelPk, modelName: this.modelName}});
+            }
+
+
+        });
+    })();
+</script>

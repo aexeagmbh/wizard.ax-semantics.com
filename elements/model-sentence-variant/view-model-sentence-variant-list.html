@@ -1,0 +1,256 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-list-detail.html">
+
+
+<dom-module id="view-model-sentence-variant-list">
+
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            :host .list-view-list paper-textarea {
+                white-space: normal;
+            }
+
+            :host dl,
+            :host dl dt,
+            :host dl dd,
+            :host paper-item [secondary] dl,
+            :host paper-item [secondary] dl dt,
+            :host paper-item [secondary] dl dd {
+                margin: 0;
+            }
+
+            :host dl dt,
+            :host dl dd,
+            :host paper-item [secondary] dl dt,
+            :host paper-item [secondary] dl dd {
+                display: inline-flex;
+            }
+
+            :host dl dd,
+            :host paper-item [secondary] dl dd {
+                margin-left: 1em;
+                margin-right: 2em;
+            }
+            :host paper-icon-item {
+                cursor: pointer;
+                position: relative;
+            }
+
+
+
+            :host .horizontal-section-container {
+            @apply(--layout-horizontal);
+            @apply(--layout-wrap);
+                margin-left: -20px;
+                margin-bottom: -20px;
+
+            }
+
+            :host .horizontal-section-container > * {
+                width: 33%;
+            }
+
+            :host .horizontal-section-container .horizontal-section-item-content > * {
+                width: 100%;
+            }
+
+            :host .horizontal-section-container .horizontal-section-item-content {
+                margin-left: 20px;
+                margin-bottom: 20px;
+                width: -moz-calc(100% - 20px);
+                width: -webkit-calc(100% - 20px);
+                width: calc(100% - 20px);
+            }
+
+            :host .horizontal-section-item {
+                display: flex;
+            }
+
+            @media (max-width: 1023px) {
+                :host .horizontal-section-container > * {
+                    width: 100%;
+                }
+            }
+
+
+        </style>
+
+        <template is="dom-if" if="[[!_isLoading]]">
+        <section class="list-view-list">
+
+
+            <div class="horizontal-section-container">
+
+                <template is="dom-if" if="[[filterListLanguages]]">
+                    <template is="dom-repeat" items="[[filterListLanguages]]" as="language">
+                        <template is="dom-repeat" items="{{data}}" filter="{{_filterListPerLanguage(searchTerm, filterListFacets, language)}}">
+                            <div class="horizontal-section-item">
+                                <div class="horizontal-section-item-content">
+                                    <view-model-sentence-variant-list-detail value="[[item.id]]"
+
+                                                                             replace-container-with-source="[[replaceContainerWithSource]]"
+                                                                             model-pk="[[item.id]]"
+                                                                             on-item-add="addSentenceVariantDialog"></view-model-sentence-variant-list-detail>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+                </template>
+
+
+
+                <template is="dom-if" if="[[!filterListLanguages]]">
+                    <template is="dom-repeat" items="{{data}}" filter="{{_filterList(searchTerm, filterListFacets)}}">
+                        <div class="horizontal-section-item">
+                            <div class="horizontal-section-item-content">
+                                <view-model-sentence-variant-list-detail value="[[item.id]]"
+
+                                                                         replace-container-with-source="[[replaceContainerWithSource]]"
+                                                                         model-pk="[[item.id]]"
+                                                                         on-item-add="addSentenceVariantDialog"></view-model-sentence-variant-list-detail>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+
+                <div class="horizontal-section-item">
+                    <div class="horizontal-section-item-content">
+                        <ax-list-view-add-element-card on-ax-list-view-add-element-card-add-element="addSentenceVariantDialog">
+                            <div class="header">Add Sentence Variant</div>
+                        </ax-list-view-add-element-card>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-variant-list',
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            _filterListPerLanguage: function (searchTerm, filterListFacets, language) {
+                var oneLanguageFilterListFacet = JSON.parse(JSON.stringify(filterListFacets));
+                oneLanguageFilterListFacet.language = language;
+                return this._filterList(searchTerm, oneLanguageFilterListFacet);
+            },
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'storage-sentence-variant',
+                    notify: true
+                },
+                 sentencePk: {
+                    type: Number,
+                    computed: '_computeSentencePk(parentPk)',
+                    notify: true
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                                'text',
+                                'language'
+                        ];
+                    }
+                },
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    value: true,
+                    notify: true
+                },
+                filterListLanguages: {
+                    type: Array,
+                    notify: true,
+                    value: null
+                }
+            },
+
+            observers: [
+              '_observeFilterListFacets(filterListFacets, filterListFacets.*)'
+            ],
+
+            _observeFilterListFacets: function (f, l, ll) {
+                this.set('filterListLanguages', null);
+                if (f.language && f.language.length) {
+                    this.set('filterListLanguages', f.language);
+                }
+
+            },
+
+            _computeSentencePk: function (parentPk) {
+                return parentPk;
+            },
+
+            addSentenceVariantDialogLang: function(event, params) {
+                var lang = params.language;
+                this.$['add-sentence-variant-dialog'].set('language', lang);
+                this.$['add-sentence-variant-dialog'].open();
+            },
+            onSentenceVariantDeleted: function() {
+                this.refresh();
+            },
+
+
+            addSentenceVariantDialog: function () {
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-modal-new', params: {sentencePk: this.parentPk}});
+            },
+
+            /* Delete Sentence Variant*/
+            deleteSentenceVariant: function(event) {
+                var sentenceVariantPk = event.target.parentNode.dataArgs,
+                    self = this;
+                this.storage.delete(sentenceVariantPk).then(function() {
+                    self.refresh();
+                }, function() {
+                    // TODO: error handling
+                    console.log('could not delete sentence variant');
+                });
+            },
+
+            dataLoaded: function (data) {
+                var p;
+
+                p = new Promise(function (resolve, reject) {
+
+                    var sentenceVariantPks = data.map(function (item) {return item.id;});
+
+                    if (!sentenceVariantPks.length) {
+                        resolve(data);
+                    } else {
+                        app.storageContainer.getStorage('sentence-variant-container').then(function (stSentenceVariantContainer) {
+                            return stSentenceVariantContainer.bulkList(sentenceVariantPks, {sentence_variant: sentenceVariantPks.join(',')});
+                        }).then(function () {
+                            resolve(data);
+                        });
+                    }
+                });
+
+                return p;
+            },
+        });
+    })();
+</script>

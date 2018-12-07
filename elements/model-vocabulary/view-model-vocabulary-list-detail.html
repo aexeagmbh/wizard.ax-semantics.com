@@ -1,0 +1,195 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../model-vocabulary/view-model-vocabulary-modal-edit.html">
+
+<dom-module id="view-model-vocabulary-list-detail">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host .paper-inputs-inline paper-input {
+                min-width: 30%;
+                display: inline-block;
+            }
+
+            :host .clickable {
+                cursor: pointer;
+            }
+        </style>
+
+        <paper-item class="clickable" on-tap="_editModel">
+
+
+            <template is="dom-if" if="[[!trainingUsesContainer]]" restamp>
+                <paper-item-body three-line>
+                    <div><i secondary>Noun:&nbsp;</i>[[model.data.noun]]</div>
+                    <div><i secondary>Adjective:&nbsp;</i>[[model.data.adjective]]</div>
+                    <div><i secondary>Headnoun:&nbsp;</i>[[model.data.headnoun]]</div>
+                </paper-item-body>
+
+
+            </template>
+            <template is="dom-if" if="[[trainingUsesContainer]]" restamp>
+                <paper-item-body three-line>
+                    <div hidden="[[!hasNoun]]">
+                        <i secondary>Noun:&nbsp;</i>
+                        <view-model-container-list
+                                    has-content="{{hasNoun}}"
+                                    storage-id="vocabulary-container"
+                                    model-name="vocabulary-container"
+                                    parent-model-name=""
+                                    on-tap="_editModel"
+                                    active-mode="readOnly"
+                                    no-expand
+                                    filter-list-facets="{{_getFilterListFacets('noun')}}"
+                                    parent-pk="[[modelPk]]">
+                            </view-model-container-list>
+                    </div>
+                    <div hidden="[[!hasAdjective]]">
+                        <i secondary>Adjective:&nbsp;</i>
+                        <view-model-container-list
+                                    has-content="{{hasAdjective}}"
+                                    storage-id="vocabulary-container"
+                                    model-name="vocabulary-container"
+                                    parent-model-name=""
+                                    on-tap="_editModel"
+                                    active-mode="readOnly"
+                                    no-expand
+                                    filter-list-facets="{{_getFilterListFacets('adjective')}}"
+                                    parent-pk="[[modelPk]]">
+                            </view-model-container-list>
+                    </div>
+                    <div hidden="[[!hasHeadnoun]]">
+                        <i secondary>Headnoun:&nbsp;</i>
+                        <view-model-container-list
+                                    has-content="{{hasHeadnoun}}"
+                                    storage-id="vocabulary-container"
+                                    model-name="vocabulary-container"
+                                    parent-model-name=""
+                                    on-tap="_editModel"
+                                    active-mode="readOnly"
+                                    no-expand
+                                    filter-list-facets="{{_getFilterListFacets('headnoun')}}"
+                                    parent-pk="[[modelPk]]">
+                            </view-model-container-list>
+
+                    </div>
+                </paper-item-body>
+            </template>
+            <div secondary>[[model.data.language]]</div>
+
+            <paper-icon-button hidden="[[noEdit]]" icon="editor:mode-edit" on-tap="_editModel">
+            </paper-icon-button>
+
+            <template is="dom-if" if="[[!noClone]]">
+                <paper-icon-button icon="icons:content-copy" title="Duplicate" on-tap="_duplicateModel"
+                                   hidden="[[!isItemListDetailExpanded]]">
+                </paper-icon-button>
+            </template>
+
+            <paper-icon-button hidden="[[!showTranslate]]" icon="icons:translate" title="Translate" on-tap="_translateModel">
+            </paper-icon-button>
+
+            <ax-delete-ask-button on-ax-delete-ask-button-confirmed="_deleteModel"
+                                              hidden="[[noDelete]]"></ax-delete-ask-button>
+
+        </paper-item>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-vocabulary-list-detail',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                _focused: {
+                  type: Boolean,
+                  value: false,
+                  notify: true
+                },
+                modelName: {
+                    type: String,
+                    value: 'vocabulary',
+                    readOnly: true
+                },
+                selectedItemMenu: {
+                    type: String,
+                    value: null,
+                    notify: true
+                },
+                noDelete: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                noEdit: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                noClone: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                showTranslate: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+
+                trainingUsesContainer: {
+                    notify: true
+                },
+            },
+
+            _editModel: function (event) {
+                if (this.noEdit) {
+                    return;
+                }
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-vocabulary-modal-edit', params: {modelPk: this.modelPk}});
+            },
+            _translateModel: function (event) {
+
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-vocabulary-modal-translate', params: {modelPk: this.modelPk}});
+            },
+
+            _duplicateModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-vocabulary-modal-duplicate', params: {modelPk: this.modelPk}});
+            },
+
+
+            _getFilterListFacets: function (vocabularyType) {
+               if (!vocabularyType) {
+                   return {};
+               }
+
+               return {vocabularyType: [vocabularyType]};
+            },
+
+        });
+    })();
+</script>

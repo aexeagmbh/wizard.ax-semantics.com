@@ -1,0 +1,345 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<dom-module id="view-model-myax-document-list-detail">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host paper-badge,
+            :host .card-header paper-toolbar paper-badge {
+                --paper-badge-text-color: #ffffff;
+                --paper-badge-background: #727272;
+            }
+
+            :host .inline {
+                display: inline;
+            }
+        </style>
+        <paper-dialog class="full-display" id="modal-property-output" modal opened="[[isModalPropertyOutputOpened]]">
+            <h2>Debug Output</h2>
+
+            <div class="buttons">
+                <paper-icon-button on-tap="toggleIsModalPropertyOutputOpened" icon="icons:close"></paper-icon-button>
+            </div>
+            <paper-dialog-scrollable>
+                <code class="preformated">[[jsonPretty(model.data.processing_response.mmoutput)]]</code>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="toggleIsModalPropertyOutputOpened">Close</paper-button>
+            </div>
+        </paper-dialog>
+
+
+        <paper-dialog class="full-display" id="modal-raw-data" modal opened="[[isModalRawDataOpened]]">
+            <h2>Raw Data</h2>
+
+            <div class="buttons">
+                <paper-icon-button on-tap="toggleIsModalRawDataOpened" icon="icons:close"></paper-icon-button>
+            </div>
+            <paper-dialog-scrollable>
+
+                <code class="preformated">[[jsonPretty(model.data.blob)]]</code>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="toggleIsModalRawDataOpened">Close</paper-button>
+            </div>
+        </paper-dialog>
+
+
+        <paper-dialog class="full-display" id="modal-text-order" modal opened="[[isModalRawTextOrder]]">
+            <h2>Text Order</h2>
+
+            <div class="buttons">
+                <paper-icon-button on-tap="toggleIsModalRawTextOrderOpened" icon="icons:close"></paper-icon-button>
+            </div>
+            <paper-dialog-scrollable>
+                <code class="preformated">[[jsonPretty(model.data.processing_response.text_order)]]</code>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="toggleIsModalRawTextOrderOpened">Close</paper-button>
+            </div>
+        </paper-dialog>
+        <paper-dialog class="full-display" id="modal-lexicon-entries" modal opened="[[isModalLexiconEntries]]">
+            <h2>Missing lexicon entries</h2>
+
+            <div class="buttons">
+                <paper-icon-button on-tap="toggleIsModalModalLexiconEntriesOpened"
+                                   icon="icons:close"></paper-icon-button>
+            </div>
+            <paper-dialog-scrollable>
+                <code class="preformated">[[jsonPretty(model.data.processing_response.missing_lexicon_entries)]]</code>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="toggleIsModalModalLexiconEntriesOpened">Close</paper-button>
+            </div>
+        </paper-dialog>
+
+
+        <div class="list-view-list-item-detail-wrapper">
+            <paper-card>
+
+                <div class="header paper-card">
+
+                    <paper-item on-tap="toggleItemListDetail">
+                        <paper-item-body
+                                two-line>
+
+                            <div>
+                                <span>[[model.data.name]]</span>
+                                <iron-icon hidden="[[hideStatus]]" icon="[[statusIcon(model.data.processing_state)]]"
+                                           title="[[model.data.text_error_msg]]"
+                                           label="[[model.data.text_error_msg]]"></iron-icon>
+
+                            </div>
+                            <div secondary>
+
+                                Uid: <span>[[model.data.uid]]</span>
+
+                            </div>
+
+
+                        </paper-item-body>
+                        <template is="dom-if" if="[[!hideAddToTestDocuments]]">
+                            <template is="dom-if" if="[[isEditAllowed]]">
+                            </template>
+                            <paper-icon-button hidden=[[isMyaxReference]] on-tap="addToTestDocuments"
+                                               icon="icons:star-border"
+                                               title="Add as Testdata"></paper-icon-button>
+                            <paper-icon-button hidden=[[!isMyaxReference]] on-tap="removeFromTestDocuments"
+                                               icon="icons:star" title="Remove from Testdata"></paper-icon-button>
+                        </template>
+                        <paper-icon-button
+                                icon="{{itemExpandedIcon(isItemListDetailExpanded)}}">
+                        </paper-icon-button>
+                    </paper-item>
+                </div>
+
+
+
+                <template is="dom-if" if="[[isItemListDetailExpanded]]">
+                    <div class="card-content" hidden="[[hideContent]]">
+                        <section class="card-content-body-container">
+                            <div hidden="[[!model.data.processing_response.text]]" class="preformated">[[model.data.processing_response.text]]</div>
+                            <div hidden="[[model.data.processing_response.text]]"><i>No text generated yet.</i></div>
+                            <div hidden="[[!model.data.processing_response.errors]]"><i>[[jsonPretty(model.data.processing_response.errors)]]</i></div>
+                        </section>
+                    </div>
+                    <div class="card-actions">
+                        <paper-button hidden="[[hideGenerateText]]" raised on-tap="regenerateText">(Re-)Generate Text</paper-button>
+                        <paper-button hidden="[[hideShowRawData]]" raised on-tap="showRawData">Show Raw Data</paper-button>
+                        <paper-button hidden="[[hideShowPropertyOutput]]" raised on-tap="showPropertyOutput">Show Debug Output</paper-button>
+                        <paper-button hidden="[[hideShowTextOrder]]" raised on-tap="showTextOrder">Show Text Order</paper-button>
+                        <paper-button hidden="[[hideShowLexiconEntries]]" raised on-tap="showLexiconEntries">Show possible missing Lexicon entries</paper-button>
+
+                    </div>
+
+                </template>
+
+            </paper-card>
+        </div>
+    </template>
+</dom-module>
+<script>
+(function () {
+    Polymer({
+        is: 'view-model-myax-document-list-detail',
+        behaviors: [
+
+            AxWizard.BaseModelViewBehavior
+        ],
+
+        properties: {
+            modelName: {
+                value: 'myax-document'
+            },
+            hideAddToTestDocuments: {
+                type: Boolean,
+                value: false,
+                notify: true,
+                reflectToAttribute: true
+            },
+            hideGenerateText: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+            hideShowRawData: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+            hideShowPropertyOutput: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+            hideShowTextOrder: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+            hideShowLexiconEntries: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+            hideContent: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+            hideStatus: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+
+            isMyaxReference: {
+                type: Boolean,
+                value: false,
+                notify: true,
+                reflectToAttribute: true
+            },
+            isEditAllowed: {
+                type: Boolean,
+                value: false,
+                notify: true,
+                reflectToAttribute: true
+            },
+            isItemListDetailExpanded: {
+                type: Boolean,
+                value: false,
+                notify: true,
+                reflectToAttribute: true
+            },
+            isModalPropertyOutputOpened: {
+                type: Boolean,
+                value: false,
+                notify: true
+            },
+            isModalRawTextOrder: {
+                type: Boolean,
+                value: false,
+                notify: true
+            },
+            isModalLexiconEntries: {
+                type: Boolean,
+                value: false,
+                notify: true
+            },
+            isModalRawDataOpened: {
+                type: Boolean,
+                value: false,
+                notify: true
+            },
+            parentPk: {
+                type: String,
+//                    value: null,
+                notify: true
+            },
+            isRouteActive: {
+                type: Boolean,
+                value: true
+            }
+        },
+
+        ready: function () {
+        },
+
+        _checkIsAxPreviewMode: function () {
+            return app.isAxPreviewMode;
+        },
+
+        toggleItemListDetail: function (event) {
+            event.stopPropagation();
+            this.set('isItemListDetailExpanded', !this.isItemListDetailExpanded);
+        },
+
+
+        itemExpandedIcon: function (isExpanded) {
+            return isExpanded ? 'expand-less' : 'expand-more';
+        },
+
+        addToTestDocuments: function () {
+            event.stopPropagation();
+            this.fire('collection-document-add-to-myax-references', {myaxCollectionPk: this.parentPk, myaxDocumentPk: this.modelPk});
+        },
+
+        removeFromTestDocuments: function () {
+            event.stopPropagation();
+            this.fire('collection-document-remove-from-myax-references', {myaxCollectionPk: this.parentPk, myaxDocumentPk: this.modelPk});
+        },
+
+        statusIcon: function (status) {
+            var statusLookup = {
+                'not requested': 'icons:build',
+                'success': 'icons:check',
+                'generated': 'icons:check',
+                'generating': 'icons:hourglass-empty',
+                'failed': 'icons:error',
+                'unknown': 'icons:build'
+            };
+
+            return statusLookup[status] || statusLookup.unknown;
+        },
+
+        regenerateText: function () {
+            this.model.generateText();
+        },
+
+        showRawData: function () {
+            this.set('isModalRawDataOpened', true);
+        },
+
+        showPropertyOutput: function () {
+            this.set('isModalPropertyOutputOpened', true);
+        },
+        showTextOrder: function () {
+            this.set('isModalRawTextOrder', true);
+        },
+        showLexiconEntries: function () {
+            this.set('isModalLexiconEntries', true);
+        },
+
+        jsonPretty: function (json) {
+            if (!json) {
+                return '';
+            }
+            return JSON.stringify(json, null, '    ');
+        },
+        toggleIsModalModalLexiconEntriesOpened: function () {
+            this.set('isModalLexiconEntries', !this.isModalLexiconEntries);
+        },
+        toggleIsModalRawTextOrderOpened: function () {
+            this.set('isModalRawTextOrder', !this.isModalRawTextOrder);
+        },
+        toggleIsModalPropertyOutputOpened: function () {
+            this.set('isModalPropertyOutputOpened', !this.isModalPropertyOutputOpened);
+        },
+        toggleIsModalRawDataOpened: function () {
+            this.set('isModalRawDataOpened', !this.isModalRawDataOpened);
+        }
+
+
+    });
+})();
+</script>

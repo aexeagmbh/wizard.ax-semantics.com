@@ -1,0 +1,88 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+<link rel="import" href="../model-sentence-variant-synonym/view-model-sentence-variant-synonym-list-detail.html">
+
+<dom-module id="view-model-sentence-variant-synonym-list">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+        <template is="dom-if" if="[[!noHeader]]">
+            <view-model-list-section-header section-title="Added synonyms" search-term="{{searchTerm}}"
+                                            _is-loading="[[_isLoading]]"
+                                            show-add-button="[[showAddButtonInHeader]]"></view-model-list-section-header>
+        </template>
+        <!-- List of SYNONYMS -->
+        <section class="list-view-list">
+            <template is="dom-repeat" items="{{data}}" filter="{{_filterList(searchTerm)}}">
+                <view-model-sentence-variant-synonym-list-detail
+                    replace-container-with-source="[[replaceContainerWithSource]]"
+                    model-pk="[[item.id]]"></view-model-sentence-variant-synonym-list-detail>
+            </template>
+        </section>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-variant-synonym-list',
+
+            behaviors: [AxWizard.BaseModelListViewBehaviour],
+
+            properties: {
+                noHeader: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                showAddButtonInHeader: {
+                    type: Boolean,
+                    value: false
+                },
+                storageId: {
+                    type: String,
+                    value: 'storage-sentence-variant-synonym',
+                    notify: true
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'text'
+                        ];
+                    }
+                },
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                }
+            },
+
+            ready: function () {
+                this.set('listRequestParams', this._computeListRequestParams(this.parentPk));
+            },
+
+            _computeListRequestParams: function (parentPk) {
+                return {
+                    'sentence_variant': parentPk
+                };
+            }
+        });
+    })();
+</script>

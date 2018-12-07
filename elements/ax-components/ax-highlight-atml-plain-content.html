@@ -1,0 +1,67 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="ax-highlight-atml-plain-content">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host #highlighted-atml-plain-content {
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+
+
+        </style>
+        <div id="highlighted-atml-plain-content"></div>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'ax-highlight-atml-plain-content',
+
+            properties: {
+                atml: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                highlightedAtml: {
+                    type: String,
+                    computed: '_highlightATML(atml)',
+                    notify: true
+                }
+            },
+
+            listeners: {
+                'highlighted-atml-changed': '_highlightedATMLChanged'
+            },
+
+            _highlightedATMLChanged: function (event, newVal) {
+                this.$['highlighted-atml-plain-content'].innerHTML = newVal.value;
+            },
+
+            _escapeHTML: function (html) {
+                var escaped = document.createElement('div').appendChild(document.createTextNode(html)).parentNode.innerHTML;
+                return escaped;
+            },
+
+            _highlightATML: function (atml) {
+                var re = /(\[DBStart\]|\[DBEnd\]|\[cut_from\]|\[cut_to\])/g,
+                        escapedHTML = this._escapeHTML(atml),
+                        ret;
+
+                ret = escapedHTML.replace(re, function (x) {
+                    return '<code>' + x + '</code>';
+                });
+
+
+                return ret;
+            }
+
+        });
+    }());
+</script>

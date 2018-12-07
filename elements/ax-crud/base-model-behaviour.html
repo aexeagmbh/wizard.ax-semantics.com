@@ -1,0 +1,471 @@
+<script>
+var AxWizard = AxWizard || {};
+
+var modelInstances = [];
+
+AxWizard.BaseModelBehaviour = {
+
+    properties: {
+        storageId: {
+            type: String,
+            value: '',
+//            notify: true
+        },
+        pk: {
+            type: String,
+            notify: true,
+            observer: '_observePkChange'
+        },
+        parentPk: {
+            type: String,
+            notify: true
+        },
+        params: {
+            type: Object,
+            notify: true
+        },
+        storage: {
+            type: Object,
+            notify: true
+        },
+        defaultData: {
+            type: Object,
+            value: function () {
+                return {
+                    id: null,
+                    created: null,
+                    modified: null,
+                    name: ''
+                };
+            }
+        },
+        data: {
+            type: Object,
+            notify: true
+        },
+        fields: {
+            type: Object,
+//            notify: true
+        },
+        isNew: {
+            type: Boolean,
+            notify: true,
+            value: true
+        }
+    },
+
+    _observePkChange: function (pk) {
+        this.set('isNew', this.computeIsNew(pk));
+        if (pk !== null && pk !== undefined && pk !== 'undefined') {
+            this.refresh().then(function (model) {
+                app.modelInstances[model.is]['' + model.parentPk] = app.modelInstances[model.is]['' + model.parentPk] || [];
+
+                modelInstances = app.modelInstances[model.is]['' + model.parentPk];
+
+                if (modelInstances.indexOf(model) < 0) {
+
+                    modelInstances.push(model);
+                }
+
+            });
+        }
+    },
+
+    created: function () {
+        var _setOrig = this.set;
+        var _notifyPathOrig = this.notifyPath;
+        var _origDeleteLocal = this.deleteLocal;
+
+//        this._setOrig = _setOrig;
+        this._notifyPathOrig = _notifyPathOrig;
+
+
+
+        var self = this;
+
+        this._setOrig = function () {
+//            console.log('setOrig', this.is, arguments);
+            _setOrig.apply(this, arguments);
+        };
+
+        this.notifyPath = function (path, value) {
+            _notifyPathOrig.apply(this, arguments);
+            if (arguments[0].split('.')[0] === 'data') {
+                this.invokeInstances(_notifyPathOrig, arguments);
+                this.fire('ax-model-data-changed', arguments);
+                this.invokeInstances(self.fire, ['ax-model-data-changed', arguments]);
+            }
+        };
+        this.set = function () {
+//             console.log('set', this.is, arguments);
+            _setOrig.apply(this, arguments);
+            if (arguments[0].split('.')[0] === 'data') {
+                this.fire('ax-model-data-changed', arguments);
+                this.invokeInstances(_notifyPathOrig, arguments);
+                this.invokeInstances(self.fire, ['ax-model-data-changed', arguments]);
+            }
+        };
+        this.deleteLocal = function () {
+            this.invokeInstances(_origDeleteLocal, arguments, 'deleteLocal');
+            _origDeleteLocal.apply(this, arguments);
+        };
+    },
+
+    invokeInstances: function (fn, args, deleteLocal) {
+        var i,
+            modelInstances = app.modelInstances[this.is]['' + this.parentPk] || [];
+
+        for (i = 0; i < modelInstances.length; i++) {
+            var instance = modelInstances[i];
+            if (instance !== this && instance.is === this.is && '' + instance.pk === '' + this.pk) {
+                fn.apply(instance, args);
+            }
+        }
+    },
+
+    attached: function () {
+        this._initModel();
+    },
+
+    _initModel: function () {
+        var modelInstances;
+
+
+        if (this.pk !== undefined) {
+            this._setOrig('isNew', this.computeIsNew(this.pk));
+
+            this.refresh().then(function (model) {
+                app.modelInstances[model.is]['' + model.parentPk] = app.modelInstances[model.is]['' + model.parentPk] || [];
+
+                modelInstances = app.modelInstances[model.is]['' + model.parentPk];
+                if (modelInstances.indexOf(model) < 0) {
+
+                    modelInstances.push(model);
+                }
+
+            });
+        }
+
+    },
+
+    detached: function () {
+        this._removeFromModelInstances();
+    },
+
+    _removeFromModelInstances: function () {
+
+        var modelInstances,
+            i;
+
+        app.modelInstances[this.is]['' + this.parentPk] = app.modelInstances[this.is]['' + this.parentPk] || [];
+        modelInstances = app.modelInstances[this.is]['' + this.parentPk];
+        i = modelInstances.indexOf(this);
+
+        if (i >= 0) {
+            modelInstances.splice(i, 1);
+        }
+    },
+
+    /**
+     * @param String fieldName
+     * @returns Promise
+     * @public
+     */
+    getFieldDisplayValue: function (fieldName) {
+        var value = this.get('data.' + fieldName);
+
+        return new Promise (function (resolve, reject) {
+            this.getFields().then(function (fields) {
+                var field = fields[fieldName];
+                if (field !== undefined) {
+                    resolve(this._computeFieldDisplayName(field, value));
+                } else {
+                    reject(new Error('Could not find Field ' + fieldName));
+                }
+            }.bind(this));
+        }.bind(this));
+    },
+
+    getFields: function () {
+        var self = this,
+                p;
+        p = new Promise(function (resolve, reject) {
+            self._getStorage().then(function (storage) {
+                storage.getFields().then(function (fields) {
+                    resolve(fields);
+                });
+            });
+        });
+        return p;
+    },
+
+    _computeFieldDisplayName: function (field, value) {
+        var validChoice,
+            type = field.type,
+            displayName,
+            filterFunc;
+
+        if (field.choices === undefined) {
+            if (type === 'boolean') {
+                return value ? 'Yes' : 'No';
+            }
+            return value;
+        }
+
+        if (Object.prototype.toString.call(value) === '[object Array]') {
+            return this._computeFieldDisplayNameForArray(field, value);
+        }
+
+        filterFunc = this._getFilterFunc(value);
+        validChoice = field.choices.filter(filterFunc);
+
+        return validChoice[0] ? validChoice[0].display_name : undefined;
+    },
+
+    _computeFieldDisplayNameForArray: function (field, valueArray) {
+        var result = [],
+                validChoice,
+                filterFunc;
+
+        for (var i = 0; i < valueArray.length; i++) {
+            filterFunc = this._getFilterFunc(valueArray[i]);
+
+            validChoice = field.choices.filter(filterFunc);
+            if (validChoice[0]) {
+                result.push(validChoice[0].display_name);
+            }
+        }
+        return result.join(', ');
+    },
+
+    _getFilterFunc: function (value) {
+        return function (choice) {
+            if (!isNaN(parseFloat(value)) && isFinite(value)) {
+                return (choice.value - 0) === (value - 0);
+            }
+            return choice.value === value;
+        };
+    },
+
+    computeIsNew: function (pk) {
+        return !pk;
+    },
+
+    _getStorageName: function () {
+        return this.is.replace('model-', 'storage-');
+    },
+
+    _getStorage: function () {
+        var storageName,
+            p;
+
+        if (this.storage) {
+            return Promise.resolve(this.storage);
+        }
+
+        storageName = this._getStorageName();
+        p = new Promise(function (resolve, reject) {
+            var storageP = app.storageContainer.getStorage(storageName);
+
+            if (!storageP) {
+                reject(new Error('NO STORAGE CONTAINER ' + storageName));
+            }
+
+            storageP.then(function (storage) {
+                if (!storage) {
+                    reject(new Error('NO STORAGE'));
+                } else {
+                    this._setOrig('storage', storage);
+                    resolve(storage);
+                }
+
+            }.bind(this));
+
+        }.bind(this));
+
+        return p;
+    },
+
+
+    _filterDataByKey: function (data, keys) {
+        var ret = {};
+        keys.forEach(function (keyName) {
+            ret[keyName] = data[keyName];
+        });
+        return ret;
+    },
+
+    save: function (changedFields, formData) {
+        var self = this,
+                ret, p;
+
+        p = new Promise(function (resolve, reject) {
+            self._getStorage().then(function (storage) {
+                var submitData;
+
+                if (self.isNew) {
+                    app.fire('ax-ga-event', {category: 'Model', action: 'create', label: self.is});
+//                    app.fire('ax-intercom-event', {eventName: self.is, details: {action: 'create'}});
+                    submitData = formData ? formData : self.data;
+                    ret = storage.post(submitData, self.params);
+                    ret.then(function (data) {
+                        self.set('data', JSON.parse(JSON.stringify(self.defaultData)));
+
+                        storage.getOrCreateObject(data).then(function (newModel) {
+                            resolve(newModel);
+                        });
+
+                    }, function (e) {
+                        // TODO: Error handling
+                        console.log('save reject', arguments);
+                        reject(e);
+                    });
+                } else {
+                    app.fire('ax-ga-event', {category: 'Model', action: 'update', label: self.is});
+//                    app.fire('ax-intercom-event', {eventName: self.is, details: {action: 'update'}});
+                    var payloadData = formData ? formData : (self.data ? self.data : self.defaultData);
+                    if (changedFields && Array.isArray(changedFields) && changedFields.length > 0) {
+                        submitData = self._filterDataByKey(payloadData, changedFields);
+                        ret = storage.patch(submitData, (self.pk || storage.getItemIdOrDefault(self.data)), self.params);
+                        ret.then(function (data) {
+                            self.set('data', data);
+                            self.set('parentPk', storage.getItemParentIdOrDefault(data, self.parentPk));
+                            resolve(self);
+                        });
+                    } else {
+                        submitData = payloadData;
+                        ret = storage.put(submitData, (self.pk || storage.getItemIdOrDefault(self.data)), self.params);
+                        ret.then(function (data) {
+                            self.set('data', data);
+                            self.set('parentPk', storage.getItemParentIdOrDefault(data, self.parentPk));
+                            resolve(self);
+                        });
+                    }
+
+                }
+            });
+        });
+        return p;
+    },
+
+    delete: function () {
+        var self = this,
+            pk = '' + self.pk,
+            data = self.data || {},
+            is = self.is,
+            p;
+        p = new Promise(function (resolve, reject) {
+            self._getStorage().then(function (storage) {
+                app.fire('ax-ga-event', {category: 'Model', action: 'delete', label: self.is});
+//                app.fire('ax-intercom-event', {eventName: self.is, details: {action: 'delete'}});
+                storage.delete(pk || '' + storage.getItemIdOrDefault(data)).then(function (resp) {
+                    self.fire('ax-model-deleted', [is, pk]);
+                    resolve(resp);
+                }, function (e) {
+                    reject(e);
+                });
+            });
+        });
+        return p;
+    },
+
+
+    deleteLocal: function () {
+        var self = this,
+            pk = '' + self.pk,
+            data = self.data || {},
+            is = self.is,
+            p;
+        p = Promise.resolve(
+            self._getStorage().then(function (storage) {
+                storage.deleteLocalItem(pk || '' + storage.getItemIdOrDefault(data));
+                self.fire('ax-model-deleted', [is, pk]);
+                self.remove();
+            }));
+        return p;
+    },
+
+    refresh: function (forceReload) {
+        var self = this,
+            p;
+
+        p = new Promise(function (resolve, reject) {
+            if (self.isNew) {
+                self.set('data', JSON.parse(JSON.stringify(self.defaultData)));
+                resolve(self);
+            } else {
+                self._getStorage().then(function (storage) {
+                    var ret = storage.promiseGet(self.pk, self.params, forceReload);
+                    ret.then(function (data) {
+                        self.set('data', data);
+                        self.set('parentPk', storage.getItemParentIdOrDefault(data, self.parentPk));
+                        self.fire('ax-model-loaded', self);
+                        resolve(self);
+                    }, function (e) {
+                        self.fire('ax-model-loading-failed', e);
+//                        reject(e);
+                    });
+
+                }, function (e) {
+                    console.log(e, self.is);
+                });
+            }
+        });
+        return p;
+    },
+
+    _performJsonPostAction: function (actionName, params, body) {
+        var self = this,
+            p;
+         p =   self._getStorage().then(function (storage) {
+            return storage.performJsonPostAction(actionName, params, body, self.pk, self.params);
+        });
+        return p;
+    },
+
+
+    _performJsonGetAction: function (actionName, params) {
+        var self = this,
+            p;
+         p =   self._getStorage().then(function (storage) {
+            return storage.performJsonGetAction(actionName, params, self.pk, self.params);
+        });
+        return p;
+    },
+
+     _performFileGetAction: function (actionName, params) {
+         var self = this,
+            p;
+         p =   self._getStorage().then(function (storage) {
+            return storage.performFileGetAction(actionName, params, self.pk, self.params);
+        });
+        return p;
+    },
+
+    _performJsonPutAction: function (actionName, params, body) {
+        var self = this,
+            p;
+         p =   self._getStorage().then(function (storage) {
+            return storage.performJsonPutAction(actionName, params, body, self.pk, self.params);
+        });
+        return p;
+    },
+
+    /**
+     *
+     * @param String msg
+     * @private
+     */
+    _displayMessage: function (msg) {
+        var notifier = document.querySelector('#userNotifier');
+        if (notifier) {
+            notifier.notify(msg);
+        }
+    },
+
+    getDisplayName: function () {
+        return this.get('data.name');
+    }
+
+};
+</script>

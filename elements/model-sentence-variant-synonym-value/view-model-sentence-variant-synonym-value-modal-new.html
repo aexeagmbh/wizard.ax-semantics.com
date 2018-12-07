@@ -1,0 +1,57 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-sentence-variant-synonym-value/view-model-sentence-variant-synonym-value-form.html">
+
+
+<dom-module id="view-model-sentence-variant-synonym-value-modal-new">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+
+        <paper-dialog class="full-display" id="modal-dialog" modal
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Add Synonym Value</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <view-model-sentence-variant-synonym-value-form id="modal-dialog-form" synonym-pk="[[synonymPk]]"
+                                                                    on-model-save-success="handleResponse"></view-model-sentence-variant-synonym-value-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Add Synonym Value</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-sentence-variant-synonym-value-modal-new',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                synonymPk: {
+                    type: String,
+                    value: '',
+                    notify: true
+                }
+            }
+        });
+
+    })();
+</script>

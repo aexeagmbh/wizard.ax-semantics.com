@@ -1,0 +1,1964 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+<link rel="import" href="./view-model-container-modal-to-phrase.html">
+<link rel="import" href="./view-model-container-modal-to-value.html">
+<link rel="import" href="./view-model-container-modal-to-group.html">
+<link rel="import" href="./view-model-container-modal-to-grammar.html">
+<link rel="import" href="./view-model-container-modal-to-fail.html">
+<link rel="import" href="./view-model-container-list-item.html">
+
+<link rel="import" href="../model-property/view-model-property-selector.html">
+<link rel="import" href="../model-property/view-model-property-detail-chip.html">
+
+<dom-module id="view-model-container-form">
+
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host .flex-row paper-input {
+                display: inline-block;
+            }
+            :host .flex-row {
+                align-items: flex-start;
+            }
+            :host base-model-list-select ::content .dropdown-content {
+                max-width: none !important;
+            }
+            :host paper-card .header h4 {
+                margin-left: 16px;
+            }
+
+            .container-avatar {
+                width:100%;
+                flex-direction: column;
+                align-items: center;
+                display: flex;
+                width: 32px;
+                height: 32px;
+                border-radius: 16px;
+                border: 4px solid;
+                color: #77bc1f;
+                box-sizing: border-box;
+                font-weight: bold;
+                opacity: 0.7;
+            }
+
+            :host paper-input,
+            :host paper-dropdown-menu,
+            :host paper-menu-button {
+                min-width: 200px;
+            }
+        </style>
+
+        <view-model-container-modal-to-phrase model-name="[[storageId]]" on-iron-overlay-closed="_stopPropagation" on-model-save-success="_containerTypeChanged" training-pk="[[trainingPk]]" pk="[[modelPk]]" opened="{{_toPhraseDialogOpened}}"></view-model-container-modal-to-phrase>
+        <view-model-container-modal-to-value model-name="[[storageId]]" on-iron-overlay-closed="_stopPropagation" on-model-save-success="_containerTypeChanged" training-pk="[[trainingPk]]" pk="[[modelPk]]" opened="{{_toValueDialogOpened}}"></view-model-container-modal-to-value>
+        <view-model-container-modal-to-group model-name="[[storageId]]" on-iron-overlay-closed="_stopPropagation" on-model-save-success="_containerTypeChanged" training-pk="[[trainingPk]]" pk="[[modelPk]]" opened="{{_toGroupDialogOpened}}"></view-model-container-modal-to-group>
+        <view-model-container-modal-to-grammar model-name="[[storageId]]" on-iron-overlay-closed="_stopPropagation" on-model-save-success="_containerTypeChanged" training-pk="[[trainingPk]]" pk="[[modelPk]]" opened="{{_toGrammarDialogOpened}}"></view-model-container-modal-to-grammar>
+        <view-model-container-modal-to-fail model-name="[[storageId]]" on-iron-overlay-closed="_stopPropagation" on-model-save-success="_containerTypeChanged" training-pk="[[trainingPk]]" pk="[[modelPk]]" opened="{{_toFailDialogOpened}}"></view-model-container-modal-to-fail>
+
+        <p>[[formData.containerContent]]</p>
+
+        <form on-submit="saveModel" is="iron-form" id="model-form">
+
+
+            <paper-card>
+                <div class="header paper-card">
+                    <h4>Basic</h4>
+                </div>
+                <div class="card-content">
+                    <section class="card-content-body-container flex-row" style="align-items: center;">
+<template is="dom-if" if="[[_equals(model.data.containerType, 'fail')]]">
+    <paper-icon-item>
+         <div item-icon>
+            <div class="container-avatar">
+                <div class="flex">
+                    [[_containerTypeAvatar(model.data.containerType)]]
+                </div>
+            </div>
+        </div>
+         <paper-item-body>
+             [[_containerTypeLabel(model.data.containerType)]]
+         </paper-item-body>
+    </paper-icon-item>
+</template>
+
+<template is="dom-if" if="[[!_equals(model.data.containerType, 'fail')]]">
+                        <paper-menu-button id="btn-container-type-select">
+                            <paper-button raised class="dropdown-trigger">
+                                <paper-icon-item >
+                                     <div item-icon>
+                                        <div class="container-avatar">
+                                            <div class="flex">
+                                                [[_containerTypeAvatar(model.data.containerType)]]
+                                            </div>
+                                        </div>
+                                    </div>
+                                     <paper-item-body>
+                                         [[_containerTypeLabel(model.data.containerType)]]
+                                     </paper-item-body>
+                                    <iron-icon icon="icons:arrow-drop-down"></iron-icon>
+                                </paper-icon-item>
+                            </paper-button>
+                            <paper-menu class="dropdown-content">
+                                 <paper-icon-item raised toggles active="1" on-tap="_closeTypeSelect">
+                                     <div item-icon>
+                                        <div class="container-avatar">
+                                            <div class="flex">
+                                                [[_containerTypeAvatar(model.data.containerType)]]
+                                            </div>
+                                        </div>
+                                    </div>
+                                     <paper-item-body>
+                                         [[_containerTypeLabel(model.data.containerType)]]
+                                     </paper-item-body>
+                                </paper-icon-item>
+
+                                <template is="dom-if" if="{{!_equals(model.data.containerType, 'phrase', model.data)}}" restamp>
+                                    <paper-icon-item raised on-tap="_openToPhrase">
+                                        <div item-icon>
+                                            <div class="container-avatar">
+                                                <div class="flex">
+                                                    P
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <paper-item-body>
+                                            [[_containerTypeLabel('phrase')]]
+                                        </paper-item-body>
+                                    </paper-icon-item>
+                                </template>
+
+                                <template is="dom-if" if="{{!_equals(model.data.containerType, 'value', model.data)}}" restamp>
+                                    <template is="dom-if" if="{{!_equalsOneOf(storageId, 'sentence-variant-container', 'lookup-value-container')}}" restamp>
+                                        <paper-icon-item raised on-tap="_openToValue">
+                                            <div item-icon>
+                                                <div class="container-avatar">
+                                                    <div class="flex">
+                                                        V
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <paper-item-body>
+                                                [[_containerTypeLabel('value')]]
+                                            </paper-item-body>
+                                        </paper-icon-item>
+                                    </template>
+                                </template>
+
+                                <template is="dom-if" if="{{!_equals(model.data.containerType, 'group', model.data)}}" restamp>
+                                    <paper-icon-item raised on-tap="_openToGroup">
+                                        <div item-icon>
+                                            <div class="container-avatar">
+                                                <div class="flex">
+                                                    P
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <paper-item-body>
+                                            [[_containerTypeLabel('group')]]
+                                        </paper-item-body>
+
+                                    </paper-icon-item>
+
+                                </template>
+
+                                <template is="dom-if" if="{{!_equals(model.data.containerType, 'grammar', model.data)}}" restamp>
+
+                                    <paper-icon-item raised on-tap="_openToGrammar">
+                                        <div item-icon>
+                                            <div class="container-avatar">
+                                                <div class="flex">
+                                                    G
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <paper-item-body>
+                                            [[_containerTypeLabel('grammar')]]
+                                        </paper-item-body>
+                                    </paper-icon-item>
+
+                                </template>
+
+
+                                <template is="dom-if" if="{{!_equalsOneOf(model.data.containerType, 'text', model.data)}}" restamp>
+
+                                    <paper-icon-item raised on-tap="_toText">
+                                        <div item-icon>
+                                            <div class="container-avatar">
+                                                <div class="flex">
+                                                    T
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <paper-item-body>
+                                            [[_containerTypeLabel('text')]]
+                                        </paper-item-body>
+
+                                    </paper-icon-item>
+
+                                </template>
+
+
+                                <template is="dom-if" if="{{!_equalsOneOf(model.data.containerType, 'fail', model.data)}}" restamp>
+
+
+                                    <template is="dom-if" if="{{_equalsOneOf(storageId, 'sentence-variant-container')}}" restamp>
+                                        <paper-icon-item raised on-tap="_openToFail">
+                                            <div item-icon>
+                                                <div class="container-avatar">
+                                                    <div class="flex">
+                                                        F
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <paper-item-body>
+                                                [[_containerTypeLabel('fail')]]
+                                            </paper-item-body>
+
+                                        </paper-icon-item>
+
+                                    </template>
+                                </template>
+
+
+                            </paper-menu>
+                        </paper-menu-button>
+</template>
+                        <paper-material style="margin: 16px;" elevation="0">
+                            for
+                        </paper-material>
+                        <paper-input class="flex" value="{{formData.source}}" label="Source in your Text"></paper-input>
+
+                    </section>
+
+
+                        <section class="card-content-body-container">
+                            <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'group', 'phrase', 'value', model.data)}}" restamp>
+
+                                <div class="flex-row" style="align-items: flex-start;">
+                                    <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'group', 'phrase', model.data)}}" restamp>
+                                        <div style="max-width: 50%;width: 50%;">
+                                            <div class="flex-row">
+                                                <view-model-property-selector class="flex" item-value-prop-name="id" parent-pk="[[trainingPk]]" value="{{formData.containerProperty}}"></view-model-property-selector>
+
+                                                <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'group', model.data)}}" restamp>
+
+                                                    <paper-dropdown-menu label="Group Method"
+                                                                         on-iron-overlay-opened="_stopPropagation">
+
+                                                        <paper-menu
+                                                                required
+                                                                label="Group Method" class="dropdown-content" attr-for-selected="value"
+                                                                selected="{{groupMethodData.method}}">
+
+                                                            <paper-item value="All">All</paper-item>
+                                                            <paper-item value="Best">Best</paper-item>
+                                                            <paper-item value="Last">Last</paper-item>
+                                                            <paper-item value="Range">Range</paper-item>
+                                                            <paper-item value="Random">Random</paper-item>
+                                                            <paper-item value="AllRandom">AllRandom</paper-item>
+
+                                                        </paper-menu>
+
+
+                                                    </paper-dropdown-menu>
+                                                    <template is="dom-if" if="{{_equalsOneOf(groupMethodData.method, 'Best', 'Last', 'Random')}}" restamp>
+                                                        <paper-input label="Count" value="{{groupMethodData.count}}" type="number" min="1"></paper-input>
+                                                    </template>
+                                                    <template is="dom-if" if="{{_equalsOneOf(groupMethodData.method, 'Range')}}" restamp>
+                                                        <paper-input label="Start" value="{{groupMethodData.start}}" min="0" type="number"></paper-input>
+                                                        <paper-input label="End" value="{{groupMethodData.end}}" min="1" type="number"></paper-input>
+                                                    </template>
+
+                                                    <paper-input label="Conjunction" value="{{attributesData.conjunction}}"></paper-input>
+                                                </template>
+                                            </div>
+
+
+
+
+
+
+                                                <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'group', 'phrase', model.data)}}" restamp>
+                                                <div class="flex-row">
+                                                    <paper-dropdown-menu label="Use Adjective"
+                                                                         on-iron-overlay-opened="_stopPropagation">
+
+                                                        <paper-menu label="Use Adjective" class="dropdown-content" attr-for-selected="value"
+                                                                    selected="{{attributesData.use_adjectives}}">
+                                                            <paper-item value=""></paper-item>
+                                                            <paper-item value="false">no</paper-item>
+                                                            <paper-item value="true">yes</paper-item>
+                                                            <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'group', model.data)}}" restamp>
+                                                                <paper-item value="first">first</paper-item>
+                                                            </template>
+                                                        </paper-menu>
+                                                    </paper-dropdown-menu>
+
+                                                    <template is="dom-if" if="{{_equalsOneOf(attributesData.use_adjectives, 'true', 'first', attributesData)}}" restamp>
+                                                        <paper-input label="Adjective Conjunction" value="{{attributesData.adjective_conjunction}}"></paper-input>
+                                                    </template>
+
+                                                </div>
+                                                </template>
+
+                                                <div class="flex-row">
+                                                <paper-dropdown-menu label="Render as Pronoun"
+                                                                     id="grammar-pronoun"
+                                                                     disabled="[[_boolean(attributesData.determiner)]]"
+                                                                     on-iron-overlay-opened="_stopPropagation">
+
+                                                    <paper-menu label="Pronoun" class="dropdown-content" attr-for-selected="value"
+
+                                                                selected="{{attributesData.pronoun}}">
+                                                        <paper-item value=""></paper-item>
+                                                        <template is="dom-repeat" items="[[_getOptionsFromGrammar(_grammarDefinition, 'pronoun','pronouns', attributesData.pronoun)]]">
+                                                            <paper-item value="[[item.key]]">[[item.name]]</paper-item>
+                                                        </template>
+                                                    </paper-menu>
+                                                </paper-dropdown-menu>
+
+
+                                                <paper-dropdown-menu label="Determiner"
+                                                                     id="grammar-determiner"
+                                                                     disabled="[[_boolean(attributesData.pronoun)]]"
+                                                                     on-iron-overlay-opened="_stopPropagation">
+
+                                                    <paper-menu label="Determiner" class="dropdown-content" attr-for-selected="value"
+
+                                                                selected="{{attributesData.determiner}}">
+                                                        <paper-item value=""></paper-item>
+                                                         <template is="dom-repeat" items="[[_getOptionsFromGrammar(_grammarDefinition, 'determiner','determiners', attributesData.determiner)]]">
+                                                            <paper-item value="[[item.key]]">[[item.name]]</paper-item>
+                                                        </template>
+                                                    </paper-menu>
+
+
+                                                </paper-dropdown-menu>
+
+                                                <template is="dom-if" if="{{_equalsOneOf(attributesData.determiner, 'possessive_3rd', model.data)}}" restamp>
+                                                    <base-model-list-select
+                                                            selected="{{attributesData.reference_grammar_from}}"
+                                                            required="1"
+                                                            negated-filter-list-facets="[[_negatedFilterListFacets]]"
+                                                            show-empty-option
+                                                            template-id="list-select-reference-grammar-from-container-template"
+                                                            label="Reference"
+                                                            storage-id="[[storageId]]"
+                                                            parent-pk="[[model.parentPk]]">
+                                                        <template id="list-select-reference-grammar-from-container-template" is="dom-template">
+                                                            <view-model-container-list-item
+                                                                    model-name="[[storageId]]"
+                                                                    model-pk="[[baseModelListItem.id]]"
+                                                                    label="[[baseModelListItem.source]]"
+                                                                    value="[[baseModelListItem.id]]"
+                                                                    ></view-model-container-list-item>
+                                                        </template>
+                                                    </base-model-list-select>
+                                                </template>
+
+                                            </div>
+
+
+                                            <div class="flex-row" style="align-items: center;">
+                                                <paper-input value="{{attributesData.preposition}}" label="Preposition"
+                                                        ></paper-input>
+
+
+
+                                                <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'group', 'phrase', model.data)}}" restamp>
+
+                                                        <paper-toggle-button checked="{{attributesData.keep_db_tags}}">
+                                                            Keep DBStart / DBEnd
+                                                        </paper-toggle-button>
+
+                                                </template>
+                                            </div>
+
+                                             <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'group', model.data)}}" restamp>
+                                                <div class="flex-row" style="align-items: center;">
+                                                    <paper-material elevation="0">List output&nbsp;</paper-material>
+
+                                                    <template is="dom-if" if="[[!listData]]" restamp>
+                                                        <paper-button on-tap="_addListData" raised>Formatted List Output</paper-button>
+                                                    </template>
+                                                    <template is="dom-if" if="[[listData]]" restamp>
+
+
+                                                        <paper-dropdown-menu label="List Format"
+                                                                             on-iron-overlay-opened="_stopPropagation">
+
+                                                            <paper-menu
+                                                                    label="List Format" class="dropdown-content" attr-for-selected="value"
+                                                                    selected="{{listData.ordered}}">
+
+                                                                <paper-item value="[[!retTrue]]">Unordered</paper-item>
+                                                                <paper-item value="[[retTrue]]">Ordered</paper-item>
+                                                            </paper-menu>
+
+                                                        </paper-dropdown-menu>
+                                                        <paper-input label="List ID for HTML" value="{{listData.id}}"></paper-input>
+
+                                                        <div>
+                                                            <paper-icon-button on-tap="_removeListData" icon="icons:delete"></paper-icon-button>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+
+
+                                            <div class="flex-row" style="align-items: center;">
+                                                <paper-material elevation="0">Use numeric value&nbsp;</paper-material>
+
+                                                <template is="dom-if" if="[[_boolean(attributesData.reference_numeral_from)]]" restamp>
+                                                    <paper-dropdown-menu label="Numeric Type"
+
+                                                                         required
+                                                                         disabled="[[!_boolean(attributesData.reference_numeral_from)]]"
+                                                                         on-iron-overlay-opened="_stopPropagation">
+
+                                                        <paper-menu label="Numeric Type" class="dropdown-content" attr-for-selected="value"
+
+                                                                    selected="{{attributesData.reference_numeral_from.type}}">
+
+                                                            <paper-item value="cardinal">cardinal</paper-item>
+                                                            <paper-item value="ordinal">ordinal</paper-item>
+
+                                                        </paper-menu>
+
+
+                                                    </paper-dropdown-menu>
+                                                    <view-model-property-selector label="Property with numeric value" required item-value-prop-name="id" parent-pk="[[trainingPk]]" value="{{attributesData.reference_numeral_from.property}}"></view-model-property-selector>
+                                                    <paper-icon-button  icon="delete" title="Remove numeric value" on-tap="_removeAttributeReferenceNumeralFrom" ></paper-icon-button>
+                                                </template>
+
+                                                <template is="dom-if" if="[[!_boolean(attributesData.reference_numeral_from)]]" restamp>
+                                                    <paper-button on-tap="_addAttributeReferenceNumeralFrom" raised>Configure numeric value</paper-button>
+                                                </template>
+                                            </div>
+
+                                        </div>
+
+                                    </template>
+                                    <div class="flex" style="max-width: 50%; align-items: baseline; margin-left: 16px;">
+                                        <view-model-property-list-detail class="flex"
+                                                                         language="[[language]]"
+                                                                         on-ax-open-training-dialog="_interceptContainerDialog"
+                                                                         model-pk="[[formData.containerProperty]]"
+                                                                         hide-vocabulary="[[_equalsOneOf(storageId, 'vocabulary-container')]]"
+                                                                         no-delete no-clone>
+
+                                                                         </view-model-property-list-detail>
+                                    </div>
+                                </div>
+
+                            </template>
+
+
+
+                            <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'grammar', model.data)}}"
+                                      restamp>
+                                <div class="flex-row">
+
+                                    <paper-dropdown-menu label="Word Type"
+                                                         on-iron-overlay-opened="_stopPropagation">
+                                        <paper-menu
+                                                required
+                                                label="Word Type" class="dropdown-content" attr-for-selected="value"
+                                                selected="{{attributesData.word_type}}">
+
+                                            <paper-item value="adjective">adjective</paper-item>
+                                            <paper-item value="determiner">determiner</paper-item>
+                                            <paper-item value="noun">noun</paper-item>
+                                            <paper-item value="preposition">preposition</paper-item>
+                                            <paper-item value="verb">verb</paper-item>
+
+                                        </paper-menu>
+                                    </paper-dropdown-menu>
+
+                                     <template is="dom-if" if="{{_equals(attributesData.word_type, 'determiner')}}" restamp>
+                                         <paper-dropdown-menu label="Determiner"
+                                                              id="grammar-word_type-determiner"
+                                                         on-iron-overlay-opened="_stopPropagation">
+
+                                            <paper-menu label="Determiner" class="dropdown-content" attr-for-selected="value"
+                                                        selected="{{formData.text}}">
+                                                <paper-item value=""></paper-item>
+                                                <template is="dom-repeat" items="[[_getOptionsFromGrammar(_grammarDefinition, 'determiner','determiners', formData.text)]]">
+                                                    <paper-item value="[[item.key]]">[[item.name]]</paper-item>
+                                                </template>
+
+                                            </paper-menu>
+
+
+                                        </paper-dropdown-menu>
+                                    </template>
+                                    <template is="dom-if" if="{{!_equals(attributesData.word_type, 'determiner')}}" restamp>
+                                        <paper-input class="flex" value="{{formData.text}}" label="Content" autofocus required
+                                                     error-message="This field is required."></paper-input>
+                                    </template>
+                                </div>
+                            </template>
+
+
+                            <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'text', 'fail', model.data)}}"
+                                      restamp>
+                                <div class="flex-row">
+                                    <paper-input class="flex" value="{{formData.text}}" label="Content" autofocus required
+                                                 error-message="This field is required."></paper-input>
+                                </div>
+                            </template>
+                        </section>
+
+                        <template is="dom-if" if="[[!_equalsOneOf(model.data.containerType, 'fail', model.data)]]"
+                                      restamp>
+                            <section class="card-content-body-container flex-row" style="align-items: center;">
+                                <div class="flex">
+                                            <paper-input value="{{parametersData.alternative}}"
+                                                         style="width: 100%;"
+                                                         label="Alternative for empty content"></paper-input>
+                                </div>
+                            </section>
+                        </template>
+                    </div>
+            </paper-card>
+
+            <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'phrase', 'value', 'grammar', 'group', model.data)}}" restamp>
+
+
+                <paper-card>
+                <!-- GRAMMAR STUFF -->
+                    <div class="header paper-card">
+                        <h4>Grammar</h4>
+                    </div>
+                    <div class="card-content">
+                        <section class="card-content-body-container">
+
+
+                            <div class="flex-row">
+                                <base-model-list-select
+                                        selected="{{attributesData.copy_grammar_from}}"
+                                        negated-filter-list-facets="[[_negatedFilterListFacets]]"
+                                        show-empty-option
+                                        template-id="list-select-container-template"
+                                        label="Use same Grammar as"
+                                        storage-id="[[storageId]]"
+                                        parent-pk="[[model.parentPk]]">
+                                    <template id="list-select-container-template" is="dom-template">
+                                        <view-model-container-list-item
+                                                                no-edit
+                                                                model-name="[[storageId]]"
+                                                                model-pk="[[baseModelListItem.id]]"
+                                                                label="[[baseModelListItem.source]]"
+                                                                value="[[baseModelListItem.id]]"
+                                                                ></view-model-container-list-item>
+                                    </template>
+                                </base-model-list-select>
+
+
+
+                                <paper-dropdown-menu label="Case"
+                                                     id="grammar-case"
+                                                     on-iron-overlay-opened="_stopPropagation">
+
+                                    <paper-menu label="Case" class="dropdown-content" attr-for-selected="value"
+                                                selected="{{attributesData.case}}">
+
+                                        <paper-item value=""></paper-item>
+                                        <template is="dom-repeat" items="[[_getCaseOptionsFromGrammar(_grammarDefinition, attributesData.case, attributesData.pronoun)]]">
+                                            <paper-item value="[[item.key]]">[[item.name]]</paper-item>
+                                        </template>
+
+
+                                        <paper-item value="_copyFrom">Use same Case as other Container</paper-item>
+
+                                    </paper-menu>
+
+
+                                </paper-dropdown-menu>
+
+                                <template is="dom-if" if="{{_equals(attributesData.case, '_copyFrom')}}" restamp>
+                                    <base-model-list-select
+                                            required="1"
+                                            selected="{{attributesData.copy_grammar_from_case}}"
+                                            negated-filter-list-facets="[[_negatedFilterListFacets]]"
+                                            show-empty-option
+                                            template-id="list-select-case-container-template"
+                                            label="Use same Case as"
+                                            storage-id="[[storageId]]"
+                                            parent-pk="[[model.parentPk]]">
+                                        <template id="list-select-case-container-template" is="dom-template">
+                                            <view-model-container-list-item
+                                                                no-edit
+                                                                model-name="[[storageId]]"
+                                                                model-pk="[[baseModelListItem.id]]"
+                                                                label="[[baseModelListItem.source]]"
+                                                                value="[[baseModelListItem.id]]"
+                                                                ></view-model-container-list-item>
+                                        </template>
+                                    </base-model-list-select>
+                                </template>
+
+                                <template is="dom-if" if="{{!_equalsOneOf(model.data.containerType, 'grammar', model.data)}}" restamp>
+                                    <paper-dropdown-menu label="Number"
+                                                         id="grammar-switch_number"
+                                                         on-iron-overlay-opened="_stopPropagation">
+
+                                        <paper-menu label="Number" class="dropdown-content" attr-for-selected="value"
+
+                                                    selected="{{attributesData.switch_number}}">
+                                            <paper-item value=""></paper-item>
+                                            <template is="dom-repeat" items="[[_getOptionsFromGrammar(_grammarDefinition, 'noun','numbers', attributesData.switch_number)]]">
+                                                <paper-item value="[[item.key]]">[[item.name]]</paper-item>
+                                            </template>
+
+                                            <paper-item value="_copyFrom">Use same Number as other Container</paper-item>
+                                        </paper-menu>
+
+
+                                    </paper-dropdown-menu>
+
+                                    <template is="dom-if" if="{{_equalsOneOf('_copyFrom', attributesData.switch_number, model.data)}}" restamp>
+                                        <base-model-list-select
+                                                required="1"
+                                                selected="{{attributesData.copy_grammar_from_number}}"
+                                                negated-filter-list-facets="[[_negatedFilterListFacets]]"
+                                                show-empty-option
+                                                template-id="list-select-number-container-template"
+                                                label="Use same Number as"
+                                                storage-id="[[storageId]]"
+                                                parent-pk="[[model.parentPk]]">
+                                            <template id="list-select-number-container-template" is="dom-template">
+                                                <view-model-container-list-item
+                                                                no-edit
+                                                                model-name="[[storageId]]"
+                                                                model-pk="[[baseModelListItem.id]]"
+                                                                label="[[baseModelListItem.source]]"
+                                                                value="[[baseModelListItem.id]]"
+                                                                ></view-model-container-list-item>
+                                            </template>
+                                        </base-model-list-select>
+                                    </template>
+                                </template>
+
+                                <template is="dom-if" if="{{_equalsOneOf(model.data.containerType, 'grammar', model.data)}}" restamp>
+                                    <paper-dropdown-menu label="Number"
+                                                         id="grammar-number"
+                                                         on-iron-overlay-opened="_stopPropagation">
+
+                                        <paper-menu label="Number" class="dropdown-content" attr-for-selected="value"
+
+                                                    selected="{{attributesData.number}}">
+                                            <paper-item value=""></paper-item>
+                                            <template is="dom-repeat" items="[[_getOptionsFromGrammar(_grammarDefinition, 'noun','numbers', attributesData.number)]]">
+                                                <paper-item value="[[item.key]]">[[item.name]]</paper-item>
+                                            </template>
+
+                                            <paper-item value="_copyFrom">Use same Number as other Container</paper-item>
+                                        </paper-menu>
+                                    </paper-dropdown-menu>
+
+                                    <template is="dom-if" if="{{_equalsOneOf('_copyFrom', attributesData.number, model.data)}}" restamp>
+                                        <base-model-list-select
+                                                required="1"
+                                                selected="{{attributesData.copy_grammar_from_number}}"
+                                                negated-filter-list-facets="[[_negatedFilterListFacets]]"
+                                                show-empty-option
+                                                template-id="list-select-number-container-template"
+                                                label="Use same Number as"
+                                                storage-id="[[storageId]]"
+                                                parent-pk="[[model.parentPk]]">
+                                            <template id="list-select-number-container-template" is="dom-template">
+                                                <view-model-container-list-item
+                                                                no-edit
+                                                                model-name="[[storageId]]"
+                                                                model-pk="[[baseModelListItem.id]]"
+                                                                label="[[baseModelListItem.source]]"
+                                                                value="[[baseModelListItem.id]]"
+                                                                ></view-model-container-list-item>
+                                            </template>
+                                        </base-model-list-select>
+                                    </template>
+
+
+                                    <paper-dropdown-menu label="Gender"
+                                                         id="grammar-gender"
+                                                         on-iron-overlay-opened="_stopPropagation">
+
+                                        <paper-menu label="Gender" class="dropdown-content" attr-for-selected="value"
+                                                    selected="{{attributesData.gender}}">
+                                            <paper-item value=""></paper-item>
+                                            <template is="dom-repeat" items="[[_getOptionsFromGrammar(_grammarDefinition, 'noun','genders', attributesData.gender)]]">
+                                                <paper-item value="[[item.key]]">[[item.name]]</paper-item>
+                                            </template>
+
+                                            <paper-item value="_copyFrom">Use same Gender as other Container</paper-item>
+                                        </paper-menu>
+
+
+                                    </paper-dropdown-menu>
+
+                                    <template is="dom-if" if="{{_equals(attributesData.gender, '_copyFrom')}}" restamp>
+                                        <base-model-list-select
+                                                required="1"
+                                                selected="{{attributesData.copy_grammar_from_gender}}"
+                                                negated-filter-list-facets="[[_negatedFilterListFacets]]"
+                                                show-empty-option
+                                                template-id="list-select-gender-container-template"
+                                                label="Use same Gender as"
+                                                storage-id="[[storageId]]"
+                                                parent-pk="[[model.parentPk]]">
+                                            <template id="list-select-gender-container-template" is="dom-template">
+                                                <view-model-container-list-item
+                                                                no-edit
+                                                                model-name="[[storageId]]"
+                                                                model-pk="[[baseModelListItem.id]]"
+                                                                label="[[baseModelListItem.source]]"
+                                                                value="[[baseModelListItem.id]]"
+                                                                ></view-model-container-list-item>
+                                            </template>
+                                        </base-model-list-select>
+                                    </template>
+
+                                    <paper-dropdown-menu label="Person"
+                                                         id="grammar-person"
+                                                         on-iron-overlay-opened="_stopPropagation">
+
+                                        <paper-menu label="Person" class="dropdown-content" attr-for-selected="value"
+                                                    selected="{{attributesData.person}}">
+                                            <paper-item value=""></paper-item>
+                                            <template is="dom-repeat" items="[[_getOptionsFromGrammar(_grammarDefinition, 'verb','persons', attributesData.person)]]">
+                                                <paper-item value="[[item.key]]">[[item.name]]</paper-item>
+                                            </template>
+
+                                            <paper-item value="_copyFrom">Use same Person as other Container</paper-item>
+                                        </paper-menu>
+
+
+                                    </paper-dropdown-menu>
+
+                                    <template is="dom-if" if="{{_equals(attributesData.person, '_copyFrom')}}" restamp>
+                                        <base-model-list-select
+                                                required="1"
+                                                selected="{{attributesData.copy_grammar_from_person}}"
+                                                negated-filter-list-facets="[[_negatedFilterListFacets]]"
+                                                show-empty-option
+                                                template-id="list-select-person-container-template"
+                                                label="Use same person as"
+                                                storage-id="[[storageId]]"
+                                                parent-pk="[[model.parentPk]]">
+                                            <template id="list-select-person-container-template" is="dom-template">
+                                                <view-model-container-list-item
+                                                                no-edit
+                                                                model-name="[[storageId]]"
+                                                                model-pk="[[baseModelListItem.id]]"
+                                                                label="[[baseModelListItem.source]]"
+                                                                value="[[baseModelListItem.id]]"
+                                                                ></view-model-container-list-item>
+                                            </template>
+                                        </base-model-list-select>
+                                    </template>
+
+
+                                    <paper-dropdown-menu label="Tense"
+                                                         id="grammar-tense"
+                                                         on-iron-overlay-opened="_stopPropagation">
+
+                                        <paper-menu label="Tense" class="dropdown-content" attr-for-selected="value"
+                                                    selected="{{attributesData.tense}}">
+                                            <paper-item value=""></paper-item>
+                                            <template is="dom-repeat" items="[[_getOptionsFromGrammar(_grammarDefinition, 'verb','tenses', attributesData.tense)]]">
+                                                <paper-item value="[[item.key]]">[[item.name]]</paper-item>
+                                            </template>
+                                            <paper-item value="_copyFrom">Use same Tense as other Container</paper-item>
+                                        </paper-menu>
+
+
+                                    </paper-dropdown-menu>
+                                    <template is="dom-if" if="{{_equals(attributesData.tense, '_copyFrom')}}" restamp>
+                                        <base-model-list-select
+                                                required="1"
+                                                selected="{{attributesData.copy_grammar_from_tense}}"
+                                                negated-filter-list-facets="[[_negatedFilterListFacets]]"
+                                                show-empty-option
+                                                template-id="list-select-tense-container-template"
+                                                label="Use same tense as"
+                                                storage-id="[[storageId]]"
+                                                parent-pk="[[model.parentPk]]">
+                                            <template id="list-select-tense-container-template" is="dom-template">
+                                                <view-model-container-list-item
+                                                                no-edit
+                                                                model-name="[[storageId]]"
+                                                                model-pk="[[baseModelListItem.id]]"
+                                                                label="[[baseModelListItem.source]]"
+                                                                value="[[baseModelListItem.id]]"
+                                                                ></view-model-container-list-item>
+                                            </template>
+                                        </base-model-list-select>
+                                    </template>
+
+                                </template>
+
+                            </div>
+                        </section>
+                    </div>
+                </paper-card>
+            </template>
+
+
+            <paper-card>
+                <!-- LOGIC STUFF -->
+                <div class="header paper-card">
+                    <h4>Logic</h4>
+                </div>
+                <div class="card-content">
+                    <section class="card-content-body-container">
+                        <div class="flex-row" style="align-items: baseline;">
+                            <paper-material elevation="0">Render content</paper-material>
+                            <paper-material elevation="0" hidden="[[!parametersData.on.length]]">&nbsp;if:
+                            </paper-material>
+                            <paper-material elevation="0" hidden="[[parametersData.on.length]]">&nbsp;without restricting criteria.
+                            </paper-material>
+
+                            <paper-button raised on-tap="_addParameterOn" hidden="[[parametersData.on.length]]">Configure
+                                restricting criteria
+                            </paper-button>
+                        </div>
+                        <template is="dom-repeat" items="{{parametersData.on}}" restamp>
+                            <div class="flex-row" style="align-items: flex-end;">
+                                <template is="dom-if" if="[[_allOfSet(item.trigger, item.trigger_on)]]" restamp>
+                                    <view-model-property-detail-chip model-pk="[[item.trigger]]" show-true="[[_equals(item.trigger_on, retTrue)]]" show-false="[[!_equals(item.trigger_on, retTrue)]]"></view-model-property-detail-chip>
+                                </template>
+                                <template is="dom-if" if="[[!_allOfSet(item.trigger, item.trigger_on)]]" restamp>
+                                    <view-model-property-selector
+                                             item-value-prop-name="id"
+                                             parent-pk="[[trainingPk]]"
+                                             value="{{item.trigger}}">
+
+                                             </view-model-property-selector>
+
+                                    <paper-material elevation="0">&nbsp;is&nbsp;</paper-material>
+                                    <div>
+                                        <paper-dropdown-menu required="1" error-message="This field is required."
+                                                             on-iron-overlay-opened="_stopPropagation">
+
+                                            <paper-menu class="dropdown-content" attr-for-selected="value"
+                                                        selected="{{item.trigger_on}}">
+
+                                                <paper-item value="[[retTrue]]">true</paper-item>
+                                                <paper-item value="[[!retTrue]]">false</paper-item>
+
+                                            </paper-menu>
+
+
+                                        </paper-dropdown-menu>
+                                    </div>
+                                </template>
+                                <paper-icon-button icon="delete" raised on-tap="_removeParameterOn" data-args="{{index}}">
+                                    x
+                                </paper-icon-button>
+                                <paper-button on-tap="_addParameterOn"
+                                              raised
+                                              disabled="[[!_isLastListIndex(index, parametersData.on.length)]]">
+                                    And...
+                                </paper-button>
+                            </div>
+                        </template>
+                    </section>
+                </div>
+            </paper-card>
+
+
+            <template is="dom-if" if="[[!_equalsOneOf(model.data.containerType, 'fail', model.data)]]" restamp>
+
+                <paper-card>
+                    <!-- on_random CONTAINER STUFF -->
+                    <div class="header paper-card">
+                        <h4>Randomness</h4>
+                    </div>
+                    <div class="card-content">
+                        <section class="card-content-body-container">
+                            <div class="flex-row" style="align-items: baseline;">
+                                <template is="dom-if" if="[[randomnessData]]" restamp>
+                                    <div>
+                                        <paper-input value="{{randomnessData.percentage}}"
+                                                     min="1"
+                                                     max="99"
+                                                     step="1"
+                                                     type="number"
+                                                     label="Percentage"></paper-input>
+                                    </div>
+
+                                    <div>
+                                        <paper-icon-button on-tap="_removeRandomnessData" icon="icons:delete"></paper-icon-button>
+                                    </div>
+                                </template>
+                                <template is="dom-if" if="[[!randomnessData]]" restamp>
+                                    <paper-button raised on-tap="_addRandomnessData">Configure Randomness</paper-button>
+                                </template>
+                            </div>
+                        </section>
+                    </div>
+                </paper-card>
+
+
+                <paper-card>
+                    <!-- STATIC CONTAINER STUFF -->
+                    <div class="header paper-card">
+                        <h4>Format</h4>
+                    </div>
+                    <div class="card-content">
+                        <section class="card-content-body-container">
+                            <div class="flex-row">
+                                <div>
+                                    <paper-input value="{{parametersData.preceding}}"
+                                                 label="Precede content with"></paper-input>
+                                </div>
+
+                                <div>
+                                    <paper-input value="{{parametersData.trailing}}"
+                                                 label="Trail content with"></paper-input>
+                                </div>
+
+                                <paper-dropdown-menu label="Format Content"
+                                                     on-iron-overlay-opened="_stopPropagation">
+
+                                    <paper-menu label="Format" class="dropdown-content" attr-for-selected="value"
+                                                selected="{{formatData}}">
+
+                                        <paper-item value=""></paper-item>
+                                        <paper-item value="capitalize">Start with an Upper Case Character</paper-item>
+                                        <paper-item value="lower">Only Lower Case Characters</paper-item>
+                                        <paper-item value="upper">Only Upper Case Characters</paper-item>
+                                        <paper-item value="raw">Raw</paper-item>
+                                        <paper-item value="void">Show no rendered output (void)</paper-item>
+
+                                    </paper-menu>
+
+
+                                </paper-dropdown-menu>
+                            </div>
+                        </section>
+                    </div>
+                </paper-card>
+
+
+                <paper-card>
+                    <!-- KEYWORD CONTAINER STUFF -->
+                    <div class="header paper-card">
+                        <h4>Keyword</h4>
+                    </div>
+                    <div class="card-content">
+                        <section class="card-content-body-container">
+                            <div class="flex-row" style="align-items: baseline;">
+                                <template is="dom-if" if="[[keywordData]]" restamp>
+                                    <div>
+                                        <paper-input value="{{keywordData.id}}"
+                                                     min="1"
+                                                     type="number"
+                                                     label="Keyword ID"></paper-input>
+                                    </div>
+
+                                    <div>
+                                        <paper-input value="{{keywordData.alt}}"
+                                                     label="Static fallback text as alternative"></paper-input>
+                                    </div>
+                                    <div>
+                                        <paper-icon-button on-tap="_removeKeywordData" icon="icons:delete"></paper-icon-button>
+                                    </div>
+                                </template>
+                                <template is="dom-if" if="[[!keywordData]]" restamp>
+                                    <paper-button raised on-tap="_addKeywordData">Configure Keyword</paper-button>
+                                </template>
+                            </div>
+                        </section>
+                    </div>
+                </paper-card>
+
+
+                <paper-card>
+                    <!-- URL CONTAINER STUFF -->
+                    <div class="header paper-card">
+                        <h4>Link</h4>
+                    </div>
+                    <div class="card-content">
+                        <section class="card-content-body-container">
+                            <div class="flex-row" style="align-items: baseline;">
+                                <template is="dom-if" if="[[urlData]]" restamp>
+                                    <div>
+                                        <paper-input value="{{urlData.text}}"
+                                                     label="Link Text"></paper-input>
+                                    </div>
+                                    <div>
+                                        <paper-dropdown-menu label="Link Target"
+                                                             on-iron-overlay-opened="_stopPropagation">
+
+                                            <paper-menu label="Link Target" class="dropdown-content" attr-for-selected="value"
+                                                        selected="{{urlData.target}}">
+                                                <paper-item value=""></paper-item>
+                                                <paper-item value="_blank">_blank</paper-item>
+                                                <paper-item value="_parent">_parent</paper-item>
+                                                <paper-item value="_self">_self</paper-item>
+                                                <paper-item value="_top">_top</paper-item>
+
+                                            </paper-menu>
+
+
+                                        </paper-dropdown-menu>
+                                    </div>
+                                    <div>
+                                        <paper-dropdown-menu label="Link Rel"
+                                                             on-iron-overlay-opened="_stopPropagation">
+
+                                            <paper-menu label="Link Rel" class="dropdown-content" attr-for-selected="value"
+                                                        selected="{{urlData.rel}}">
+                                                <paper-item value=""></paper-item>
+                                                <paper-item value="alternate">alternate</paper-item>
+                                                <paper-item value="author">author</paper-item>
+                                                <paper-item value="bookmark">bookmark</paper-item>
+                                                <paper-item value="external">external</paper-item>
+                                                <paper-item value="help">help</paper-item>
+                                                <paper-item value="license">license</paper-item>
+                                                <paper-item value="next">next</paper-item>
+                                                <paper-item value="nofollow">nofollow</paper-item>
+                                                <paper-item value="noopener">noopener</paper-item>
+                                                <paper-item value="noreferrer">noreferrer</paper-item>
+                                                <paper-item value="prev">prev</paper-item>
+                                                <paper-item value="search">search</paper-item>
+                                                <paper-item value="tag">tag</paper-item>
+                                            </paper-menu>
+
+
+                                        </paper-dropdown-menu>
+                                    </div>
+                                    <div>
+                                        <paper-input value="{{urlData.title}}"
+                                                     label="Link Title"></paper-input>
+                                    </div>
+                                    <div>
+                                        <paper-icon-button on-tap="_removeUrlData" icon="icons:delete"></paper-icon-button>
+                                    </div>
+                                </template>
+                                <template is="dom-if" if="[[!urlData]]" restamp>
+                                    <paper-button raised on-tap="_addUrlData">Configure Link</paper-button>
+                                </template>
+                            </div>
+                        </section>
+                    </div>
+                </paper-card>
+
+
+                <paper-card>
+                    <!-- IMG CONTAINER STUFF -->
+                    <div class="header paper-card">
+                        <h4>Image</h4>
+                    </div>
+                    <div class="card-content">
+                        <section class="card-content-body-container">
+                            <div class="flex-row" style="align-items: baseline;">
+                                <template is="dom-if" if="[[imgData]]" restamp>
+                                    <div>
+                                        <paper-input value="{{imgData.text}}"
+                                                     label="Image Alt Text"></paper-input>
+                                    </div>
+                                    <div>
+                                        <paper-input value="{{imgData.title}}"
+                                                     label="Image Title"></paper-input>
+                                    </div>
+                                    <div>
+                                        <paper-icon-button on-tap="_removeImgData" icon="icons:delete"></paper-icon-button>
+                                    </div>
+                                </template>
+                                <template is="dom-if" if="[[!imgData]]" restamp>
+                                    <paper-button raised on-tap="_addImgData">Configure Image</paper-button>
+                                </template>
+                            </div>
+                        </section>
+                    </div>
+                </paper-card>
+
+             </template>
+            <paper-card>
+                <div class="card-content">
+                    <section class="card-content-body-container">
+
+
+                        <div class="flex-row">
+                            <div class="flex">
+                                <paper-textarea value="{{formData.comment}}" label="Comment"></paper-textarea>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </paper-card>
+
+
+
+
+
+            </form>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        var defaultParametersData = {
+            Preceding: '',
+            Trailing: '',
+            On: []
+        };
+
+        var defaultAttributesData = {
+            case: 'nom',
+            switch_number: '',
+            gender: '',
+            copy_grammar_from_case: null
+        };
+        var defaultGroupMethodData = {
+
+        };
+
+        Polymer({
+            is: 'view-model-container-form',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+
+
+            properties: {
+                retTrue: {
+                    type: Boolean,
+                    value: true,
+                    readOnly: true
+                },
+                _activeCardBase: {
+                    type: Boolean,
+                    value: true
+                },
+                parametersData: {
+                    type: Object,
+                    value: defaultParametersData,
+                    notify: true
+                },
+                attributesData: {
+                    type: Object,
+                    value: defaultAttributesData,
+                    notify: true
+                },
+                groupMethodData: {
+                    type: Object,
+                    value: defaultGroupMethodData,
+                    notify: true
+                },
+                formatData: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                language: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                keywordData: {
+                    type: Object,
+                    notify: true
+                },
+                randomnessData: {
+                    type: Object,
+                    notify: true
+                },
+                imgData: {
+                    type: Object,
+                    notify: true
+                },
+                urlData: {
+                    type: Object,
+                    notify: true
+                },
+                listData: {
+                    type: Object,
+                    notify: true
+                },
+                _editAdvanced: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                storageId: {
+                    type: String,
+//                    value: 'container',
+                    notify: true
+                },
+                 _negatedFilterListFacets: {
+                    type: Object,
+                    computed: '_computeNegatedFilterListFacets(modelPk)'
+                },
+                allowedFields: {
+                    type: Array,
+
+                    value: function () {
+                        return ['containerEdited', 'comment', 'source'];
+                    },
+                    notify: true
+                },
+                trainingPk: {
+                    type: String
+                },
+                _grammarDefinition: {
+                    type: Object,
+                    notify: true
+                }
+            },
+
+            _removeKeywordData: function (event) {
+                event.stopPropagation();
+                this.set('keywordData', null);
+            },
+            _addKeywordData: function (event) {
+                event.stopPropagation();
+                this.set('keywordData', {id: null, alt: ''});
+            },
+
+            _removeRandomnessData: function (event) {
+                event.stopPropagation();
+                this.set('randomnessData', null);
+            },
+            _addRandomnessData: function (event) {
+                event.stopPropagation();
+                this.set('randomnessData', {percentage: 50});
+            },
+
+            _removeImgData: function (event) {
+                event.stopPropagation();
+                this.set('imgData', null);
+            },
+            _addImgData: function (event) {
+                event.stopPropagation();
+                this.set('imgData', {format: null, text: '', title: ''});
+            },
+
+            _removeUrlData: function (event) {
+                event.stopPropagation();
+                this.set('urlData', null);
+            },
+            _addUrlData: function (event) {
+                event.stopPropagation();
+                this.set('urlData', {format: null, text: '', title: '', target: null, rel: null});
+            },
+
+            _removeListData: function (event) {
+                event.stopPropagation();
+                this.set('listData', null);
+            },
+            _addListData: function (event) {
+                event.stopPropagation();
+                this.set('listData', {format: '', id: '', ordered: false});
+            },
+
+
+            _closeTypeSelect: function (event) {
+                var containerTypeSelect = this.$$('#btn-container-type-select');
+                event.stopPropagation();
+                if (containerTypeSelect) {
+                    containerTypeSelect.close();
+                }
+            },
+
+            _openToPhrase: function (event) {
+                this.$$('view-model-container-modal-to-phrase').open();
+                this._closeTypeSelect(event);
+            },
+            _openToValue: function (event) {
+                this.$$('view-model-container-modal-to-value').open();
+                this._closeTypeSelect(event);
+            },
+            _openToGroup: function (event) {
+                this.$$('view-model-container-modal-to-group').open();
+                this._closeTypeSelect(event);
+            },
+            _openToGrammar: function (event) {
+                this.$$('view-model-container-modal-to-grammar').open();
+                this._closeTypeSelect(event);
+            },
+
+            _openToFail: function (event) {
+                this.$$('view-model-container-modal-to-fail').open();
+                this._closeTypeSelect(event);
+            },
+
+
+            _computeNegatedFilterListFacets: function (pk) {
+                return {id: [pk], containerType: ['plain', 'text', 'value', 'fail']};
+            },
+
+
+            _containerTypeChanged: function (event) {
+                event.stopPropagation();
+                this.notifyPath('model.data.containerType', this.model.data.containerType);
+                this.refresh();
+            },
+
+            _toText: function (event) {
+                event.stopPropagation();
+
+                this.model.toText().then(function () {
+                    this.model.refresh(true).then(function () {
+                        this.notifyPath('model.data.containerType', this.model.data.containerType);
+                         this.refresh();
+                    }.bind(this));
+
+                }.bind(this));
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            _preSaveModel: function () {
+                if (this._editAdvanced) {
+                    this.set('allowedFields', ['container_edited', 'comment', 'source']);
+                    return;
+                }
+
+                if (this.model.data.containerType === 'text') {
+                    this.set('allowedFields', ['text', 'containerEdited', 'parameters', 'attributes','comment', 'source']);
+                    this.set('formData.containerEdited', '');
+                }
+
+                if (this.model.data.containerType === 'phrase') {
+                    this.set('allowedFields', ['containerProperty', 'containerEdited', 'parameters', 'attributes', 'comment', 'source']);
+                    this.set('formData.containerEdited', '');
+                }
+                if (this.model.data.containerType === 'group') {
+                    this.set('allowedFields', ['groupMethod', 'containerProperty', 'containerEdited', 'parameters', 'attributes', 'comment', 'source']);
+                    this.set('formData.containerEdited', '');
+                }
+
+                if (this.model.data.containerType === 'value') {
+                    this.set('allowedFields', ['containerProperty', 'containerEdited', 'parameters', 'attributes', 'comment', 'source']);
+                    this.set('formData.containerEdited', '');
+                }
+                if (this.model.data.containerType === 'grammar') {
+                    this.set('allowedFields', ['text', 'containerEdited', 'parameters', 'attributes', 'comment', 'source']);
+                    this.set('formData.containerEdited', '');
+                }
+
+                if (this.model.data.containerType === 'fail') {
+                    this.set('allowedFields', ['text', 'parameters', 'attributes', 'comment', 'source']);
+                    this.set('formData.containerEdited', '');
+                }
+
+                this._setParametersToFormData();
+                this._setAttributesToFormData(this.attributesData, this.model.data.containerType);
+                this._setGroupMethodToFormData();
+            },
+
+            _setParametersToFormData: function () {
+                var formDataParameters;
+
+                formDataParameters = {};
+                Object.keys(this.parametersData).forEach(function (parameterName) {
+
+                    if (['void', 'capitalize', 'raw', 'lower', 'upper', 'keyword', 'img', 'url', 'on_random'].indexOf(parameterName) < 0) {
+
+                        if (['preceding', 'trailing', 'alternative'].indexOf(parameterName) > -1) {
+                            if (this.parametersData[parameterName]) {
+                                formDataParameters[parameterName] = this.parametersData[parameterName];
+                            }
+                        } else {
+                            formDataParameters[parameterName] = this.parametersData[parameterName];
+                        }
+
+                    }
+
+                }.bind(this));
+
+
+                if (this.formatData) {
+                    formDataParameters[this.formatData] = true;
+                }
+                if (this.keywordData) {
+                    formDataParameters.keyword = { id: parseInt(this.keywordData.id, 10), alt: this.keywordData.alt};
+                }
+                if (this.randomnessData) {
+                    formDataParameters.on_random = parseInt(this.randomnessData.percentage, 10);
+                }
+
+                if (this.urlData) {
+                    formDataParameters.url = {};
+                    ['format', 'rel', 'target', 'text', 'title'].forEach(function (fieldName) {
+                        if (this.urlData[fieldName] !== undefined && this.urlData[fieldName] !== null && this.urlData[fieldName] !== '') {
+                            formDataParameters.url[fieldName] = this.urlData[fieldName];
+                        }
+                    }.bind(this));
+
+                    if (Object.keys(formDataParameters.url).length === 0) {
+                        delete formDataParameters.url;
+                    }
+                }
+
+                if (this.imgData) {
+                    formDataParameters.img = {};
+                    ['format', 'text', 'title'].forEach(function (fieldName) {
+                        if (this.imgData[fieldName] !== undefined && this.imgData[fieldName] !== null && this.imgData[fieldName] !== '') {
+                            formDataParameters.img[fieldName] = this.imgData[fieldName];
+                        }
+                    }.bind(this));
+
+                    if (Object.keys(formDataParameters.img).length === 0) {
+                        delete formDataParameters.img;
+                    }
+                }
+
+                if (this.listData) {
+                    formDataParameters.list = {};
+                    ['format', 'ordered', 'id'].forEach(function (fieldName) {
+                        if (this.listData[fieldName] !== undefined && this.listData[fieldName] !== null && this.listData[fieldName] !== '' && this.listData[fieldName] !== false) {
+                            formDataParameters.list[fieldName] = this.listData[fieldName];
+                        }
+                    }.bind(this));
+
+                } else {
+                    if (formDataParameters.list) {
+                        delete formDataParameters.list;
+                    }
+                }
+
+
+
+                this.set('formData.parameters', formDataParameters);
+            },
+
+            _setAttributesToFormData: function (attributesData, containerType) {
+                var formDataAttributes = {};
+                var cleanedAttributes;
+
+                ['case', 'number', 'gender', 'person', 'tense'].forEach(function (attr) {
+                    if (containerType !== 'grammar' && attr === 'number') {
+                        if (attributesData['copy_grammar_from_' + attr] && attributesData.switch_number !== '_copyFrom') {
+                            attributesData['copy_grammar_from_' + attr] = '';
+                        }
+                    } else {
+
+                        if (attributesData['copy_grammar_from_' + attr] && attributesData[attr] !== '_copyFrom') {
+                            attributesData['copy_grammar_from_' + attr] = '';
+                        }
+                    }
+
+                });
+
+                cleanedAttributes = Object.keys(attributesData).filter(function (x) {
+                    return attributesData[x] !== undefined && attributesData[x] !== null && attributesData[x] !== '' && attributesData[x] !== '_copyFrom';
+                }.bind(this));
+
+
+                cleanedAttributes.forEach(function (x) {
+                    formDataAttributes[x] = attributesData[x];
+                }.bind(this));
+
+
+                this.set('formData.attributes', formDataAttributes);
+            },
+
+            _setGroupMethodToFormData: function () {
+                var formDataGroup = {};
+
+                var obj = Object.keys(this.groupMethodData).filter(function (x) {
+                    return this.groupMethodData[x] !== undefined && this.groupMethodData[x] !== null && this.groupMethodData[x] !== '';
+                }.bind(this)).forEach(function (x) {
+
+                    formDataGroup[x] = this.groupMethodData[x];
+                }.bind(this));
+
+                if (formDataGroup.method === 'All' || formDataGroup.method === 'AllRandom' || formDataGroup.method === 'Range') {
+                    delete formDataGroup.count;
+                }
+                if (formDataGroup.method !== 'Range') {
+                    delete formDataGroup.start;
+                    delete formDataGroup.end;
+                }
+
+                if (formDataGroup.count !== undefined) {
+                    formDataGroup.count = 1 * formDataGroup.count;
+                }
+                if (formDataGroup.start !== undefined) {
+                    formDataGroup.start = 1 * formDataGroup.start;
+                }
+                if (formDataGroup.end !== undefined) {
+                    formDataGroup.end = 1 * formDataGroup.end;
+                }
+                this.set('formData.groupMethod', formDataGroup);
+            },
+
+            _modelChanged: function (model) {
+                this.set('_editAdvanced', !!model.data.containerEdited);
+            },
+
+            saveModel: function () {
+                if (this.$$('#model-form').validate() && this._validateGrammar()) {
+
+                    return AxWizard.BaseModelFormBehavior.saveModel.call(this);
+                } else {
+                    return;
+                }
+            },
+
+            _equals: function (a, b) {
+                return a === b;
+            },
+
+            _allOf: function () {
+
+                var args = Array.prototype.slice.call(arguments),
+                    ret;
+
+                ret = args.filter(function (x) {
+                    return !!x;
+                }).length === args.length;
+
+                return ret;
+            },
+
+            _allOfSet: function () {
+
+                var args = Array.prototype.slice.call(arguments),
+                    ret;
+
+                ret = args.filter(function (x) {
+                    return x !== undefined && x !== null;
+                }).length === args.length;
+                return ret;
+            },
+
+            _boolean: function (a) {
+                return !!a;
+            },
+
+            /**
+             * Looks for duplicate argument
+             * @returns {boolean}
+             * @private
+             */
+            _equalsOneOf: function () {
+                var args = Array.prototype.slice.call(arguments);
+
+                return args.filter(function (x, idx, ls) {
+                   return ls.indexOf(x) === idx;
+                }).length < args.length;
+            },
+
+
+            _isLastListIndex: function (idx, length) {
+                return idx - 0 === length - 1;
+            },
+
+
+            _initFormData: function (model) {
+                AxWizard.BaseModelFormBehavior._initFormData.call(this, model);
+
+                this._initParametersData(this.formData.parameters);
+                this._initAttributesData(this.formData.attributes);
+                this._initGroupMethodData(this.formData.groupMethod);
+
+                this._initLanguageGrammar(model);
+            },
+
+
+            _initLanguageGrammar: function (model) {
+                model.getLanguage().then(function (language) {
+                    this.set('language', language);
+                    this._initGrammarForLanguage(language);
+                }.bind(this));
+            },
+
+            _initGrammarForLanguage: function (localizationString) {
+                var localizationLanguage = ('' + localizationString).split('-')[0],
+                    language = localizationLanguage.length === 2 ? localizationLanguage : 'de';
+
+                app.storageContainer.getObject('grammar-definition', language).then(function (grammarDefinition) {
+                    this.set('_grammarDefinition', grammarDefinition.data);
+                }.bind(this));
+            },
+
+            _validateGrammar: function () {
+
+                var fieldDataToCheck = [
+                    {
+                        grammarField: this.$$('#grammar-case'),
+                        value: this.get('formData.attributes.case'),
+                        validOptions: this._getCaseOptionsFromGrammar(this._grammarDefinition, null, this.get('formData.attributes.pronoun'))
+                    },
+                    {
+                        grammarField: this.$$('#grammar-switch_number'),
+                        value: this.get('formData.attributes.switch_number'),
+                        validOptions: this._getOptionsFromGrammar(this._grammarDefinition, 'noun', 'numbers')
+                    },
+                    {
+                        grammarField: this.$$('#grammar-number'),
+                        value: this.get('formData.attributes.number'),
+                        validOptions: this._getOptionsFromGrammar(this._grammarDefinition, 'noun', 'numbers')
+                    },
+                    {
+                        grammarField: this.$$('#grammar-gender'),
+                        value: this.get('formData.attributes.gender'),
+                        validOptions: this._getOptionsFromGrammar(this._grammarDefinition, 'noun', 'genders')
+                    },
+                    {
+                        grammarField: this.$$('#grammar-person'),
+                        value: this.get('formData.attributes.person'),
+                        validOptions: this._getOptionsFromGrammar(this._grammarDefinition, 'verb', 'persons')
+                    },
+                    {
+                        grammarField: this.$$('#grammar-tense'),
+                        value: this.get('formData.attributes.tense'),
+                        validOptions: this._getOptionsFromGrammar(this._grammarDefinition, 'verb', 'tenses')
+                    },
+                    {
+                        grammarField: this.$$('#grammar-determiner'),
+                        value: this.get('formData.attributes.determiner'),
+                        validOptions: this._getOptionsFromGrammar(this._grammarDefinition, 'determiner', 'determiners')
+                    },
+                    {
+                        grammarField: this.$$('#grammar-word_type-determiner'),
+                        value: this.get('formData.text'),
+                        validOptions: this._getOptionsFromGrammar(this._grammarDefinition, 'determiner', 'determiners')
+                    },
+                    {
+                        grammarField: this.$$('#grammar-pronoun'),
+                        value: this.get('formData.attributes.pronoun'),
+                        validOptions: this._getOptionsFromGrammar(this._grammarDefinition, 'pronoun', 'pronouns')
+                    }
+
+                ];
+
+
+                var hasInvalidGrammarData;
+                fieldDataToCheck.forEach(function (fieldData) {
+                    var isValid;
+
+
+                    if (!fieldData.grammarField) {
+                        return;
+                    }
+
+                    if (!fieldData.value) {
+                        isValid = true;
+                    } else if (fieldData.value === '_copyFrom') {
+                        isValid = true;
+                    } else {
+                        isValid = !!fieldData.validOptions.find(function (opt) {
+                            return opt.key === fieldData.value;
+                        });
+                    }
+
+                    fieldData.grammarField.set('invalid', !isValid);
+
+                    if (!isValid) {
+                        hasInvalidGrammarData = true;
+                    }
+
+                });
+
+                return !hasInvalidGrammarData;
+            },
+
+            _getCaseOptionsFromGrammar: function (grammarDefinition, currentValue, pronoun) {
+                var optionList,
+                    pronounDefinitions,
+                    pronounDefinition;
+
+                if (!pronoun) {
+                    return this._getOptionsFromGrammar(grammarDefinition, 'noun', 'cases', currentValue);
+                }
+
+                pronounDefinitions = this._getOptionsFromGrammar(this._grammarDefinition, 'pronoun', 'pronouns');
+                if (!pronounDefinitions || !pronounDefinitions.length) {
+                    return this._getOptionsFromGrammar(grammarDefinition, 'noun', 'cases', currentValue);
+                }
+                pronounDefinition = pronounDefinitions.find(function (x) {return x.key === pronoun;});
+                if (!pronounDefinition || !pronounDefinition.cases) {
+                    return this._getOptionsFromGrammar(grammarDefinition, 'noun', 'cases', currentValue);
+                }
+
+
+                optionList = JSON.parse(JSON.stringify(pronounDefinition.cases));
+
+                if (currentValue) {
+                    if (!optionList.find(function (opt) {
+                        return opt.key === currentValue;
+                    })) {
+                        if (currentValue === '_copyFrom') {
+                        } else {
+                            optionList.push({key: currentValue, name: 'invalid: ' + currentValue});
+                        }
+
+                    }
+                }
+
+                return optionList;
+            },
+
+            /**
+             *
+             * @param Array grammarDefinition
+             * @param String keyName
+             * @param String wordType (noun, verb)
+             * @param currentValue
+             * @return Array
+             * @private
+             */
+            _getOptionsFromGrammar: function (grammarDefinition, wordType, keyName, currentValue) {
+
+
+                var options = [],
+                    optionList;
+
+                if (!grammarDefinition || !grammarDefinition[wordType] || !grammarDefinition[wordType][keyName]) {
+                    return null;
+                }
+
+                if (keyName === 'switchDeterminerByNoun') {
+                    optionList = grammarDefinition[wordType][keyName].choices.map(function (key) {
+                        return {key: key, name: key};
+                    });
+                } else {
+                    optionList = JSON.parse(JSON.stringify(grammarDefinition[wordType][keyName]));
+                }
+
+
+                if (currentValue) {
+                    if (!optionList.find(function (opt) {
+                        return opt.key === currentValue;
+                    })) {
+                        if (currentValue === '_copyFrom') {
+//                            optionList.push({key: currentValue, name: 'Use same as'});
+                        } else {
+                            optionList.push({key: currentValue, name: 'invalid: ' + currentValue});
+                        }
+
+                    }
+                }
+
+                return optionList;
+
+            },
+
+            _initParametersData: function (parameters) {
+                var parametersData = JSON.parse(JSON.stringify(defaultParametersData)),
+                    formatData = '';
+                parameters = parameters || [];
+
+                parametersData = parameters;
+
+                if (parametersData.void) {
+                    formatData = 'void';
+                } else if (parametersData.capitalize) {
+                    formatData = 'capitalize';
+                } else if (parametersData.raw) {
+                    formatData = 'raw';
+                } else if (parametersData.lower) {
+                    formatData = 'lower';
+                } else if (parametersData.upper) {
+                    formatData = 'upper';
+                }
+
+                if (parametersData.keyword) {
+                    this.set('keywordData', parametersData.keyword);
+                }
+                if (!this.keywordData) {
+                    this.set('keywordData', null);
+                }
+
+                if (parametersData.on_random) {
+                    this.set('randomnessData', {percentage: parametersData.on_random});
+                }
+                if (!this.randomnessData) {
+                    this.set('randomnessData', null);
+                }
+
+                if (parametersData.img) {
+                    this.set('imgData', parametersData.img);
+                }
+                if (!this.imgData) {
+                    this.set('imgData', null);
+                }
+
+                if (parametersData.url) {
+                    this.set('urlData', parametersData.url);
+                }
+                if (!this.urlData) {
+                    this.set('urlData', null);
+                }
+
+                if (parametersData.list) {
+                    if (parametersData.list.ordered === undefined) {
+                        parametersData.list.ordered = false;
+                    }
+                    this.set('listData', parametersData.list);
+                }
+                if (!this.listData) {
+                    this.set('listData', null);
+                }
+
+
+                this.set('formatData', formatData);
+                this.set('parametersData', parametersData);
+
+            },
+
+            _initAttributesData: function (attributes) {
+                var attributesData = {};
+                attributes = attributes || {};
+
+                if (attributes.copy_grammar_from_case) {
+                    attributes.case = '_copyFrom';
+                }
+                if (attributes.copy_grammar_from_number) {
+                    attributes.number = '_copyFrom';
+                    attributes.switch_number = '_copyFrom';
+                }
+                if (attributes.copy_grammar_from_gender) {
+                    attributes.gender = '_copyFrom';
+                }
+                if (attributes.copy_grammar_from_person) {
+                    attributes.person = '_copyFrom';
+                }
+                if (attributes.copy_grammar_from_tense) {
+                    attributes.tense = '_copyFrom';
+                }
+
+//                if (!attributes.reference_numeral_from) {
+//                    attributes.reference_numeral_from = {type: null, property: null}
+//                }
+
+                ['determiner', 'pronoun', 'case', 'number', 'switch_number', 'gender', 'tense', 'person', 'keep_db_tags'].forEach(function (attrKeyName) {
+                    if (attributes[attrKeyName] === undefined) {
+                       attributes[attrKeyName] = null;
+                    }
+                });
+
+                this.set('attributesData', attributes);
+            },
+            _initGroupMethodData: function (groupMethod) {
+                groupMethod = groupMethod || {};
+
+                this.set('groupMethodData', groupMethod);
+            },
+
+
+            _addParameterOn: function (event) {
+                event.stopPropagation();
+                if (this.parametersData.on === undefined) {
+                    this.set('parametersData.on', []);
+                }
+                this.push('parametersData.on', {trigger: '', trigger_on: null});
+            },
+
+            _removeParameterOn: function (event) {
+                this.splice('parametersData.on', event.model.index, 1);
+            },
+
+            _addAttributeReferenceNumeralFrom: function (event) {
+                event.stopPropagation();
+                if (!this.attributesData.reference_numeral_from) {
+                    this.set('attributesData.reference_numeral_from', {type: null, property: null});
+                }
+            },
+
+            _removeAttributeReferenceNumeralFrom: function (event) {
+                event.stopPropagation();
+                this.set('attributesData.reference_numeral_from', null);
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            removeContainer: function () {
+                return this.model.toPlain().then(function () {
+                    this.fire('form-cancel');
+                }.bind(this));
+            },
+
+            _modelPkChanged: function (newVal) {
+                if (newVal !== undefined) {
+                    return this._loadModel(newVal);
+                }
+                return;
+            },
+
+            _containerTypeAvatar: function (containerType) {
+                if (containerType === 'phrase' || containerType === 'group') {
+                    return 'P';
+                }
+                if (containerType === 'grammar') {
+                    return 'G';
+                }
+                if (containerType === 'text') {
+                    return 'T';
+                }
+                if (containerType === 'fail') {
+                    return 'F';
+                }
+                if (containerType === 'value') {
+                    return 'V';
+                }
+
+                return '';
+            },
+            _containerTypeLabel: function (containerType) {
+                if (containerType === 'phrase') {
+                    return 'Use a Property Output as content';
+                }
+                if (containerType === 'value') {
+                    return 'Use the Value of a Property as content';
+                }
+                if (containerType === 'group') {
+                    return 'Use a Group Property as content';
+                }
+                if (containerType === 'grammar') {
+                    return 'Use a Grammatical Construct as content';
+                }
+                if (containerType === 'text') {
+                    return 'Use plain Text as content';
+                }
+                if (containerType === 'fail') {
+                    return 'FAIL rendering';
+                }
+
+                return '';
+            },
+
+            _interceptContainerDialog: function (event, details) {
+                if (details.elementType !== 'view-model-vocabulary-modal-new') {
+                    return;
+                }
+
+                if (details.params && details.params.language) {
+                    return;
+                }
+                details.params.language = this.language;
+
+            },
+        });
+    })();
+</script>

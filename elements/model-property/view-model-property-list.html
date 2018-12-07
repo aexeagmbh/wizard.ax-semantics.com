@@ -1,0 +1,342 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/mercury-paginator/mercury-paginator.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+<link rel="import" href="../model-property/view-model-property-list-detail.html">
+<link rel="import" href="../model-property/view-model-property-list-item.html">
+
+<dom-module id="view-model-property-list">
+
+    <template>
+        <style include="iron-flex">
+
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host dd {
+                white-space: pre-line;
+            }
+
+            :host .horizontal-section-container {
+                @apply(--layout-horizontal);
+                @apply(--layout-wrap);
+            }
+
+            :host .horizontal-section-container > * {
+                min-width: 50%;
+            }
+
+            .paper-input-container {
+                background-color: red;
+            }
+
+            :host paper-card .title {
+                @apply(--layout-horizontal);
+                @apply(--layout-justified);
+                @apply(--layout-wrap);
+            }
+
+            :host .list-view-list paper-icon-item {
+                cursor: pointer;
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host paper-icon-item {
+                cursor: pointer;
+                position: relative;
+            }
+            :host .card-content {
+                background-color: transparent;
+                cursor: default;
+            }
+            :host ax-list-view-add-element-card {
+                margin-right: 16px;
+            }
+
+            :host ax-search-field {
+                width: 50%;
+            }
+
+
+            :host paper-toolbar {
+                background-color: grey;
+            }
+
+            :host paper-icon-button.mode-switch[active] ::content iron-icon,
+            :host paper-button.mode-switch[active] span {
+                /*color: #77bc1f;*/
+                border-bottom: 2px solid #77bc1f;
+            }
+            :host paper-button.mode-switch[active] span {
+                margin-bottom: -2px;
+            }
+
+
+            :host mercury-paginator {
+                --mercury-paginator-item-color: black;
+                --mercury-paginator-item-selected-bg-color: #77bc1f;
+                --mercury-paginator-item-hover-color: #77bc1f;
+            }
+
+        </style>
+
+        <paper-card>
+            <div class="card-header">
+                <paper-toolbar>
+                    <paper-button raised on-tap="addPropertyDialog">
+                        <iron-icon item-icon icon="icons:add"></iron-icon>
+                        Add Property
+                    </paper-button>
+                    <paper-button raised on-tap="addPropertyWizard">
+                        <iron-icon item-icon icon="icons:add"></iron-icon>
+                        Add Data Properties
+                    </paper-button>
+                    <paper-button raised on-tap="addGroupPropertyWizard">
+                        <iron-icon item-icon icon="icons:add"></iron-icon>
+                        Add Group Property
+                    </paper-button>
+                    <paper-button raised on-tap="_validatePropertyExpressions">
+                        <iron-icon item-icon icon="icons:spellcheck"></iron-icon>
+                        Validate All Properties
+                    </paper-button>
+                    <div class="flex">
+
+                    </div>
+                </paper-toolbar>
+                <paper-toolbar>
+                    <paper-button class="mode-switch" raised toggles active="{{_filterInvalidOnly}}">
+                         <iron-icon item-icon icon="icons:filter-list"></iron-icon>
+                        <span>Show Invalid Properties only</span>
+                    </paper-button>
+                </paper-toolbar>
+
+            </div>
+
+            <div class="card-content">
+
+                 <section>
+
+
+                    <paper-material class="model-list-section-header-description" elevation="0">
+                        <p>Properties are the way to
+                                connect your text to your data. With properties you can define truth and mapping
+                                conditions and
+                                vocabularies which refer to your data.
+                        </p>
+                        <template is="dom-if" if="[[!_isLoading]]">
+
+
+                            <p hidden="[[data.length]]">
+                                Seems like you haven’t added a property yet. Read the <a
+                                    href="{{_ironMetaQuery('ax-external-url-atml3-doc', '', '#properties')}}"
+                                    target="_blank">Documentation</a> to learn more about what properties do for you.
+
+                            </p>
+
+                        </template>
+                    </paper-material>
+                </section>
+
+                <section class="flex-row">
+
+                    <div class="flex"></div>
+
+                    <ax-search-field placeholder="Filter Property List" search-term="{{searchTerm}}" display-opened-form
+                                     leave-form-opened></ax-search-field>
+
+                    <div class="flex"></div>
+                </section>
+
+                <paper-spinner active="[[_isLoading]]" hidden="[[!_isLoading]]"></paper-spinner>
+
+
+                <section class="list-view-list">
+                    <mercury-paginator id="paginator"
+                                       show-first
+                                       show-last
+                                       hidden="[[_renderList]]"
+                                       perpage="[[_maxItemsInList]]"
+                                       data="[[_sortedFilteredItems]]"
+                                       items="{{paginatedItems}}">
+
+                    </mercury-paginator>
+                    <template is="dom-repeat" items="[[paginatedItems]]"
+                              id="itemlist">
+                        <view-model-property-list-item model-pk="[[item.id]]"
+                                                         uses-container="[[usesContainer]]"></view-model-property-list-item>
+                    </template>
+                </section>
+            </div>
+
+        </paper-card>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-property-list',
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            properties: {
+                _sortedFilteredItems: {
+                    type: Array
+                },
+                 _maxItemsInList: {
+                    type: Number,
+                    value: 25,
+                    readOnly: true
+                },
+
+                _renderList: {
+                    type: Boolean,
+                    value: true
+                },
+                _showDataPropertyWizard: {
+                    type: Boolean,
+                    value: false
+                },
+                usesContainer: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'storage-property',
+                    notify: true
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name',
+                            'comment',
+                            'truthExpression',
+                            'mappingExpression'
+                        ];
+                    }
+                },
+                _filterInvalidOnly: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                }
+            },
+
+            observers: [
+                '_computeSortedFilteredItems(data, searchTerm, _filterInvalidOnly, _maxItemsInList, data.length)'
+            ],
+
+
+            _ironMetaQuery: function (key, prependStr, appendStr) {
+                var ret = [
+                    prependStr,
+                    new Polymer.IronMetaQuery({key: key}).value,
+                    appendStr
+                ];
+
+                return ret.join('');
+            },
+            _computeSortedFilteredItems: function (data, searchTerm, _filterInvalidOnly, _maxItemsInList) {
+                var renderList,
+                    _filteredData,
+                    facets = {};
+                if (!data) {
+                    this.set('_sortedFilteredItems', []);
+                }
+
+                if (_filterInvalidOnly) {
+                    facets.valid = [false];
+                }
+
+                _filteredData = this._filterAndSortData(data, searchTerm, facets);
+
+                renderList = this._computeRenderList(_filteredData.length, _maxItemsInList);
+
+                this.set('_renderList', renderList);
+
+
+                if (renderList) {
+                    this.$$('#paginator').set('currentpage', 0);
+                }
+
+                this.set('_sortedFilteredItems', _filteredData);
+
+            },
+
+            _computeRenderList: function (a, b) {
+                return 1 * a <= 1 * b;
+            },
+
+
+            _filterAndSortData: function (data, searchTerm, facets) {
+                var filterFn = this._filterList(searchTerm, facets),
+                        sortFn = this._orderByObjectKey('name');
+                return data.filter(filterFn).sort(sortFn);
+            },
+
+            _checkIsAxPreviewMode: function () {
+                return app.isAxPreviewMode;
+            },
+
+            addPropertyDialog: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-property-modal-new', params: {trainingPk: this.parentPk}});
+            },
+
+            addPropertyWizard: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-property-wizard-modal', params: {trainingPk: this.parentPk}});
+            },
+            addGroupPropertyWizard: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-group-property-wizard-modal', params: {trainingPk: this.parentPk}});
+            },
+            _validatePropertyExpressions: function (event) {
+                event.stopPropagation();
+                app.storageContainer.getObject('training', this.parentPk).then(function (model) {
+                   model.validatePropertyExpressions();
+                });
+            },
+
+             _computeListRequestParams: function (parentPk) {
+                // implement in children
+                return {fields: 'id,name,comment,training,valid,validity_message,truth_expression,mapping_expression'};
+            },
+
+            ready: function () {
+                this.set('listRequestParams', this._computeListRequestParams(this.parentPk));
+            }
+
+        });
+    })();
+</script>

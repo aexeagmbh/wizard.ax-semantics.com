@@ -1,0 +1,167 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/moment-js/moment-js.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-validity-message.html">
+
+<dom-module id="view-model-training-imports">
+
+    <template>
+        <style>
+            :host {
+
+                display: block;
+
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host paper-card {
+                margin-bottom: 1ex;
+            }
+        </style>
+        <model-training pk="[[modelPk]]" id="model"></model-training>
+
+        <section class="list-view-list">
+            <template id="item-list" is="dom-repeat" items="{{data}}" initial-count="50">
+
+
+                <paper-card>
+                    <!-- Card Header -->
+                    <div class="header paper-card">
+                        <paper-item>
+                            <paper-item-body three-line>
+                                <div>[[item.name]]</div>
+                                <div secondary>
+                                    Started
+                                    <template is="dom-if" if="[[item.created]]" restamp>
+                                        <moment-js date="{{item.created}}" from-now></moment-js>
+                                    </template>
+                                    <template is="dom-if" if="[[item.user]]" restamp>
+                                        by [[item.user]]
+                                    </template>
+                                </div>
+                                <template is="dom-if" if="[[_isFinished(item.state]]" restamp>
+                                    <div secondary>Updated or Modified
+                                        <template is="dom-if" if="[[item.modified]]" restamp>
+                                            <moment-js date="{{item.modified}}" from-now></moment-js>
+                                        </template>
+                                    </div>
+                                </template>
+                            </paper-item-body>
+                            <iron-icon icon="[[itemImportStateIcon(item.state)]]" alt="[[item.state]]"
+                                       title="[[item.state]]">
+                            </iron-icon>
+                        </paper-item>
+                    </div>
+                    <template is="dom-if" if="[[item.errorMessage]]">
+                        <!-- Card Content -->
+                        <div class="card-content">
+                            <section class="card-content-body-container">
+                                <view-model-sentence-variant-validity-message
+                                            valid="[[model.data.valid]]"
+                                            validity-message="[[item.errorMessage]]"
+                                            hide-validate-button
+                                            hide-debug-button
+                                            hide-sample-output
+                                            ></view-model-sentence-variant-validity-message>
+                                <div>
+
+                                    [[item.errorMessage]]
+                                </div>
+                            </section>
+                        </div>
+                    </template>
+                </paper-card>
+
+
+            </template>
+        </section>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-training-imports',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior,
+            ],
+
+            properties: {
+                data: {
+                    type: Array,
+                    notify: true
+                }
+            },
+
+            attached: function () {
+
+                this._initLastImports();
+            },
+
+            _initLastImports: function () {
+                this.model.getLastTrainingImport(5).then(function (data) {
+                    this.set('data', data);
+                }.bind(this));
+            },
+
+            itemValidityIcon: function (validity) {
+                if (validity === false) {
+                    return 'icons:warning';
+                }
+                if (validity === true) {
+                    return 'icons:check';
+                }
+                return 'icons:hourglass-empty';
+            },
+
+            itemImportStateIcon: function (stateName) {
+                switch (stateName) {
+                    case 'done':
+                        return 'icons:check';
+                    case 'failed':
+                        return 'icons:error';
+                    case 'scheduled':
+                        return 'icons:hourglass-empty';
+                    case 'started':
+                        return 'icons:hourglass-empty';
+                    case 'cancelled':
+                        return 'icons:cancel';
+                }
+            },
+
+            _isFinished: function (stateName) {
+                return ['done', 'cancelled', 'failed'].indexOf(stateName) > -1;
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            toggleItemListDetail: function (event) {
+                event.stopPropagation();
+                this.set('isItemListDetailExpanded', !this.isItemListDetailExpanded);
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            }
+
+        });
+    })();
+</script>

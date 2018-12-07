@@ -1,0 +1,184 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="ax-highlight-atml-containers">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host #highlighted-atml {
+                white-space: normal;
+                word-break: break-word;
+            }
+
+            :host #highlighted-atml .dropdown-trigger {
+                min-height: 32px;
+                height: 32px;
+                display: inline-block;
+                font-size: initial !important;
+                padding: 0;
+                background-color: #dddddd;
+                border-radius: 16px;
+                box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+            }
+
+            :host #highlighted-atml .dropdown-trigger .contentIcon {
+                width: 32px;
+                height: 32px;
+            }
+
+            :host #highlighted-atml .dropdown-trigger .paper-icon-body {
+                padding-left: 8px;
+                padding-right: 12px;
+            }
+
+            .container-avatar {
+                width:100%;
+                flex-direction: column;
+                align-items: center;
+                display: flex;
+                width: 32px;
+                height: 32px;
+                border-radius: 16px;
+                border: 4px solid;
+                color: #77bc1f;
+                box-sizing: border-box;
+                font-weight: bold;
+                opacity: 0.7;
+            }
+
+
+        </style>
+        <div id="highlighted-atml"></div>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'ax-highlight-atml-containers',
+
+            properties: {
+                noSpaceReplace: {
+                    type: Boolean,
+                    notify: true,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                atml: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                sourceText: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    notify: true,
+                    value: true
+                },
+                renderFakeChips: {
+                    type: Boolean,
+                    notify: true,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                highlightedAtml: {
+                    type: String,
+                    computed: '_highlightATML(atml, replaceContainerWithSource, sourceText, renderFakeChips)',
+                    notify: true
+                }
+            },
+
+            listeners: {
+                'highlighted-atml-changed': '_highlightedATMLChanged'
+            },
+
+            _highlightedATMLChanged: function (event, newVal) {
+                this.$['highlighted-atml'].innerHTML = newVal.value;
+            },
+
+            _escapeHTML: function (html) {
+                var escaped = document.createElement('div').appendChild(document.createTextNode(html)).parentNode.innerHTML;
+                return escaped;
+//                if (this.noSpaceReplace) {
+//                    return escaped;
+//                }
+//                return escaped.split(' ').join('·');
+            },
+
+            _highlightATML: function (atml, replaceContainerWithSource, sourceText) {
+                var re = /(\[[^\]\[]*\])/g,
+                        reSource = /(?:source\:([^\;\]]+))/i,
+                        escapedHTML = this._escapeHTML(atml),
+                        atmlContainers = escapedHTML.match(re) || [],
+                        ret = escapedHTML;
+                atmlContainers.forEach(function (container) {
+                    var sourceMatch;
+
+                    if (this.renderFakeChips) {
+                        if (sourceText) {
+                            ret = ret.replace(container,  this._makeFakeChip(container, this._escapeHTML(sourceText)));
+                        } else {
+                            sourceMatch = container.match(reSource);
+                            if (sourceMatch) {
+                                ret = ret.replace(container,  this._makeFakeChip(container, sourceMatch[1]));
+                            } else {
+                                ret = ret.replace(container,  this._makeFakeChip(container, ''));
+                            }
+                        }
+                    } else {
+
+                        if (!replaceContainerWithSource) {
+                            ret = ret.replace(container, '<mark>' + container + '</mark>');
+                            return;
+                        }
+
+                        if (sourceText) {
+                            ret = ret.replace(container, '<mark title="' + container + '">' + this._escapeHTML(sourceText) + '</mark>');
+                        } else {
+                            sourceMatch = container.match(reSource);
+                            if (sourceMatch) {
+                                ret = ret.replace(container, '<mark title="' + container + '">' + sourceMatch[1] + '</mark>');
+                            } else {
+                                ret = ret.replace(container, '<mark>' + container + '</mark>');
+                            }
+                        }
+                    }
+                }.bind(this));
+
+                return ret;
+            },
+
+
+            _getGuessedContainerType: function (containerStr) {
+                var containerStrLower = containerStr.toLowerCase();
+                if (containerStrLower.startsWith('[g:')) {
+                    return 'G';
+                } else if (containerStrLower.startsWith('[text:')) {
+                    return 'T';
+                } else if (containerStrLower.startsWith('[fail:')) {
+                     return 'F';
+                } else if (containerStrLower.match(/^\[\w+\.value/)) {
+                    return 'V';
+                } else {
+                    return 'P';
+                }
+            },
+
+
+            _makeFakeChip: function (containerStr, sourceText) {
+                var containerTypeAvatar = this._getGuessedContainerType(containerStr);
+                var ret = '<div class="dropdown-trigger"><div class="item-icon"><div class="container-avatar"><div class="flex">' + containerTypeAvatar + '</div></div></div> <div class="paper-icon-body"><div>' + sourceText + '</div></div></div>';
+                return ret;
+
+
+            }
+
+        });
+    }());
+</script>

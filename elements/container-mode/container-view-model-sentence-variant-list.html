@@ -1,0 +1,267 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../container-mode/container-view-model-sentence-variant-list-detail.html">
+
+<dom-module id="container-view-model-sentence-variant-list">
+
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host .flex-row {
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+            :host .all-variants > * {
+                flex-basis: 25%;
+            }
+
+
+            :host container-view-model-sentence-variant-list-detail {
+                margin-right: 16px;
+                margin-bottom: 1ex;
+            }
+
+            :host .variant-select {
+                align-items: baseline;
+            }
+        </style>
+        <paper-spinner active="[[_isLoading]]" hidden="[[!_isLoading]]"></paper-spinner>
+        <div hidden="[[_isLoading]]">
+
+            <div class="flex-row">
+                    <template is="dom-if" if="[[_showVariantSelector]]">
+                        <div class="flex-row variant-select paper-font-caption" hidden="[[!countItems]]">
+                            <paper-icon-button icon="icons:chevron-left" on-tap="_selectPrevious"
+                                               disabled="[[!index]]"
+                                               raised>Previous Variant
+                            </paper-icon-button>
+                            <div hidden="[[!countItems]]">
+                               [[_idxToItemNumber(selectedVariantIdx)]] / [[countItems]]
+                            </div>
+                            <paper-icon-button icon="icons:chevron-right" on-tap="_selectNext"
+                                               raised>Next Variant
+                            </paper-icon-button>
+                        </div>
+                    </template>
+                    <iron-pages selected="[[selectedVariantIdx]]" id="variants-container" class="flex" hidden="[[!countItems]]">
+                        <template is="dom-repeat" items="{{data}}"
+                                  filter="{{_filterList(searchTerm, filterListFacets)}}"
+                                  rendered-item-count="{{countItems}}"
+                                  restamp>
+                            <div class="flex-row">
+                                <template is="dom-if" if="[[_equals(selectedVariantIdx, index)]]" restamp>
+                                <container-view-model-sentence-variant-list-detail
+                                        on-ax-sentence-variant-added="_sentenceVariantAdded"
+                                        on-item-deleted="_selectPrevious"
+
+                                        active-mode="[[activeMode]]"
+
+                                        training-pk="[[trainingPk]]"
+                                        training-uses-containers="[[trainingUsesContainers]]"
+                                        class="flex"
+                                        language="[[language]]"
+                                        sentence-pk="[[parentPk]]"
+                                        model-pk="[[item.id]]"></container-view-model-sentence-variant-list-detail>
+                                </template>
+                            </div>
+                        </template>
+
+
+                    </iron-pages>
+                    <template is="dom-if" if="[[!countItems]]">
+                        <div class="flex flex-row">
+                            <i><iron-icon icon="icons:warning"></iron-icon>No Variant in this language available. You might want to add a sentence variant</i>
+                        </div>
+                    </template>
+
+
+                <template is="dom-if" if="[[_showAddSentenceVariant]]" restamp>
+
+                    <div class="flex-row flex">
+                        <div style="width: 100%;">
+
+                            <div class="flex-row" style="align-items: flex-start;">
+
+                                <div class="flex">
+
+
+                                    <form is="iron-form" id="new-sentence-variant-form"
+                                          on-submit="_createNewSentenceVariant">
+                                        <paper-textarea no-label-float id="new-variant-input" tabindex="1"
+                                                        value="{{_newSentenceVariantText}}"
+                                                        placeholder="Write another Variant of your Text here">
+
+                                            <paper-icon-button hidden="[[!_newSentenceVariantText.length]]" suffix
+                                                               icon="clear"
+                                                               on-tap="_cancelNewSentenceVariantForm"></paper-icon-button>
+                                            <paper-icon-button hidden="[[!_newSentenceVariantText.length]]" suffix
+                                                               icon="done"
+                                                               on-tap="_createNewSentenceVariant"></paper-icon-button>
+                                        </paper-textarea>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </template>
+
+            </div>
+       </div>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'container-view-model-sentence-variant-list',
+            behaviors: [
+                AxWizard.StoryTypeEditorModeBehavior,
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            properties: {
+                trainingPk: {
+                    type: String
+                },
+                selectedVariantIdx: {
+                    type: Number,
+                    value: 0
+                },
+                storageId: {
+                    type: String,
+                    value: 'storage-sentence-variant',
+                    notify: true
+                },
+
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'text',
+                            'language'
+                        ];
+                    }
+                },
+                _newSentenceVariantText: {
+                    type: String,
+                    value: ''
+                }
+            },
+
+            _equals: function (a, b) {
+                return a === b;
+            },
+
+            _idxToItemNumber: function (idx) {
+                return idx + 1;
+            },
+
+            observers: [
+                '_filterListFacetsChanged(filterListFacets, filterListFacets.*)'
+            ],
+
+            listeners: {
+                'ax-sentence-variant-added': '_sentenceVariantAdded',
+                'ax-duplicate-variant': '_duplicateSentenceVariant'
+            },
+
+            _writeModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('_showAddSentenceVariant', false);
+                this.set('_showVariantSelector', false);
+            },
+
+            _magicModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showAddSentenceVariant', false);
+                this.set('_showVariantSelector', true);
+            },
+
+            _variantModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showAddSentenceVariant', true);
+                this.set('_showVariantSelector', true);
+            },
+
+            _filterListFacetsChanged: function () {
+                this.set('selectedVariantIdx', 0);
+                this.refresh();
+            },
+
+
+            _cancelNewVariantForm: function (event) {
+                if (event) {
+                    event.stopPropagation();
+                }
+                this.set('_newSentenceVariantText', '');
+            },
+
+
+            _createNewSentenceVariant: function (event) {
+                event.stopPropagation();
+                var language = this.language;
+                return app.storageContainer.getNewObject('sentence-variant').then(function (model) {
+                        model.save(null, {sentence: this.parentPk, language: this.language, text: this._newSentenceVariantText}).then(function () {
+                            this._cancelNewVariantForm();
+                            this.fire('ax-sentence-variant-added');
+                        }.bind(this));
+                }.bind(this));
+            },
+
+            _duplicateSentenceVariant: function (event) {
+                event.stopPropagation();
+                var modelPk = event.detail.modelPk;
+                if (!modelPk) {
+                    return Promise.reject('No source variant provided');
+                }
+                return app.storageContainer.getObject('sentence-variant', modelPk).then(function (model) {
+                    model.duplicate({}).then(function () {
+                        this.fire('ax-sentence-variant-added');
+                    }.bind(this));
+                }.bind(this));
+            },
+
+            _sentenceVariantAdded: function (event) {
+                var variantsContainer = this.$$('#variants-container');
+                var idxLength = variantsContainer? variantsContainer.queryAllEffectiveChildren('div').length - 1 : 0;
+                this.set('selectedVariantIdx', idxLength);
+            },
+
+            _selectPrevious: function (event) {
+                event.stopPropagation();
+                this.set('selectedVariantIdx', 0 + this.selectedVariantIdx <= 1 ? 0 : this.selectedVariantIdx - 1);
+            },
+
+            _selectNext: function (event) {
+                event.stopPropagation();
+                var variantsContainer = this.$$('#variants-container');
+                var idxLength = variantsContainer? variantsContainer.queryAllEffectiveChildren('div').length - 1 : 0;
+                var nextIdx = this.selectedVariantIdx + 1;
+                this.set('selectedVariantIdx', (nextIdx <= idxLength ? nextIdx : idxLength));
+            }
+        });
+    })();
+</script>

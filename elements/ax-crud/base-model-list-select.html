@@ -1,0 +1,227 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+<link rel="import" href="../ax-components/dom-ref.html">
+
+<dom-module id="base-model-list-select">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            :host ax-search-field {
+                width: 100%;
+                padding: 12px;
+                box-sizing: border-box;
+            }
+        </style>
+
+
+        <content></content>
+
+        <template is="dom-if" if="{{_equals(renderAs, 'dropdown')}}">
+             <paper-dropdown-menu required="[[required]]" label="[[label]]" on-iron-overlay-opened="_stopPropagation">
+
+                <template is="dom-if" if="[[showSearch]]">
+                    <div class="dropdown-content">
+                        <ax-search-field id="search-field" placeholder="[[searchPlaceholder]]" search-term="{{searchTerm}}"
+                                         display-opened-form
+                                         no-label-float="[[axSearchFieldNoLabelFloat]]"
+                                         leave-form-opened>
+                        </ax-search-field>
+                    </div>
+                </template>
+                <paper-menu id="menu" class="dropdown-content" attr-for-selected="value"
+                            selected="{{selected}}">
+                    <template is="dom-if" if="[[showEmptyOption]]">
+                        <paper-item value="[[emptyOptionValue]]">[[emptyOptionLabel]]</paper-item>
+                    </template>
+
+                    <template id="rep" is="dom-repeat" items="{{data}}"
+                              filter="{{_filterList(searchTerm, filterListFacets, negatedFilterListFacets)}}" as="baseModelListItem">
+                        <template is="dom-ref" bind="[[baseModelListItem]]" as="baseModelListItem" ref="[[templateId]]"></template>
+                    </template>
+
+                    <template is="dom-if" if="[[showNewOption]]">
+                        <paper-item value="[[newOptionValue]]" label="[[newOptionLabel]]" on-tap="_addNewOption"><iron-icon icon="add"></iron-icon>[[newOptionLabel]]</paper-item>
+                    </template>
+                </paper-menu>
+
+
+            </paper-dropdown-menu>
+        </template>
+        <template is="dom-if" if="{{_equals(renderAs, 'button')}}">
+             <paper-menu-button required="[[required]]" label="[[label]]" on-iron-overlay-opened="_stopPropagation">
+                <paper-button class="dropdown-trigger">
+                    <template is="dom-if" if="[[icon]]">
+                        <iron-icon icon="[[icon]]"></iron-icon>
+                    </template>
+                    <template is="dom-if" if="[[!selectedLabel]]">
+                        <template is="dom-if" if="[[icon]]">
+                            [[selectedItem.label]]
+                        </template>
+                    </template>
+                    <template is="dom-if" if="[[selectedLabel]]">
+                        [[selectedLabel]]
+                    </template>
+                    <iron-icon icon="icons:arrow-drop-down"></iron-icon>
+                </paper-button>
+                <paper-menu selected-item="{{selectedItem}}" id="menu" class="dropdown-content" attr-for-selected="value"
+                            selected="{{selected}}">
+                    <template is="dom-if" if="[[showEmptyOption]]">
+                        <paper-item value="[[emptyOptionValue]]">[[emptyOptionLabel]]</paper-item>
+                    </template>
+
+                    <template id="rep" is="dom-repeat" items="{{data}}"
+                              filter="{{_filterList(searchTerm, filterListFacets, negatedFilterListFacets)}}" as="baseModelListItem">
+                        <template is="dom-ref" bind="[[baseModelListItem]]" as="baseModelListItem" ref="[[templateId]]"></template>
+                    </template>
+
+                    <template is="dom-if" if="[[showNewOption]]">
+                        <paper-item value="[[newOptionValue]]" label="[[newOptionLabel]]" on-tap="_addNewOption"><iron-icon icon="add"></iron-icon>[[newOptionLabel]]</paper-item>
+                    </template>
+                </paper-menu>
+
+
+
+            </paper-menu-button>
+        </template>
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'base-model-list-select',
+
+            _addNewOption: function (event) {
+//                event.stopPropagation();
+                this.fire('base-model-list-select-add-new-option');
+            },
+
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            properties: {
+                axSearchFieldNoLabelFloat: {
+                    type: Boolean,
+                    value: true,
+                    readOnly: true
+                },
+                renderAs: {
+                    type: String,
+                    value: 'dropdown'
+                },
+                templateId: {
+                    type: String,
+                    value: 'list-template'
+                },
+                selectedLabel: {
+                    type: String,
+                    notify: true
+                },
+                selected: {
+                    type: String,
+                    notify: true
+                },
+                selectedItem: {
+                  type: Object,
+                    notify: true
+                },
+                label: {
+                    type: String
+                },
+                emptyOptionLabel: {
+                    type: String,
+                    value: ''
+                },
+                emptyOptionValue: {
+                    type: String,
+                    value: ''
+                },
+                newOptionValue: {
+                    type: String,
+                    value: ''
+                },
+                searchPlaceholder: {
+                    type: String,
+                    value: ''
+                },
+                required: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                showEmptyOption: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                showNewOption: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                showSearch: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                selectSingleOption: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                preSelectFirstOption: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                }
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            dataLoaded: function (data) {
+
+                if (this.selectSingleOption && (this.selected === undefined || (this.emptyOptionValue === this.selected)) && data && data.length === 1) {
+                    this.set('selected', data[0].id);
+                }
+
+                if (this.preSelectFirstOption && (this.selected === undefined || (this.emptyOptionValue === this.selected)) && data && data.length > 0) {
+                    this.set('selected', data[0].id);
+                }
+
+                return Promise.resolve(data);
+            },
+
+            _equals: function (a, b) {
+                return a === b;
+            }
+//
+//            refresh: function () {
+//                AxWizard.BaseModelListViewBehaviour.refresh.call(this).then(function () {
+//                    if (this.selectSingleOption && (this.selected === undefined || (this.showEmptyOption && this.emptyOptionValue === this.selected))) {
+//                        console.log(this.$$('#menu paper-item'));
+////                        this.set('selected', )
+//                    }
+//                }.bind(this));
+//            }
+
+        });
+    })();
+</script>

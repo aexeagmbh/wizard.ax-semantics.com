@@ -1,0 +1,99 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-vocabulary/view-model-vocabulary-form.html">
+
+
+<dom-module id="view-model-vocabulary-modal-edit">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+
+        <view-model-container-modal-edit id="container-modal-edit"></view-model-container-modal-edit>
+
+
+
+        <paper-dialog class="full-display" id="modal-dialog" modal
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <template is="dom-if" if="[[_opened]]" restamp>
+                <model-property pk="[[model.parentPk]]" data="{{propertyData}}"></model-property>
+                <h2>Edit Property Output (Vocabulary) for [[propertyData.name]]</h2>
+            </template>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="{{_opened}}" restamp>
+                    <view-model-vocabulary-form
+                            on-ax-open-training-dialog="_interceptContainerDialog"
+                            model="{{model}}" load-model id="modal-dialog-form" model-pk="[[modelPk]]"
+                                                training-uses-container="[[_vocabulariesUseContainer]]"
+                                                has-unsaved-changes="{{hasUnsavedChanges}}"
+                                                on-model-save-success="handleResponse"></view-model-vocabulary-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                 <ax-close-unsaved-ask-button has-unsaved-changes="[[hasUnsavedChanges]]" on-ax-close-unsaved-ask-button-confirmed="cancelModalForm"></ax-close-unsaved-ask-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-vocabulary-modal-edit',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                _vocabulariesUseContainer: {
+                    type: Boolean,
+                    computed: '_computeVocabulariesUseContainer(trainingVersion, trainingPk)',
+                    notify: true
+                }
+            },
+
+            _interceptContainerDialog: function (event, details) {
+                if (details.elementType !== 'view-model-container-modal-edit') {
+                    return;
+                }
+
+                event.stopPropagation();
+
+                var dialogElement = this.$['container-modal-edit'];
+
+
+                dialogElement.set('trainingPk', this.trainingPk);
+                dialogElement.set('trainingUsesContainer', true);
+                dialogElement.set('trainingVersion', this.trainingVersion);
+                if (details.params) {
+                    Object.keys(details.params).forEach(function (paramName) {
+                       dialogElement.set(paramName, details.params[paramName]);
+                    });
+                }
+
+                dialogElement.open();
+            },
+
+            _computeVocabulariesUseContainer: function (trainingVersion) {
+                var versionInfo = trainingVersion.split('.');
+
+                if ((versionInfo[1] && versionInfo[1] >= 1) || versionInfo[0] > 3) {
+                    return true;
+                }
+
+                return false;
+            }
+        });
+
+    })();
+</script>

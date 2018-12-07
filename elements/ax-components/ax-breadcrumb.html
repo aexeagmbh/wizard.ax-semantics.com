@@ -1,0 +1,74 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="ax-breadcrumb">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+            :host .breadcrumb-item {
+                display: inline-block;
+            }
+            :host .breadcrumb-item:not(:first-child) :before {
+                content: '➔';
+                padding: 0px 0.3em;
+                display: inline;
+            }
+            :host .breadcrumb-item .clickable {
+                cursor: pointer;
+            }
+            :host .breadcrumb-item .not-clickable {
+                cursor: default;
+            }
+        </style>
+        <template is="dom-repeat" items="[[breadcrumbs]]">
+            <div class="breadcrumb-item">
+                <template is="dom-if" if="[[item.path]]">
+                    <span on-tap="goToPage" class="clickable">[[item.title]]</span>
+                </template>
+                <template is="dom-if" if="[[!item.path]]">
+                    <span class="not-clickable">{{item.title}}</span>
+                </template>
+            </div>
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'ax-breadcrumb',
+
+            properties: {
+                breadcrumbs: {
+                    type: Array,
+                    notify: true,
+                    value: function () {
+                        return [];
+                    }
+                },
+                params: {
+                    type: Object,
+                    value: function () {
+                        return {};
+                    },
+                    notify: true
+                }
+            },
+
+            goToPage: function (event) {
+                var self = this;
+                var path = event.model.item.path;
+                var placeHolders = path.match(/\:[^/]+/g) || [];
+
+                placeHolders.forEach(function (searchStr) {
+                    path = path.replace(searchStr, self.params[searchStr.substr(1)]);
+                });
+
+                window.page(path);
+
+            }
+        });
+    }());
+</script>

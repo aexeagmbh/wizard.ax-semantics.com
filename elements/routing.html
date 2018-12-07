@@ -1,0 +1,209 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<script src="../bower_components/page/page.js"></script>
+
+<link rel="import" href="../bower_components/iron-meta/iron-meta.html">
+
+<script>
+(function () {
+    function updateRoute(route, fullRoute, params, breadcrumb) {
+        app.set('route', route);
+
+        app.set('fullRoute', fullRoute);
+
+        if (params) {
+            app.set('params', params);
+        } else {
+            app.set('params', {});
+        }
+
+        if (!breadcrumb) {
+            breadcrumb = [{ title: 'ATML3 Training Wizard' }];
+        }
+
+        if (fullRoute.indexOf('trainingDetail') < 0) {
+            window.document.title = 'ATML3 Training Wizard';
+        }
+
+
+        app.set('breadcrumb', breadcrumb);
+    }
+
+    window.addEventListener('WebComponentsReady', function () {
+        // We use Page.js for routing. This is a Micro
+        // client-side router inspired by the Express router
+        // More info: https://visionmedia.github.io/page.js/
+
+        page('*', function (ctx, next) {
+            app.set('route', null);
+            var isLoggedIn = new Polymer.IronMetaQuery({key: 'ax-loggedin'}).value;
+            if (isLoggedIn || ctx.path === '/login') {
+                next();
+            } else {
+                page.redirect('/login'); // Changes the URL
+                updateRoute('login', []); // Changes the displayed page
+            }
+        });
+
+
+        page('/', function (ctx, next) {
+            page.redirect('/trainings');
+        });
+
+        page('/home', function (ctx, next) {
+            page.redirect('/trainings');
+        });
+
+        page('/login', function (ctx, next) {
+            var isLoggedIn = new Polymer.IronMetaQuery({key: 'ax-loggedin'}).value;
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'login'});
+            if (isLoggedIn) {
+                page.redirect('/'); // Changes the URL
+                updateRoute('home', []); // Changes the displayed page
+            } else {
+                updateRoute('login', []);
+            }
+        });
+
+        page('/profile', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'profile'});
+            var breadcrumb = [
+                { title: 'AX', path: '/' },
+                { title: 'Profile' }
+            ];
+            updateRoute('profile', [], {}, breadcrumb);
+        });
+
+        page('/trainings/:trainingPk/generate-story-type', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'generateStoryType'});
+            var breadcrumb = [
+                { title: 'AX', path: '/'},
+                { title: 'Trainings', path: '/trainings' },
+                { title: '[Training]', path: '/trainings/:trainingPk', placeholder: '[Training]' },
+                { title: 'Generate Story Type' },
+            ];
+            updateRoute('generateStoryType', ['generateStoryType'], ctx.params, breadcrumb);
+        });
+
+        page('/trainings/:trainingPk/editor', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'trainingEditor'});
+            var breadcrumb = [
+                { title: 'AX', path: '/'},
+                { title: 'Trainings', path: '/trainings' },
+                { title: '[Training]', path: '/trainings/:trainingPk', placeholder: '[Training]' },
+                { title: 'Editor' },
+            ];
+            updateRoute('trainingDetail', ['trainingDetail', 'trainingEditor'], ctx.params, breadcrumb);
+        });
+
+        page('/trainings/:trainingPk/text-rule-set', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'trainingTextRuleSet'});
+            var breadcrumb = [
+                { title: 'AX', path: '/'},
+                { title: 'Trainings', path: '/trainings' },
+                { title: '[Training]', path: '/trainings/:trainingPk', placeholder: '[Training]' },
+                { title: 'Text Rule Set' },
+            ];
+            updateRoute('trainingDetail', ['trainingDetail', 'trainingTextRuleSet'], ctx.params, breadcrumb);
+        });
+
+        page('/trainings/:trainingPk/logic-rule-set/properties', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'properties'});
+            var breadcrumb = [
+                { title: 'AX', path: '/'},
+                { title: 'Trainings', path: '/trainings' },
+                { title: '[Training]', path: '/trainings/:trainingPk', placeholder: '[Training]' },
+                { title: 'Properties' },
+            ];
+            updateRoute('trainingDetail', ['trainingDetail', 'trainingLogicRuleSet', 'properties'], ctx.params, breadcrumb);
+        });
+        page('/trainings/:trainingPk/logic-rule-set/lookups', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'lookups'});
+            var breadcrumb = [
+                { title: 'AX', path: '/'},
+                { title: 'Trainings', path: '/trainings' },
+                { title: '[Training]', path: '/trainings/:trainingPk', placeholder: '[Training]' },
+                { title: 'Properties' },
+            ];
+            updateRoute('trainingDetail', ['trainingDetail', 'trainingLogicRuleSet', 'lookups'], ctx.params, breadcrumb);
+        });
+        page('/trainings/:trainingPk/logic-rule-set', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'trainingLogicRuleSet'});
+            var breadcrumb = [
+                { title: 'AX', path: '/'},
+                { title: 'Trainings', path: '/trainings' },
+                { title: '[Training]', path: '/trainings/:trainingPk', placeholder: '[Training]' },
+                { title: 'Logic Rule Set' },
+            ];
+            updateRoute('trainingDetail', ['trainingDetail', 'trainingLogicRuleSet'], ctx.params, breadcrumb);
+        });
+
+        page('/trainings/:trainingPk/workflow', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'trainingWorkflow'});
+            var breadcrumb = [
+                { title: 'AX', path: '/'},
+                { title: 'Trainings', path: '/trainings' },
+                { title: '[Training]', path: '/trainings/:trainingPk', placeholder: '[Training]' },
+                { title: 'Workflow' },
+            ];
+            updateRoute('trainingDetail', ['trainingDetail', 'trainingWorkflow'], ctx.params, breadcrumb);
+        });
+
+        page('/trainings/:trainingPk/data', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'trainingData'});
+            var breadcrumb = [
+                { title: 'AX', path: '/'},
+                { title: 'Trainings', path: '/trainings' },
+                { title: '[Training]', path: '/trainings/:trainingPk', placeholder: '[Training]' },
+                { title: 'Data' },
+            ];
+            updateRoute('trainingDetail', ['trainingDetail', 'trainingData'], ctx.params, breadcrumb);
+        });
+
+        page('/trainings/:trainingPk', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'trainingOverview'});
+            var breadcrumb = [
+                { title: 'AX', path: '/'},
+                { title: 'Trainings', path: '/trainings' },
+                { title: '[Training]', path: '/trainings/:trainingPk', placeholder: '[Training]' },
+                { title: 'Overview' },
+            ];
+            updateRoute('trainingDetail', ['trainingDetail', 'trainingOverview'], ctx.params, breadcrumb);
+        });
+
+        page('/trainings', function (ctx, next) {
+            app.fire('ax-ga-event', {category: 'Navigation', action: 'navigate', label: 'trainings'});
+            var breadcrumb = [
+                { title: 'AX', path: '/' },
+                { title: 'Trainings' }
+            ];
+            updateRoute('trainings', [], ctx.params, breadcrumb);
+        });
+
+        page('*', function (ctx, next) {
+            console.log('page routingDone', arguments);
+            if (ctx.path.startsWith('//')) {
+                page.redirect(ctx.path.replace(/^\/\//, '/'));
+            } else {
+                // TODO 404
+            }
+
+        });
+
+        // add #! before urls
+        page({
+            hashbang: true
+            // dispatch: false
+        });
+
+    });
+} ());
+</script>

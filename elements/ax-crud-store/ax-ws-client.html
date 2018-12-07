@@ -1,0 +1,56 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="ax-ws-client">
+
+    <template>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'ax-ws-client',
+
+            properties: {
+                parentPk: {
+                    type: String,
+                    notify: true
+                },
+                socketUrl: {
+                    type: String,
+                    notify: true,
+                    value: '', //'wss://training-api-stage.ax-semantics.com:9999/training/134/'
+                }
+            },
+
+            attached: function () {
+                this._openSocket();
+            },
+
+            detached: function () {
+                this._socket.close();
+            },
+
+            _onSocketError: function () {
+                console.log('_onSocketError', arguments);
+            },
+
+            _onSocketMessage: function () {
+                console.log('_onSocketMessage', arguments);
+            },
+
+            _openSocket: function () {
+                this._getStorage().then(function (storage) {
+                    var mySocket = new WebSocket(storage.getWebServiceSingleEndPoint(this.pk, this.params));
+                    mySocket.onerror = this._onSocketError;
+                    mySocket.onmessage = this._onSocketMessage;
+                    this.set('_socket', mySocket);
+                }.bind(this));
+            },
+
+
+        });
+    })();
+</script>

@@ -1,0 +1,107 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../model-sentence-variant-synonym/view-model-sentence-variant-synonym-modal-edit.html">
+
+<dom-module id="view-model-sentence-variant-synonym-list-detail">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+        <div class="list-view-list-item-detail-wrapper">
+            <paper-card>
+                <div class="header paper-card">
+                    <paper-item on-tap="toggleItemListDetail">
+                        <paper-item-body>
+                            <ax-highlight-atml-containers atml="[[model.data.text]]"
+                                                          replace-container-with-source="[[replaceContainerWithSource]]"></ax-highlight-atml-containers>
+                        </paper-item-body>
+                        <paper-icon-button icon="editor:mode-edit" on-tap="_editModel">
+                        </paper-icon-button>
+                        <ax-delete-ask-button on-ax-delete-ask-button-confirmed="_deleteModel"></ax-delete-ask-button>
+
+                    </paper-item>
+                </div>
+
+                <div class="card-content">
+                    <!-- Synonym Values -->
+                    <view-model-sentence-variant-synonym-value-list
+                            id="sentence-variant-synonym-value-list"
+                            replace-container-with-source="[[replaceContainerWithSource]]"
+                            parent-pk="[[modelPk]]">
+                    </view-model-sentence-variant-synonym-value-list>
+
+                </div>
+
+            </paper-card>
+        </div>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-variant-synonym-list-detail',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                modelName: {
+                    value: 'sentence-variant-synonym'
+                },
+                _isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                isEditMode: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                }
+            },
+
+
+            _editModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-synonym-modal-edit', params: {modelPk: this.modelPk}});
+            },
+
+
+            saveItem: function (event) {
+                event.stopPropagation();
+                return this.model.save();
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            toggleItemListDetail: function (event) {
+                event.stopPropagation();
+                this.set('_isItemListDetailExpanded', !this._isItemListDetailExpanded);
+            }
+
+        });
+    })();
+</script>

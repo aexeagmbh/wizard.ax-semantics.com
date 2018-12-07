@@ -1,0 +1,377 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../model-myax-document/view-model-myax-document-list-detail.html">
+
+<dom-module id="view-model-myax-collection-list-detail">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host dl,
+            :host dl dt,
+            :host dl dd,
+            :host paper-item [secondary] dl,
+            :host paper-item [secondary] dl dt,
+            :host paper-item [secondary] dl dd {
+                margin: 0;
+            }
+
+            :host dl dt,
+            :host dl dd,
+            :host paper-item [secondary] dl dt,
+            :host paper-item [secondary] dl dd {
+                display: inline-flex;
+            }
+
+            :host dl dd,
+            :host paper-item [secondary] dl dd {
+                margin-left: 1em;
+                margin-right: 2em;
+            }
+
+            :host paper-icon-item,
+            :host paper-icon-item.list-summary-item {
+                cursor: pointer;
+                position: relative;
+            }
+
+            :host .inline {
+                display: inline;
+            }
+            :host paper-badge,
+            :host .card-header paper-toolbar paper-badge {
+                --paper-badge-text-color: #ffffff;
+                --paper-badge-background: #727272;
+                /*--paper-badge-background: #77bc1f;*/
+            }
+            :host paper-tabs {
+                --paper-tabs-selection-bar-color: #77bc1f;
+
+            }
+            :host paper-tabs paper-tab {
+                --paper-tab-ink: #77bc1f;
+            }
+
+            :host ul,
+            :host li {
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+            }
+            :host li {
+                display: flex;
+                flex-direction: row;
+                margin-bottom: 0.2ex;
+            }
+            :host li > *{
+                display: flex;
+            }
+        </style>
+
+
+        <model-myax-collection id="model" pk="[[modelPk]]" is-push-enabled></model-myax-collection>
+
+        <div class="list-view-list-item-detail-wrapper">
+            <paper-card>
+                <div class="header paper-card">
+                    <paper-icon-item on-tap="toggleItemListDetail">
+                        <div item-icon>
+                            <iron-icon icon="icons:folder"></iron-icon>
+
+                        </div>
+
+                        <paper-item-body
+                                three-line>
+
+                            <div>
+                                <div hidden="[[!_usesDraft(model, model.data)]]" class="paper-font-body2">DRAFT</div>
+                                <div hidden="[[_usesDraft(model, model.data)]]" class="paper-font-body2">PUBLISHED</div>
+                                <span>[[model.data.name]]</span>
+
+                                <div secondary class="inline">ID: <span>[[model.data.id]]</span></div>
+                            </div>
+                            <div secondary>
+                                <dl>
+                                    <dt>Owner:</dt>
+                                    <dd>[[model.data.license_holder]]</dd>
+                                </dl>
+                            </div>
+                            <div secondary>
+                                <dl>
+                                    <dt>Documents for Testing:</dt>
+                                    <dd hidden="[[!selectedThings.length]]">[[selectedThings.length]]</dd>
+                                    <dd hidden="[[selectedThings.length]]">0</dd>
+                                </dl>
+                            </div>
+
+                        </paper-item-body>
+
+                    </paper-icon-item>
+                </div>
+                <template is="dom-if" if="[[_isItemListDetailExpanded]]">
+                    <div class="card-content">
+                        <paper-tabs selected="{{selectedCardAction}}" class="bottom self-end">
+
+                            <paper-tab>Configuration</paper-tab>
+
+                            <paper-tab>
+                                <span>Objects</span>
+
+                                <div style="margin-left: 0.5em;" hidden="[[!selectedThings.length]]">
+                                    <iron-icon id="test-objects-icon" icon="icons:star"
+                                               title="Test Objects"></iron-icon>
+                                    <paper-badge label="[[selectedThings.length]]"
+                                                 for="test-objects-icon"></paper-badge>
+                                </div>
+                            </paper-tab>
+
+                        </paper-tabs>
+                        <section class="card-content-body-container ">
+                            <iron-pages selected="{{selectedCardAction}}">
+
+
+                                <div>
+
+
+                                   <h4>MyAX Collection</h4>
+
+                                    <ul>
+
+                                        <li><div>Language:&nbsp;<span>[[model.data.language]]</span></div></li>
+                                        <li><div>Auto-Regenerate Content:&nbsp;<span hidden="[[model.data.flags.autogenerate]]">No</span><span hidden="[[!model.data.flags.autogenerate]]">Yes</span></div></li>
+                                        <li><div>Suppress Autogeneration:&nbsp;<span hidden="[[model.data.flags.suppress_autoregeneration]]">No</span><span hidden="[[!model.data.flags.suppress_autoregeneration]]">Yes</span></div></li>
+                                    </ul>
+                                    <p>
+                                       This collection is configured to use the "<span hidden="[[model.data.uses_published_training]]">DRAFT</span><span hidden="[[!model.data.uses_published_training]]">PUBLISHED</span>" state of the training ruleset.
+                                       <a
+                                                title="Learn about how to use draft/published version management for trainings"
+                                                href="{{_ironMetaQuery('ax-external-url-ax-explain-training-draft-published')}}"
+                                                target="_blank"
+                                                rel="noopener noreferrer">
+                                            <paper-icon-button icon="icons:info-outline"></paper-icon-button>
+                                        </a>
+                                    </p>
+
+                                </div>
+
+
+                                <div>
+                                    <paper-toolbar class="section-header">
+                                        <h4>Search for Documents</h4>
+                                        <span class="title"></span>
+                                        <ax-search-field id="myax-uid-search" search-term="{{thingUid}}"
+                                                         placeholder="search for document uid"
+                                                         display-opened-form
+                                                         leave-form-opened></ax-search-field>
+                                    </paper-toolbar>
+
+                                    <div class="card-content-body-form-container">
+                                        <template is="dom-repeat" items="[[foundThing]]">
+                                            <view-model-myax-document-list-detail training-pk="[[trainingPk]]" model-pk="[[item.id]]" parent-pk="[[modelPk]]" is-myax-reference="{{checkIsMyAxReference(item.id, selectedThings)}}">
+
+                                            </view-model-myax-document-list-detail>
+                                        </template>
+                                    </div>
+                                    <paper-toolbar class="section-header">
+                                        <h4>Documents for Testing</h4>
+                                    </paper-toolbar>
+                                    <div class="card-content-body-form-container">
+
+                                        <template is="dom-repeat" items="[[selectedThings]]">
+                                            <view-model-myax-document-list-detail training-pk="[[trainingPk]]" model-pk="[[item]]" parent-pk="[[modelPk]]" is-myax-reference>
+
+                                            </view-model-myax-document-list-detail>
+
+                                        </template>
+                                    </div>
+                                </div>
+
+                            </iron-pages>
+
+                        </section>
+                    </div>
+
+                </template>
+
+            </paper-card>
+        </div>
+
+    </template>
+</dom-module>
+
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-myax-collection-list-detail',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                isItemExpandable: {
+                    type: Boolean,
+                    value: true,
+                    reflectToAttribute: true
+                },
+                allowAddThing: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                selectedCardAction: {
+                    type: Number,
+                    value: 0,
+                    notify: true
+                },
+                _isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isRegenerateTextsDialogExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                retTrue: {
+                    type: Boolean,
+                    value: true
+                },
+
+                isRouteActive: {
+                    type: Boolean,
+                    value: true
+                },
+                foundThing: {
+                    type: Object,
+                    value: null,
+                    notify: true
+                },
+                selectedThings: {
+                    type: Array,
+                    value: null,
+                    notify: true
+                },
+                isMyaxReference: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                }
+            },
+
+            observers: [
+                'getThingByUid(thingUid)'
+            ],
+
+
+
+            attached: function () {
+                this.model.checkIsObjectAddEnabled().then(function (isObjectAddEnabled) {
+                    this.set('allowAddThing', isObjectAddEnabled);
+                }.bind(this));
+            },
+
+
+            _usesDraft: function (model, modelData) {
+                return model.checkUsesDraft();
+            },
+
+            _askRegenerateTexts: function () {
+                this.set('_isRegenerateTextsDialogExpanded', true);
+            },
+            _askRegenerateTextsCancel: function () {
+                this.set('_isRegenerateTextsDialogExpanded', false);
+            },
+
+            _getMyAxContentProjectStatisticsParams: function (pk) {
+                var ret = {'myAxContentProjectPk': pk};
+                return ret;
+            },
+
+            addThingDialog: function (event) {
+                event.stopPropagation();
+                this.$['add-thing-dialog'].open();
+            },
+
+            _onThingCreated: function (event, thing) {
+                event.stopPropagation();
+                this._addThingToTestThings(thing.data.id);
+            },
+
+            _addThingToTestThings: function (myaxDocumentPk) {
+                this.fire('collection-document-add-to-myax-references', {myaxCollectionPk: this.modelPk, myaxDocumentPk: myaxDocumentPk});
+            },
+
+            toggleItemListDetail: function (event) {
+                event.stopPropagation();
+                if (this.isItemExpandable) {
+                    this.set('_isItemListDetailExpanded', !this._isItemListDetailExpanded);
+                } else {
+                    this.set('_isItemListDetailExpanded', false);
+                }
+
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+
+            getThingByUid: function (uid) {
+                var pr,
+                    myaxUidSearch =this.$$('#myax-uid-search');
+
+                if (!uid) {
+                    this.set('foundThing', []);
+                    if (myaxUidSearch) {
+                        myaxUidSearch.set('invalid', false);
+                    }
+
+                    return;
+                }
+
+                pr = this.model.getThingByUid(uid);
+                pr.then(function (data) {
+                    this.set('foundThing', data);
+                    if (myaxUidSearch) {
+                        myaxUidSearch.set('invalid', false);
+                    }
+                }.bind(this), function (e) {
+                    this.set('foundThing', []);
+                    if (myaxUidSearch) {
+                        myaxUidSearch.set('invalid', true);
+                    }
+                    console.log(e);
+                }.bind(this));
+                return pr;
+            },
+
+            checkIsMyAxReference: function (itemId) {
+                return this.selectedThings && this.selectedThings.indexOf(itemId) > -1;
+            },
+
+            regenerateTexts: function () {
+                this.model.generateTexts();
+            }
+
+
+        });
+    })();
+</script>

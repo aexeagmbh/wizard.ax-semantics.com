@@ -1,0 +1,152 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+<link rel="import" href="../model-training/story-type-editor/story-type-editor-mode-behavior.html">
+<link rel="import" href="../container-mode/container-view-model-sentence-list.html">
+
+<dom-module id="container-view-model-nested-product-type-list-detail">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+        <paper-spinner active hidden="[[!_isLoading]]"></paper-spinner>
+        <container-view-model-sentence-list
+                on-ax-sentence-order-changed="_sentenceOrderChanged"
+                on-ax-remove-sentence-from-story="_removeSentenceFromStory"
+                on-ax-sentence-deleted="_removeSentenceGlobal"
+                on-create-new-sentence="_createNewSentence"
+
+                active-mode="[[activeMode]]"
+
+                language="[[language]]"
+                translate-language="[[translateLanguage]]"
+                id="sentence-list"
+                training-pk="[[trainingPk]]"
+                training-uses-containers="[[trainingUsesContainers]]"
+
+                sentence-identifiers="[[model.data.sentences]]"
+                product-type-pk="[[modelPk]]"
+                parent-pk="[[trainingPk]]"></container-view-model-sentence-list>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+
+        Polymer({
+            is: 'container-view-model-nested-product-type-list-detail',
+            behaviors: [
+                AxWizard.StoryTypeEditorModeBehavior,
+                AxWizard.BaseModelViewBehavior
+            ],
+            properties: {
+                modelName: {
+                    type: String,
+                    value: 'nested-product-type',
+                    readOnly: true
+                },
+                trainingPk: {
+                    type: String
+                },
+                _isLoading: {
+                    type: Boolean,
+                    value: false
+                },
+                storageId: {
+                    type: String,
+                    value: 'nested-product-type',
+                    notify: true
+                },
+                isTriggerAuto: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggerNone: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggeredByProperty: {
+                    type: Boolean,
+                    notify: true
+                },
+            },
+
+            observers: [
+                '_observeIsTriggerAuto(model.isTriggerAuto, model, model.data)',
+                '_observeIsTriggerNone(model.isTriggerNone, model, model.data)',
+                '_observeIsTriggeredByProperty(isTriggerAuto, isTriggerNone, model, model.data)'
+            ],
+
+            _observeIsTriggerAuto: function (isTriggerAuto) {
+                this.set('isTriggerAuto', !!isTriggerAuto);
+            },
+
+            _observeIsTriggerNone: function (isTriggerNone) {
+                this.set('isTriggerNone', !!isTriggerNone);
+            },
+
+            _observeIsTriggeredByProperty: function (isTriggerAuto, isTriggerNone) {
+                this.set('isTriggeredByProperty', !isTriggerAuto && !isTriggerNone);
+            },
+
+            _sentenceOrderChanged: function (event) {
+                event.stopPropagation();
+                var sentences = event.detail.sentenceOrder;
+
+                event.detail.p = this.model.save(['sentences'], {sentences: sentences});
+            },
+
+            _removeSentenceFromStory: function (event) {
+                var sentenceIdentifier = event.detail.sentenceIdentifier;
+                var sentences = JSON.parse(JSON.stringify(this.model.data.sentences)) || [];
+                var idx = sentences.indexOf(sentenceIdentifier);
+
+                if (idx > -1) {
+                    sentences.splice(idx, 1);
+                }
+                event.detail.p = this.model.save(['sentences'], {sentences: sentences});
+            },
+
+            _removeSentenceGlobal: function () {
+                var sentenceIdentifier = event.detail.sentenceIdentifier;
+                var sentencePk = event.detail.sentencePk;
+                var sentences = JSON.parse(JSON.stringify(this.model.data.sentences)) || [];
+                var idx = sentences.indexOf(sentenceIdentifier);
+
+                if (idx > -1) {
+                    sentences.splice(idx, 1);
+                }
+                event.detail.p = this.model.save(['sentences'], {sentences: sentences}).then(function () {
+                    return app.storageContainer.getObject('sentence', sentencePk).then(function (sentence) {
+                       return sentence.delete();
+                    });
+                });
+            },
+
+
+            _createNewSentence: function (event) {
+                var detail = event.detail,
+                    productType = this.model,
+                    sentenceName = productType.data.name + '_' + new Date().getTime();
+
+                event.detail.sentence = productType.createNewSentence(sentenceName);
+            },
+
+
+        });
+    })();
+</script>

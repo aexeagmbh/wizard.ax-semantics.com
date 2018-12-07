@@ -1,0 +1,62 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-property/view-model-data-property-wizard.html">
+
+
+<dom-module id="view-model-property-wizard-modal">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal
+                      on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Property Wizard for Data Properties</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                    <view-model-data-property-wizard id="modal-dialog-form"
+                                                     model-pk="[[trainingPk]]"
+                                                                training-pk="[[trainingPk]]"
+                                                                on-model-save-success="handleResponse"
+                            ></view-model-data-property-wizard>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Close Property Wizard</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+        Polymer({
+            is: 'view-model-property-wizard-modal',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                trainingPk: {
+                    notify: true
+                },
+                propertyType: {
+                    type: String,
+                    notify: true
+                }
+            }
+
+        });
+
+    })();
+</script>

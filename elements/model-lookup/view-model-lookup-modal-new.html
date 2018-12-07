@@ -1,0 +1,88 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+
+<link rel="import" href="../model-lookup/view-model-lookup-form.html">
+
+
+<dom-module id="view-model-lookup-modal-new">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-dialog {
+                width: 90%;
+            }
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal opened="{{_opened}}"
+                      on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]">
+            <h2>Add Lookup</h2>
+
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                    <view-model-lookup-form hidden="[[_isLoading]]" id="modal-dialog-form" lookup-table-pk="[[lookupTablePk]]" training-pk="[[trainingPk]]"
+                                            on-model-loaded="setDefaultFormData"
+                                            on-model-save-success="handleResponse"></view-model-lookup-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Add Lookup</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-lookup-modal-new',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                lookupTablePk: {
+                    notify: true
+                },
+                trainingPk: {
+                    notify: true
+                },
+                referringWord: {
+                    notify: true
+                }
+            },
+            setDefaultFormData: function () {
+                this.set('_isLoading', true);
+                this._getUserLanguage().then(function (language) {
+                    this.$$('#modal-dialog-form').set('formData.language', language);
+                    this.set('_isLoading', false);
+                }.bind(this), function () {
+                    this.$$('#modal-dialog-form').set('formData.language', '');
+                    this.set('_isLoading', false);
+                }.bind(this));
+
+                this.$$('#modal-dialog-form').set('formData.referringWord', this.referringWord || '');
+
+            },
+            _getUserLanguage: function () {
+                return app.fire('query-settings', {propertyName: 'language'}).detail.result;
+            },
+
+            handleResponse: function (event, model) {
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-lookup-modal-edit', params: {modelPk: model.pk, isFirstEdit: true}});
+                this.cancelModalForm();
+            }
+        });
+
+    })();
+</script>

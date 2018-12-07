@@ -1,0 +1,162 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../ax-page-routing/page-routing-behavior.html">
+<link rel="import" href="../model-lookup-value/view-model-lookup-value-list.html">
+
+<dom-module id="view-model-lookup-list-detail">
+    <style>
+        :host {
+            display: block;
+        }
+
+        :host paper-card {
+            width: 100%;
+        }
+        :host paper-item-body [secondary] dl,
+        :host paper-item-body [secondary] dl dt,
+        :host paper-item-body [secondary] dl dd {
+            margin: 0;
+        }
+
+        :host paper-item-body [secondary] dl dt,
+        :host paper-item-body [secondary] dl dd {
+            display: inline-flex;
+        }
+
+        :host paper-item-body [secondary] dl dd {
+            margin-left: 1em;
+            margin-right: 2em;
+        }
+
+        :host .list-view-list paper-icon-item {
+            cursor: pointer;
+        }
+
+        :host paper-icon-item .list-icon {
+            color: grey;
+        }
+
+        :host paper-icon-item {
+            cursor: pointer;
+            position: relative;
+        }
+    </style>
+    <template>
+        <div class="list-view-list-item-detail-wrapper">
+
+            <paper-card>
+                <!-- Card Header -->
+                <div class="header paper-card">
+                    <paper-icon-item on-tap="toggleItemListDetail">
+                        <iron-icon item-icon icon="icons:visibility"></iron-icon>
+                        <paper-item-body
+                                two-line>
+                            <div>[[model.data.referringWord]]</div>
+                            <div secondary>
+                                <dl>
+                                    <dt>Language:</dt>
+                                    <dd>[[model.data.language]]</dd>
+                                </dl>
+                            </div>
+                        </paper-item-body>
+
+                        <paper-icon-button icon="editor:mode-edit" on-tap="_editModel" hidden="[[!isItemListDetailExpanded]]">
+                        </paper-icon-button>
+
+                        <paper-icon-button icon="icons:content-copy" title="Duplicate" on-tap="_duplicateModel"
+                                           hidden="[[!isItemListDetailExpanded]]">
+                        </paper-icon-button>
+
+                        <ax-delete-ask-button on-ax-delete-ask-button-confirmed="_deleteModel"
+                                              hidden="[[!isItemListDetailExpanded]]"></ax-delete-ask-button>
+                        <paper-icon-button
+                                icon="{{itemExpandedIcon(isItemListDetailExpanded)}}"
+                                on-tap="toggleItemListDetail">
+                        </paper-icon-button>
+                    </paper-icon-item>
+                </div>
+                <template is="dom-if" if="[[isItemListDetailExpanded]]">
+                    <!-- Card Content -->
+                    <div class="card-content">
+                        <section class="card-content-body-container">
+                            <!-- Lookup Values -->
+                            <view-model-lookup-value-list
+                                    is-route-active="[[isItemListDetailExpanded]]"
+                                    parent-pk="[[modelPk]]">
+                            </view-model-lookup-value-list>
+                        </section>
+                    </div>
+                </template>
+            </paper-card>
+        </div>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-lookup-list-detail',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+
+                usesContainer: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                modelName: {
+                    type: String,
+                    value: 'lookup',
+                    readOnly: true
+                },
+                isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                }
+            },
+
+
+            saveItem: function () {
+                return this.model.save();
+            },
+
+            toggleItemListDetail: function (event) {
+                event.stopPropagation();
+                this.set('isItemListDetailExpanded', !this.isItemListDetailExpanded);
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            _editModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-lookup-modal-edit', params: {modelPk: this.modelPk}});
+            },
+
+            _duplicateModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-lookup-modal-duplicate', params: {modelPk: this.modelPk}});
+            }
+
+        });
+    })();
+</script>

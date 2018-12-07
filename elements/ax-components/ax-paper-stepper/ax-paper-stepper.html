@@ -1,0 +1,72 @@
+<link rel="import" href="ax-paper-step.html">
+<link rel="import" href="ax-paper-vertical-stepper.html">
+<link rel="import" href="ax-paper-vertical-step.html">
+
+<!--
+@element paper-stepper
+@demo demo/index.html
+@hero hero.svg
+-->
+<dom-module id="ax-paper-stepper">
+  <template>
+    <style>
+      :host {
+        display: block;
+        box-sizing: border-box;
+      }
+    </style>
+      <content></content>
+  </template>
+</dom-module>
+
+<script>
+  'use strict';
+  Polymer({
+
+    is: 'ax-paper-stepper',
+
+    properties: {
+      alternativeLabel: {
+        type: Boolean,
+        value: false
+      },
+      vertical: {
+        type: Boolean,
+        value: false
+      },
+      backText: {
+        type: String,
+        value: 'BACK'
+      },
+      continueText: {
+        type: String,
+        value: 'CONTINUE'
+      },
+      skipText: {
+        type: String,
+        value: 'SKIP'
+      },
+      selected: {
+        type: Number,
+        value: 0
+      },
+      optionalText: {
+        type: String,
+        value: 'Optional'
+      },
+      linear: {
+        type: Boolean,
+        value: true
+      },
+      completed: {
+        type: Boolean,
+        value: false
+      },
+      responsiveWidth: {
+        type: Number,
+        value: 600
+      }
+    }
+  });
+
+</script>

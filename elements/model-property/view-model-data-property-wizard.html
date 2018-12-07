@@ -1,0 +1,290 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="../../bower_components/paper-stepper/paper-stepper.html">
+<link rel="import" href="../../bower_components/paper-stepper/paper-step.html">
+<link rel="import" href="../../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../bower_components/paper-radio-button/paper-radio-button.html">
+
+<link rel="import" href="../ax-components/ax-paper-stepper/ax-paper-stepper.html">
+<link rel="import" href="../ax-components/ax-paper-stepper/ax-paper-vertical-stepper.html">
+<link rel="import" href="../ax-crud/base-model-list-select.html">
+<link rel="import" href="../model-validation-data/view-model-validation-data-list-detail.html">
+
+<dom-module id="view-model-data-property-wizard">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host .ax-step-wrapper {
+                position: relative;
+            }
+
+        </style>
+
+        <model-validation-data pk="[[selectedValidationDataPk]]"
+                                          data="{{validationDataData}}"></model-validation-data>
+
+        <ax-paper-stepper>
+            <ax-paper-vertical-stepper linear="[[_isLinearStepper]]">
+                <ax-paper-vertical-step label="Provide a Data Source" is-continue-button-disabled="[[!_isDataSourceSelected(selectedValidationDataPk)]]"
+                                        continue-text="Use fields from this object">
+                    <ax-paper-step>
+                        <div class="ax-step-wrapper">
+                            <section id="test-data-select">
+                                <base-model-list-select
+                                    selected="{{selectedValidationDataPk}}"
+                                    required="1"
+                                    template-id="list-select-validation-data-template"
+                                    label="Validation Data"
+                                    storage-id="storage-validation-data"
+                                    parent-pk="[[modelPk]]">
+                                    <template id="list-select-validation-data-template" is="dom-template">
+                                        <div label="[[baseModelListItem.name]]" value="[[baseModelListItem.id]]">
+                                            <view-model-validation-data-list-detail hide-details model-pk="[[baseModelListItem.id]]"></view-model-validation-data-list-detail>
+                                        </div>
+                                    </template>
+                                </base-model-list-select>
+                            </section>
+                            <template is="dom-if" if="[[selectedValidationDataPk]]">
+                                <section id="test-thing-container">
+                                    <view-model-validation-data-list-detail
+                                            hide-select-validation-data
+                                            parent-pk="[[modelPk]]"
+                                            model-pk="[[selectedValidationDataPk]]" parent-pk="[[modelPk]]">
+                                    </view-model-validation-data-list-detail>
+                                </section>
+                            </template>
+                        </div>
+                    </ax-paper-step>
+                </ax-paper-vertical-step>
+
+
+                <ax-paper-vertical-step label="Languages"
+                                        continue-text="Make Properties available for these languages"
+                                        is-continue-button-disabled="[[!languages.length]]">
+                    <ax-paper-step>
+
+                        <ax-multi-select choices="[[languageChoices]]"
+                                         selected-values="{{languages}}"></ax-multi-select>
+
+                    </ax-paper-step>
+                </ax-paper-vertical-step>
+
+                <ax-paper-vertical-step label="Choose the Fields for your Properties"
+                                        continue-text="Use these fields for properties"
+                                        is-continue-button-disabled="[[!selectedKeyNames.length]]">
+                    <ax-paper-step>
+
+                        <ax-multi-select choices="[[availableKeyNameChoices]]"
+                                         selected-values="{{selectedKeyNames}}"></ax-multi-select>
+
+                    </ax-paper-step>
+                </ax-paper-vertical-step>
+
+                <ax-paper-vertical-step label="Configure the Types for the Properties" continue-text="Confirm to create DATA Properties"
+                                        on-continue-step="_generateProperties">
+                    <ax-paper-step>
+                        <template is="dom-repeat" items="{{dataKeys}}">
+
+                            <div class="flex-row">
+                                <div class="flex">DATA_[[item.name]]</div>
+                                <div>
+                                    <label>Type of Data:
+                                        <paper-radio-group selected="{{item.type}}">
+                                            <paper-radio-button name="string">Text</paper-radio-button>
+                                            <paper-radio-button name="numeric">Numeric</paper-radio-button>
+                                            <paper-radio-button name="boolean">Boolean</paper-radio-button>
+                                        </paper-radio-group>
+                                    </label>
+                                </div>
+                            </div>
+
+                        </template>
+                    </ax-paper-step>
+                </ax-paper-vertical-step>
+
+
+
+            </ax-paper-vertical-stepper>
+        </ax-paper-stepper>
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+        var Zecat = window.Zecat || {};
+
+        Polymer({
+            is: 'view-model-data-property-wizard',
+
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                modelName: {
+                    type: String,
+                    value: 'training',
+                    readOnly: true
+                },
+                _isLinearStepper: {
+                    type: Boolean,
+                    value: true,
+                    readOnly: true
+                },
+                trainingPk: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+
+                validationDataData: {
+                    type: Object,
+                    notify: true
+                },
+
+                availableKeyNames: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    }
+                },
+                availableKeyNameChoices: {
+                    type: Array,
+                    computed: '_computeAvailableKeyNameChoices(availableKeyNames)'
+                },
+
+                selectedKeyNames: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    },
+                    notify: true
+                },
+
+                propertyList: {
+                    type: Array
+                },
+
+                dataKeys: {
+                    type: Array,
+                    notify: true
+                },
+
+                languageChoices: {
+                    type: Array
+                },
+                languages: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    }
+                }
+            },
+
+            observers: [
+                '_initAvailableKeyNames(validationDataData, validationDataData.*)',
+                '_selectedKeyNamesObserver(selectedKeyNames, selectedKeyNames.*)'
+            ],
+
+            _isDataSourceSelected: function (a, b) {
+                return a || b;
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+
+            _selectedKeyNamesObserver: function (keyNames) {
+                if (!keyNames) {
+                    return;
+                }
+                this.set('dataKeys', keyNames.map(function (keyName) {
+                    return {
+                        name: keyName,
+                        type: 'string'
+                    };
+                }));
+            },
+
+
+            attached: function () {
+                this._loadLanguageChoices(this.trainingPk);
+                this._initSelectedLanguages();
+            },
+            cancel: function () {
+            },
+            refresh: function () {
+            },
+
+            _computeAvailableKeyNameChoices: function (availableKeyNames) {
+
+                return availableKeyNames.map(function (keyName) {
+                    return {
+                        value: keyName,
+                        display_name: keyName
+                    };
+                });
+            },
+
+            _initAvailableKeyNames: function (objectData) {
+                var availableKeyNames, pureData;
+                availableKeyNames = [];
+                pureData = objectData && objectData.data ? objectData.data : {};
+
+                Object.keys(pureData).forEach(function (keyName) {
+                    availableKeyNames.push(keyName);
+                });
+
+                this.set('availableKeyNames', availableKeyNames);
+
+            },
+
+            _generateProperties: function (event) {
+                var actionData = {
+                    dataKeys: this.dataKeys,
+                    languages: this.languages
+                };
+                event.stopPropagation();
+
+                app.storageContainer.getObject('training', this.trainingPk).then(function (model) {
+                    model.generateProperties(actionData).then(function () {
+                        this.fire('model-save-success');
+                    }.bind(this));
+                }.bind(this));
+
+            },
+
+            _loadLanguageChoices: function (trainingPk) {
+                app.storageContainer.getObject('training', trainingPk).then(function (training) {
+                    training.getConfiguredLanguageList().then(function (list) {
+                        this.set('languageChoices', list.map(function (languageItem) {
+                            return {
+                                'display_name': languageItem.name,
+                                'value': languageItem.id
+                            };
+                        }));
+                    }.bind(this));
+                }.bind(this));
+            },
+
+            _initSelectedLanguages: function () {
+                this._getUserLanguage().then(function (language) {
+                    this.push('languages', language);
+                }.bind(this));
+            },
+
+            _getUserLanguage: function () {
+                return app.fire('query-settings', {propertyName: 'language'}).detail.result;
+            }
+
+        });
+
+    })();
+</script>

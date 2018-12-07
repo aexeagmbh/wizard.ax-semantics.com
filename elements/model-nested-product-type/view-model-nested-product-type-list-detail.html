@@ -1,0 +1,200 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../../bower_components/sortable-list/sortable-list.html">
+<dom-module id="view-model-nested-product-type-list-detail">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host .list-view-list paper-icon-item {
+                cursor: pointer;
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host paper-icon-item {
+                cursor: pointer;
+                position: relative;
+            }
+        </style>
+        <template is="dom-if" if="[[asSimpleItem]]">
+            <paper-item>
+                [[model.data.name]]
+            </paper-item>
+        </template>
+        <template is="dom-if" if="[[!asSimpleItem]]">
+         <div class="list-view-list-item-detail-wrapper">
+
+            <paper-card elevation="0">
+                <div class="header paper-card">
+
+                    <paper-icon-item on-tap="toggleItemListDetail">
+                        <iron-icon item-icon icon="icons:extension"></iron-icon>
+                        <paper-item-body two-line>
+                            <div>[[model.data.name]]</div>
+                            <div secondary>
+                                <div hidden="[[!isTriggerNone]]"><iron-icon icon="icons:warning"></iron-icon> No Trigger defined. Story Type will never be rendered.</div>
+                                <div hidden="[[!isTriggerAuto]]"><iron-icon icon="icons:check"></iron-icon>Auto triggered. Story Type can always be rendered.</div>
+                                <div hidden="[[!isTriggeredByProperty]]"><iron-icon icon="icons:check"></iron-icon>Triggered by custom Properties. Story Type can be rendered if Properties match.</div>
+                            </div>
+                        </paper-item-body>
+
+                        <paper-icon-button hidden="[[!_isItemListDetailExpanded]]" icon="editor:mode-edit" on-tap="_editModel">
+                        </paper-icon-button>
+                        <paper-icon-button icon="icons:content-copy" title="Duplicate" on-tap="_duplicateModel"
+                                               hidden="[[!_isItemListDetailExpanded]]">
+                        </paper-icon-button>
+                        <ax-delete-ask-button on-ax-delete-ask-button-confirmed="_deleteModel"
+                                              hidden="[[!_isItemListDetailExpanded]]"></ax-delete-ask-button>
+                        <paper-icon-button icon="{{itemExpandedIcon(_isItemListDetailExpanded)}}"
+                                           on-tap="toggleItemListDetail"></paper-icon-button>
+                    </paper-icon-item>
+
+                </div>
+
+                <template is="dom-if" if="[[_isItemListDetailExpanded]]">
+                    <div class="card-content">
+
+                        <view-model-sentence-list
+                                id="sentence-list"
+                                show-language-filter
+                                show-expand-all
+                                is-delete-disabled
+                                is-duplicate-disabled
+                                replace-container-with-source="[[replaceContainerWithSource]]"
+                                filter-list-facets="{{_getSentenceListFacets(model.data.sentences)}}"
+                                show-add-button="[[!retTrue]]"
+                                parent-pk="[[model.data.training]]"></view-model-sentence-list>
+
+
+
+                    </div>
+
+                </template>
+            </paper-card>
+
+        </div>
+
+
+    </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-nested-product-type-list-detail',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+            properties: {
+                _isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                retTrue: {
+                    type: Boolean,
+                    value: true
+                },
+                asSimpleItem: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                value: {
+                    computed: '_ret(modelPk)',
+                    notify: true
+                },
+                label: {
+                  computed: '_ret(model.data.name, model.data)',
+                    notify: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'nested-product-type',
+                    notify: true
+                },
+                isTriggerAuto: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggerNone: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggeredByProperty: {
+                    type: Boolean,
+                    notify: true
+                },
+                modelName: {
+                    type: String,
+                    value: 'nested-product-type',
+                    readOnly: true
+                }
+            },
+
+            observers: [
+                '_observeIsTriggerAuto(model.isTriggerAuto, model, model.data)',
+                '_observeIsTriggerNone(model.isTriggerNone, model, model.data)',
+                '_observeIsTriggeredByProperty(model.isTriggerAuto, model.isTriggerNone, model, model.data)'
+            ],
+
+            _ret: function (x) {
+                return x;
+            },
+
+            _observeIsTriggerAuto: function (isTriggerAuto) {
+                this.set('isTriggerAuto', isTriggerAuto);
+            },
+
+            _observeIsTriggerNone: function (isTriggerNone) {
+                this.set('isTriggerNone', isTriggerNone);
+            },
+
+            _observeIsTriggeredByProperty: function (isTriggerAuto, isTriggerNone) {
+                this.set('isTriggeredByProperty', !isTriggerAuto && !isTriggerNone);
+            },
+
+            _getSentenceListFacets: function (sentenceIds) {
+                return {'id': sentenceIds};
+            },
+
+            toggleItemListDetail: function (event) {
+                event.stopPropagation();
+                this.set('_isItemListDetailExpanded', !this._isItemListDetailExpanded);
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            _editModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-nested-product-type-modal-edit', params: {modelPk: this.modelPk}});
+            },
+
+            _duplicateModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-nested-product-type-modal-duplicate', params: {modelPk: this.modelPk}});
+            }
+
+        });
+    })();
+</script>

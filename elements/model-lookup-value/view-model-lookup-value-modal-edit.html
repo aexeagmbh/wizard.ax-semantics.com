@@ -1,0 +1,73 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+
+<link rel="import" href="../model-lookup-value/view-model-lookup-value-form.html">
+
+
+<dom-module id="view-model-lookup-value-modal-edit">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Edit Lookup Value</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <view-model-lookup-value-form load-model
+                                                  id="modal-dialog-form"
+                                                  model-pk="[[modelPk]]"
+                                                  training-uses-container="[[_lookupValuesUseContainer]]"
+                                                  has-unsaved-changes="{{hasUnsavedChanges}}"
+                                                  on-model-save-success="handleResponse">
+
+                    </view-model-lookup-value-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <ax-close-unsaved-ask-button has-unsaved-changes="[[hasUnsavedChanges]]" on-ax-close-unsaved-ask-button-confirmed="cancelModalForm"></ax-close-unsaved-ask-button>
+            </div>
+        </paper-dialog>
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-lookup-value-modal-edit',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+
+                _lookupValuesUseContainer: {
+                    type: Boolean,
+                    computed: '_computeLookupValuesUseContainer(trainingVersion, trainingPk)',
+                    notify: true
+                }
+
+            },
+
+            _computeLookupValuesUseContainer: function (trainingVersion) {
+                var versionInfo = trainingVersion.split('.');
+
+                if ((versionInfo[1] && versionInfo[1] >= 1) || versionInfo[0] > 3) {
+                    return true;
+                }
+
+                return false;
+            }
+        });
+
+    })();
+</script>

@@ -1,0 +1,276 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+
+<dom-module id="view-model-sentence-group-form">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            :host .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host paper-dropdown-menu {
+                vertical-align: top;
+                padding-right: 30px;
+            }
+
+            :host .ax-list {
+                display: inline-block;
+                margin-top: 10px;
+            }
+        </style>
+
+        <view-model-sentence-modal-new id="add-sentence-dialog" training-pk="[[trainingPk]]"
+                                       on-model-save-success="_sentenceCreated"></view-model-sentence-modal-new>
+
+
+        <form on-submit="saveModel" is="iron-form" id="model-form">
+            <input type="submit" value="save" style="display: none;">
+            <paper-input value="{{formData.name}}" label="Name" autofocus required
+                         error-message="This field is required."></paper-input>
+            <paper-dropdown-menu label="Mode" on-iron-overlay-opened="stopPropagation" required
+                                 error-message="This field is required.">
+                <paper-menu class="dropdown-content" attr-for-selected="value"
+
+                            selected="{{formData.mode}}">
+                    <paper-item value=""></paper-item>
+                    <template is="dom-repeat" items="[[modeChoices]]">
+                        <paper-item value="[[item.value]]">[[item.display_name]]</paper-item>
+                    </template>
+                </paper-menu>
+            </paper-dropdown-menu>
+            <div class="ax-list" roll="listbox">
+                <paper-item>best - The first n active sentences are rendered.</paper-item>
+                <paper-item>last - The last n active sentences are rendered.</paper-item>
+                <paper-item>random - n random sentences are rendered</paper-item>
+                <paper-item>same - Same selects the exact same sentences as are selected in another sentence group.
+                </paper-item>
+                <paper-item>That requires the “reference”-entry, see 	&nbsp; <a href="{{_ironMetaQuery('ax-external-url-atml3-doc', '', '#sentences')}}" target="_blank"> Documentation</a>.
+                </paper-item>
+            </div>
+            <paper-input type="number" value="{{formData.number}}" label="Number" autofocus required
+                         error-message="This field is required."></paper-input>
+            <template is="dom-if" if="{{_isModeSame(formData.mode)}}" restamp>
+
+                <paper-dropdown-menu label="Reference Sentence Group" on-iron-overlay-opened="stopPropagation" required
+                                 error-message="This field is required.">
+                <paper-menu class="dropdown-content" attr-for-selected="value"
+
+                            selected="{{formData.reference}}">
+                    <template is="dom-repeat" items="[[sentenceGroupReferenceChoices]]">
+                        <paper-item value="[[item.value]]">[[item.display_name]]</paper-item>
+                    </template>
+                </paper-menu>
+            </paper-dropdown-menu>
+
+
+            </template>
+
+            <ax-multi-select on-ax-multi-select-create-choice="_createSentence" sortable label="Sentences"
+                             selected-values="[[sentenceOrder]]" selected-values-ordered="{{orderedSentenceOrder}}"
+                             choices="[[sentenceChoices]]" icon="communication:clear-all">
+                <p id="no-elements-selected-message">
+                    Add and remove sentences to your sentence group here.
+                </p>
+                <p id="elements-selected-message">
+                    Add and remove sentences to your sentence group here.
+                </p>
+            </ax-multi-select>
+        </form>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-group-form',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            properties: {
+                retTrue: {
+                    type: Boolean,
+                    value: true,
+                    notify: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'sentence-group',
+                    notify: true
+                },
+                trainingPk: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                allowedFields: {
+                    type: Array,
+
+                    value: function () {
+                        return ['name', 'sentenceNames', 'number', 'mode', 'reference'];
+                    },
+                    notify: true
+                },
+                modeChoices: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            {value: 'Best', display_name: 'Best'},
+                            {value: 'Last', display_name: 'Last'},
+                            {value: 'Random', display_name: 'Random'},
+                            {value: 'Same', display_name: 'Same'}
+                        ];
+                    },
+                    notify: true
+                },
+                sentenceChoices: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    },
+                    notify: true
+                },
+                sentenceGroupReferenceChoices: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    },
+                    notify: true
+                },
+                sentenceOrder: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    },
+                    notify: true
+                },
+                orderedSentenceOrder: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    },
+                    notify: true
+                }
+            },
+
+
+            _preSaveModel: function () {
+                if (this.trainingPk) {
+                    this.set('formData.training', parseInt(this.trainingPk, 10));
+                }
+                if (!this._isModeSame(this.formData.mode)) {
+                    this.set('formData.reference', null);
+                }
+
+                this.set('formData.sentenceNames', this.orderedSentenceOrder);
+
+            },
+
+
+            _loadSentenceChoices: function (trainingPk) {
+                var self = this;
+                self._getStorage('sentence').then(function (storage) {
+                    storage.list(trainingPk).then(function (list) {
+                        self.set('sentenceChoices', list.map(function (sentenceData) {
+                            return {value: sentenceData.name, display_name: sentenceData.name};
+                        }));
+
+                    });
+                });
+            },
+
+            _modelChanged: function (model) {
+                var self = this;
+                if (!model || !model.getFields) {
+                    return;
+                }
+                
+                self.set('formData', JSON.parse(JSON.stringify(model.data)));
+                self.set('sentenceOrder', this.formData.sentenceNames);
+                self.set('orderedSentenceOrder', this.formData.sentenceNames);
+                self._loadSentenceChoices(model.data.training || self.trainingPk);
+                self._loadSentenceGroupReferenceChoices(model.data.training || self.trainingPk, model.data.id);
+                self.set('trainingPk', self.trainingPk || model.data.training);
+            },
+
+            _createSentence: function () {
+                this.$['add-sentence-dialog'].open();
+            },
+
+            _sentenceCreated: function (event, modelSentence) {
+                event.stopPropagation();
+
+                this._loadSentenceChoices(this.trainingPk);
+                this.push('sentenceOrder', modelSentence.data.name);
+            },
+            saveModel: function () {
+                if (this.$['model-form'].validate()) {
+                    return AxWizard.BaseModelFormBehavior.saveModel.call(this);
+                } else {
+                    return;
+                }
+            },
+            _ironMetaQuery: function (key, prependStr, appendStr) {
+                var ret = [
+                    prependStr,
+                    new Polymer.IronMetaQuery({key: key}).value,
+                    appendStr
+                ];
+
+                return ret.join('');
+            },
+
+            _isModeSame: function (selectedModeName) {
+                return selectedModeName === 'Same';
+            },
+
+            _loadSentenceGroupReferenceChoices: function (trainingPk, modelPk) {
+                app.storageContainer.getStorage('sentence-group').then(function (storage) {
+                    storage.list(trainingPk).then(function (sentenceGroupList) {
+                        var sentenceGroupReferenceChoices = sentenceGroupList.filter(function (sentenceGroup) {
+                            return '' + sentenceGroup.id !== '' + modelPk; // no self-referencing
+                        }).map(function (sentenceGroup) {
+                           return {
+                               display_name: sentenceGroup.name,
+                               value: sentenceGroup.id
+                           };
+                        });
+                        this.set('sentenceGroupReferenceChoices', sentenceGroupReferenceChoices);
+                    }.bind(this));
+                }.bind(this));
+            }
+
+        });
+    })();
+</script>

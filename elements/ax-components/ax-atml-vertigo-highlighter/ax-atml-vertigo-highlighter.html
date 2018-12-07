@@ -1,0 +1,163 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/paper-input/paper-textarea.html">
+
+<dom-module id="ax-atml-vertigo-highlighter">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            :host .ax-atml-vertigo-highlighter-container {
+                position: relative;
+            }
+            :host #ax-atml-vertigo-highlighter-highlighted {
+                position: absolute;
+            }
+
+            :host #ax-atml-vertigo-highlighter-highlighted[disabled] {
+                position: relative;
+                margin: 0 15px;
+            }
+            :host #ax-atml-vertigo-highlighter-highlighted-spacer {
+                position: relative;
+                color: transparent;
+                line-height: 24px;
+                white-space: pre-wrap;
+                margin: 44px 32px 24px 16px;
+                font-size: initial;
+                word-break: break-word;
+                /*word-break: break-all;*/
+                font-family: monospace;
+            }
+            :host #ax-atml-vertigo-highlighter-highlighted {
+                margin: 44px 32px 24px 16px;
+                z-index: 1;
+                line-height: 24px;
+                white-space: pre-wrap;
+                word-break: break-word;
+                /*word-break: break-all;*/
+                font-size: initial;
+                font-family: monospace;
+            }
+            :host h4 {
+                margin-bottom: 0;
+            }
+            :host paper-textarea {
+
+                word-break: break-word !important;
+                /*word-break: break-all !important;*/
+                font-family: monospace !important;
+            }
+        </style>
+        <div class="ax-atml-vertigo-highlighter-container code">
+            <h4 hidden="[[!disabled]]">[[label]]<content selector=".title-content"></content></h4>
+            <div hidden=[[!disabled]] id="ax-atml-vertigo-highlighter-highlighted" disabled$="[[disabled]]"></div>
+
+            <paper-textarea
+                    hidden="[[disabled]]"
+                    required="[[required]]"
+                    error-message="[[errorMessage]]"
+                    class="code"
+                    label="[[label]]"
+                    value="{{value}}">
+                    <template is="dom-if" if="[[!noButtons]]">
+                        <paper-icon-button hidden=[[noButtons]] class="inplace-button" suffix icon="clear" on-tap="_cancel"></paper-icon-button>
+                        <paper-icon-button hidden=[[noButtons]] class="inplace-button" suffix icon="done" on-tap="_save"></paper-icon-button>
+                    </template>
+            </paper-textarea>
+        </div>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'ax-atml-vertigo-highlighter',
+
+            properties: {
+                disabled: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                noButtons: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                value: {
+                    type: String,
+                    notify: true,
+                    observer: 'highlight'
+                },
+                label: {
+                    type: String,
+                    notify: true
+                },
+                required: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true,
+                    notify: true
+                },
+                errorMessage: {
+                    type: String,
+                    value: '',
+                    notify: true
+                }
+            },
+
+            _cancel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-atml-vertigo-highlighter-cancel');
+            },
+
+            _save: function (event) {
+                event.stopPropagation();
+                this.fire('ax-atml-vertigo-highlighter-save');
+            },
+
+            attached: function () {
+                this.highlight(this.value);
+            },
+
+            highlight: function (code) {
+                var mirror, highlighted;
+                if (!this.isAttached) {
+                    return;
+                }
+                mirror = this.querySelector('paper-textarea #mirror');
+                highlighted = this.$['ax-atml-vertigo-highlighter-highlighted'];
+                if (code) {
+                    highlighted.innerHTML = this._highlight(code);
+                    if (code.endsWith('\n')) {
+                       highlighted.appendChild(document.createElement('br'));
+                    }
+                    mirror.innerHTML = this.$['ax-atml-vertigo-highlighter-highlighted'].innerHTML;
+                } else {
+                    highlighted.innerHTML = '';
+                    mirror.innerHTML = this.$['ax-atml-vertigo-highlighter-highlighted'].innerHTML;
+                }
+               
+            },
+
+            _highlight: function (code) {
+               return this.fire('ax-syntax-highlight', {code: code, lang: 'atmlvertigo'}).detail.code;
+            }
+
+
+
+        });
+    }());
+</script>
+

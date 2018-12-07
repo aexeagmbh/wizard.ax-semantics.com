@@ -1,0 +1,74 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+
+<link rel="import" href="../model-container/view-model-container-form.html">
+
+
+<dom-module id="view-model-container-modal-edit">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host paper-dialog {
+                width: 90%;
+            }
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm" position-target="document"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Edit Container</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <view-model-container-form storage-id="[[modelName]]" load-model id="modal-dialog-form" model-pk="[[modelPk]]" training-pk="[[trainingPk]]"
+                                              on-model-save-success="handleResponse"></view-model-container-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons flex-row">
+                <paper-button raised on-tap="deleteContainer">Remove Container</paper-button>
+                <div class="flex"></div>
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Save Changes</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-container-modal-edit',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                trainingPk: {
+                    type: String
+                },
+
+                modelName: {
+                    type: String,
+//                    value: 'container',
+                    notify: true
+                },
+            },
+
+            deleteContainer: function (event) {
+                event.stopPropagation();
+                app.storageContainer.getObject(this.modelName, this.modelPk).then(function (model) {
+                   this.close();
+                   model.toPlain();
+                }.bind(this));
+            }
+        });
+
+    })();
+</script>

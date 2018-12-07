@@ -1,0 +1,236 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<dom-module id="view-model-sentence-variant-modal-debug-output">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host paper-tabs {
+                --paper-tabs-selection-bar-color: #77bc1f;
+
+            }
+            :host paper-tabs paper-tab {
+                --paper-tab-ink: #77bc1f;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host .card-content.flex-row {
+                align-items: flex-start;
+            }
+        </style>
+
+         <paper-dialog class="full-display" id="modal-dialog" modal opened="{{_opened}}" no-cancel-on-esc-key="[[noCancelOnEscKey]]">
+            <h2>Debug Output</h2>
+            <paper-tabs selected="{{activeMode}}" autoselect attr-for-selected="data-debug-mode">
+                <paper-tab data-debug-mode="properties">Debug Properties</paper-tab>
+                <paper-tab data-debug-mode="raw">Raw Output</paper-tab>
+            </paper-tabs>
+
+             <div class="flex-row">
+                 <template is="dom-if" if="[[_equals('properties', activeMode)]]">
+                     <ax-search-field placeholder="Filter Property List" search-term="{{searchTerm}}" display-opened-form leave-form-opened></ax-search-field>
+
+                     <paper-toggle-button checked="{{_showUnusedProperties}}">Show unused Properties</paper-toggle-button>
+                 </template>
+             </div>
+
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+
+                    <iron-pages attr-for-selected="data-debug-mode" selected="{{activeMode}}" selected-attribute="is-active">
+                        <template is="dom-if" if="[[_equals('properties', activeMode)]]">
+                            <div data-debug-mode="properties">
+                                <template is="dom-repeat" items="[[_debugPropertyList]]" filter="{{_filterProperties(searchTerm, _showUnusedProperties)}}">
+
+                                    <template is="dom-if" if="[[item.isEvaluated]]">
+                                        <paper-card>
+                                            <!-- Card Header -->
+                                            <div class="header paper-card">
+                                                <paper-item active="{{item._isExpanded}}" toggles>
+                                                    <paper-item-body>
+                                                        [[item.name]]
+                                                    </paper-item-body>
+                                                    <paper-icon-button icon="[[itemExpandedIcon(item._isExpanded)]]">
+                                                    </paper-icon-button>
+                                                </paper-item>
+                                            </div>
+
+                                            <template is="dom-if" if="[[item._isExpanded]]" restamp>
+                                                <div class="card-content flex-row">
+                                                    <div class="flex">
+                                                        <code class="preformated">[[jsonPretty(item.evaluatedData)]]</code>
+                                                    </div>
+                                                    <div class="flex" style="overflow: hidden;">
+                                                        <view-model-property-list-detail no-delete no-clone model-pk="[[_getPropertyModelPkByName(item.name)]]"></view-model-property-list-detail>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </paper-card>
+                                    </template>
+
+                                    <template is="dom-if" if="[[!item.isEvaluated]]">
+
+                                        <paper-item>[[item.name]]</paper-item>
+
+                                    </template>
+
+                                </template>
+                            </div>
+                        </template>
+                        <template is="dom-if" if="[[_equals('raw', activeMode)]]">
+                            <div data-debug-mode="raw">
+                                <code class="preformated">[[jsonPretty(model.data.propertyOutput)]]</code>
+                            </div>
+                        </template>
+                    </iron-pages>
+                </template>
+            </paper-dialog-scrollable>
+                <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Close</paper-button>
+            </div>
+        </paper-dialog>
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-sentence-variant-modal-debug-output',
+            behaviors: [
+                AxWizard.BaseModelModalFormBehavior,
+                AxWizard.BaseModelViewBehavior,
+            ],
+
+            _equals: function (a,b) {
+                return a === b;
+            },
+
+            itemExpandedIcon: function () {
+                return AxWizard.BaseModelListViewBehaviour.itemExpandedIcon.apply(this, arguments);
+            },
+
+            properties: {
+                activeMode: {
+                     type: String,
+                    value: 'properties',
+                    notify: true,
+                },
+                modelName: {
+                    value: 'sentence-variant'
+                },
+                trainingPk: {
+                    notify: true
+                },
+                _opened: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    observer: '_openedChanged'
+                },
+                _showUnusedProperties: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _debugPropertyList: {
+                    type: Array
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name'
+                        ];
+                    }
+                },
+                _propertyList: {
+                    notify: true
+                }
+            },
+
+            _openedChanged: function (x) {
+                this.set('_debugPropertyList', []);
+                this.set('_propertyList', []);
+                if (x) {
+                    this.getModel().then(function (model) {
+                        return model.refresh(true);
+                    }).then(function (model) {
+                        this._initDebugPropertyList(model.get('data.propertyOutput.properties'));
+                        this._initPropertyList();
+                    }.bind(this));
+                }
+            },
+
+            _initPropertyList: function () {
+                app.storageContainer.getList('property', this.trainingPk).then(function (propertyList) {
+                    this.set('_propertyList', propertyList);
+                }.bind(this));
+            },
+
+            _initDebugPropertyList: function (debugOutputProperties) {
+                var debugPropertyList = [];
+
+                debugOutputProperties = debugOutputProperties || {};
+
+                Object.keys(debugOutputProperties).sort().forEach(function (propertyName) {
+                     debugPropertyList.push({
+                         name: propertyName,
+                         isEvaluated: Object.keys(debugOutputProperties[propertyName]).length > 0,
+                         evaluatedData: debugOutputProperties[propertyName],
+                         _isExpanded: false
+                     });
+                });
+
+                this.set('_debugPropertyList', debugPropertyList);
+            },
+
+            jsonPretty: function (json) {
+                if (!json) {
+                    return '';
+                }
+                return JSON.stringify(json, null, '    ');
+            },
+
+            _filterProperties: function (fullTerm, showUnusedProperties) {
+                var facets = {};
+
+                if (showUnusedProperties !== true) {
+                    facets.isEvaluated = [true];
+                }
+
+                return AxWizard.BaseModelListViewBehaviour._filterList.call(this, fullTerm, facets);
+            },
+
+            _getPropertyModelPkByName: function (propertyName) {
+                var propertyData;
+                if (!propertyName) {
+                    return undefined;
+                }
+
+                propertyData = this._propertyList.find(function (item) {
+                    return item.name === propertyName;
+                });
+
+                if (propertyData) {
+                    return propertyData.id;
+                }
+                return undefined;
+
+            }
+
+        });
+
+    })();
+</script>

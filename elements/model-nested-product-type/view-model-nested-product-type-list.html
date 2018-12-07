@@ -1,0 +1,139 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+<link rel="import" href="../model-nested-product-type/view-model-nested-product-type-list-detail.html">
+
+
+<dom-module id="view-model-nested-product-type-list">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host .list-view-list paper-icon-item {
+                cursor: pointer;
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host paper-icon-item {
+                cursor: pointer;
+                position: relative;
+            }
+        </style>
+
+        <view-model-list-section-header section-title="Story Types" search-term="{{searchTerm}}"
+                                        _is-loading="[[_isLoading]]"
+                                        on-add-element-action="addProductTypeDialog"></view-model-list-section-header>
+
+        <section>
+            <paper-material class="model-list-section-header-description" elevation="0">
+                <template is="dom-if" if="[[_isLoading]]">
+                    <p>
+                        Story Types determine the order of Sentences you want to set.
+                    </p>
+                </template>
+                <template is="dom-if" if="[[!_isLoading]]">
+                    <p hidden="[[!data.length]]">
+                        Story Types determine the order of Sentences you want to set. Add, change and remove Story Types here.
+                    </p>
+                    <p hidden="[[data.length]]">
+                        Story Types determine the order of Sentences you want to set. Seems like you haven’t added a Story Type to your training yet.
+                    </p>
+                </template>
+            </paper-material>
+        </section>
+
+        <section class="list-view-list" hidden="[[_isLoading]]">
+            <template is="dom-repeat" items="{{data}}"
+                      filter="{{_filterList(searchTerm)}}"
+                      sort="{{_sortList()}}" observe="order">
+                <view-model-nested-product-type-list-detail model-pk="[[item.id]]"
+                                                            replace-container-with-source="[[replaceContainerWithSource]]">
+
+                </view-model-nested-product-type-list-detail>
+            </template>
+            <ax-list-view-add-element-card on-ax-list-view-add-element-card-add-element="addProductTypeDialog">
+                <div class="header">Add Story Type</div>
+            </ax-list-view-add-element-card>
+
+        </section>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-nested-product-type-list',
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'storage-nested-product-type',
+                    notify: true
+                },
+                showAddButton: {
+                    type: Boolean,
+                    value: false
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name'
+                        ];
+                    }
+                }
+            },
+
+
+            addProductTypeDialog: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-nested-product-type-modal-new', params: {trainingPk: this.parentPk}});
+            },
+
+            onItemDeleted: function () {
+                this.refresh();
+            },
+
+            _sortList: function () {
+                return function (a,b) {
+//console.log('_sortList', arguments);
+//                    if (a.order < b.order) {
+//                        return -1;
+//                    }
+//
+//                    if (a.order > b.order) {
+//                        return 1;
+//                    }
+//
+//                    return 0;
+                    var ret = a.order - b.order;
+//                    console.log('_sortList', ret);
+                    return ret;
+
+                };
+            }
+
+        });
+    })();
+</script>

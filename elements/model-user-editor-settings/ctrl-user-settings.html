@@ -1,0 +1,104 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<dom-module id="ctrl-user-settings">
+    <template>
+
+        <view-model-user-editor-settings-modal-edit id="edit-model-dialog"
+                                        ></view-model-user-editor-settings-modal-edit>
+    </template>
+</dom-module>
+<script>
+    (function () {
+
+//        'use strict';
+
+        var SETTINGS_QUERY_EVENT = 'query-settings';
+        var SETTINGS_EDIT_EVENT = 'edit-settings';
+
+        Polymer({
+
+            is: 'ctrl-user-settings',
+
+            behaviors: [AxWizard.BaseModelViewBehavior],
+
+            properties: {
+                modelName: {
+                    type: String,
+                    value: 'user',
+                    readOnly: true
+                },
+                isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    bindToAttribute: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'user-editor-settings-snape',
+                    notify: true
+                }
+
+            },
+
+            ready: function () {
+                this._handler = this._query.bind(this);
+                this._editHandler = this._edit.bind(this);
+            },
+
+            attached: function () {
+                app.addEventListener(SETTINGS_QUERY_EVENT, this._handler);
+                app.addEventListener(SETTINGS_EDIT_EVENT, this._editHandler);
+            },
+
+            detached: function () {
+                app.removeEventListener(SETTINGS_QUERY_EVENT, this._handler);
+                app.removeEventListener(SETTINGS_EDIT_EVENT, this._editHandler);
+            },
+
+            /**
+             * Handle the query event, if we can.
+             *
+             * @param {!CustomEvent} event
+             */
+            _query: function (event) {
+                if (!event.detail || !event.detail.propertyName) {
+                    console.warn('Malformed', SETTINGS_QUERY_EVENT, 'event:', event.detail);
+                    return;
+                }
+
+                var detail = event.detail;
+
+                detail.result = new Promise (function (resolve, reject) {
+                    this.getModel().then(function (model) {
+                        var settingsPath = 'editor_settings.snape',
+                            res;
+
+                        res = model.get('data.' + settingsPath + '.' + detail.propertyName);
+                        if (res === undefined) {
+//                            reject(new Error('Setting property ' + detail.propertyName + ' not found.'));
+                            resolve(null);
+                        } else {
+                            resolve(res);
+                        }
+
+                    }, function (e) {
+                        reject(e);
+                    });
+                }.bind(this));
+            },
+
+            _edit: function (event) {
+                this.$['edit-model-dialog'].open();
+            },
+
+            getModel: function () {
+                return app.storageContainer.getObject('user');
+            }
+
+        });
+
+    })();
+</script>

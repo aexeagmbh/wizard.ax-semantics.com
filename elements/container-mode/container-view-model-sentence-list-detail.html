@@ -1,0 +1,505 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../model-training/story-type-editor/story-type-editor-mode-behavior.html">
+<link rel="import" href="../container-mode/container-view-model-sentence-variant-list.html">
+<link rel="import" href="../model-sentence/view-model-sentence-form-triggers.html">
+
+<dom-module id="container-view-model-sentence-list-detail">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host #buttons paper-menu-button {
+                padding: 0;
+            }
+            :host .flex-row {
+                align-items: stretch;
+            }
+            :host *[ax-sentence-style=heading] {
+                font-size: 150%;
+            }
+            :host *[ax-sentence-style=subheading] {
+                font-size: 130%;
+            }
+            :host *[ax-sentence-style=subsubheading] {
+                font-size: 120%;
+            }
+            :host *[ax-sentence-style=subsubsubheading] {
+                font-size: 110%;
+            }
+            :host #sentence-detail-container {
+                display: flex;
+                margin-left: 16px;
+            }
+            :host .flex-column {
+                display: flex;
+                flex-direction: column;
+            }
+            :host paper-icon-button.mode-switch[active] ::content iron-icon {
+                border-bottom: 2px solid #77bc1f;
+            }
+            :host paper-button.trigger-none ::content span,
+            :host paper-icon-button.trigger-none ::content iron-icon {
+                color: red;
+            }
+            :host paper-button.trigger-auto ::content span,
+            :host paper-icon-button.trigger-auto ::content iron-icon {
+                color: #77bc1f;
+            }
+            :host paper-button.trigger-property ::content span,
+            :host paper-icon-button.trigger-property ::content iron-icon {
+                color: #3f51b5;
+            }
+            :host container-view-model-sentence-variant-list.trigger-none {
+                /*opacity: 0.6;*/
+                color: #aaa;
+            }
+            :host .story-mode-container {
+                padding-top: 8px;
+                padding-bottom: 8px;
+            }
+
+        </style>
+        <template is="dom-if" if="[[modelPk]]" restamp>
+
+            <div class="flex-row">
+
+                <template is="dom-if" if="[[model.isStoryMode]]" restamp>
+                    <div class="flex flex-row story-mode-container" id="main-content">
+                            <iron-icon item-icon icon="editor:wrap-text" hidden="[[!model.data.command]]"></iron-icon>
+                            <div>Story Mode Command</div>
+                    </div>
+                    <div id="sentence-detail-container" class="flex-column" hidden="[[!_showSentenceActions]]">
+                        <div class="flex-row">
+                            <div class="flex"></div>
+                            <div>
+                                <template is="dom-if" if="[[_showEdit]]" >
+                                    <paper-icon-button
+                                            id="edit-btn"
+                                            on-tap="_editModel"
+                                            title="Edit" icon="editor:mode-edit">
+                                    </paper-icon-button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template is="dom-if" if="[[!model.isStoryMode]]" restamp>
+
+                    <div class="flex" id="main-content" ax-sentence-style$="[[model.data.style]]">
+                        <container-view-model-sentence-variant-list
+                                on-ax-get-sentence-name="_onAxGetSentenceName"
+
+                                active-mode="[[activeMode]]"
+
+                                filter-list-facets="{{_getSentenceVariantListFacets(language)}}"
+                                training-pk="[[trainingPk]]"
+                                training-uses-containers="[[trainingUsesContainers]]"
+                                language="[[language]]"
+                                search-term="{{searchTerm}}"
+                                id="sentence-variant-list"
+                                class$="[[_triggerClass(isTriggerNone, isTriggerAuto, isTriggeredByProperty)]]"
+                                parent-pk="[[modelPk]]">
+                        </container-view-model-sentence-variant-list>
+                    </div>
+
+                    <div id="sentence-detail-container" class="flex-column" hidden="[[!_showSentenceActions]]">
+
+                        <div class="flex-row">
+
+                            <div class="flex"></div>
+
+                            <template is="dom-if" if="[[_showTrigger]]" >
+                                <paper-button title$="[[_triggerTitle(isTriggerNone, isTriggerAuto, isTriggeredByProperty)]]" class="mode-switch" toggles
+                                                   hidden="[[!selectedProductTypePk]]"
+                                                   class$="[[_triggerClass(isTriggerNone, isTriggerAuto, isTriggeredByProperty)]]"
+                                                   toggles
+                                                   active="{{_isInplaceEditTriggers}}">
+                                    <span>Trigger</span>
+                                </paper-button>
+                            </template>
+
+                            <template is="dom-if" if="[[_showValidate]]" >
+                                <paper-button
+                                        id="validate-sentence-btn"
+                                        on-tap="_validateSentenceVariants"
+                                        title="Validate" class="mode-switch"
+                                                   hidden="[[!selectedProductTypePk]]">
+                                    Validate
+                                </paper-button>
+                            </template>
+
+                            <template is="dom-if" if="[[_showFormat]]" >
+                                <base-model-inplace-form
+                                    on-tap="_catchSentenceDetailTap"
+                                        hide-buttons
+                                        id="style-form"
+                                        form-data={{inplaceFormDataStyle}}
+                                        model-pk="[[modelPk]]"
+                                        allowed-fields="{{_toArray('style')}}"
+                                        storage-id="sentence">
+                                    <paper-menu-button style="padding: 0;" on-tap="_stopPropagation">
+
+                                        <paper-button class="dropdown-trigger" title="Sentence Format [[_trimString(selectedItemStyle.textContent)]]">
+                                            Text Format
+                                        </paper-button>
+                                        <paper-menu fallbackSelection="Normal Text" selected-item="{{selectedItemStyle}}" class="dropdown-content" selected="{{inplaceFormDataStyle.style}}"
+                                                    attr-for-selected="value" on-iron-select="_submitStyleForm">
+                                            <paper-item label="Normal Text" value="">Normal Text</paper-item>
+                                            <paper-item label="Heading" value="heading">Heading</paper-item>
+                                            <paper-item label="Heading Level 2" value="subheading">Heading Level 2</paper-item>
+                                            <paper-item label="Heading Level 3" value="subsubheading">Heading Level 3</paper-item>
+                                            <paper-item label="Heading Level 4" value="subsubsubheading">Heading Level 4</paper-item>
+                                        </paper-menu>
+                                    </paper-menu-button>
+
+                                </base-model-inplace-form>
+                            </template>
+
+                            <template is="dom-if" if="[[_showComment]]" >
+                                <paper-button
+                                        id="comment-btn"
+                                        on-tap="_catchSentenceDetailTap"
+                                        title="[[_trimString(model.data.comment)]]" class="mode-switch" toggles
+                                                   hidden="[[!selectedProductTypePk]]"
+                                                   active="{{modeComments}}">
+                                        Comment
+                                </paper-button>
+
+                            </template>
+
+                            <template is="dom-if" if="[[_showEdit]]" >
+                                <paper-icon-button
+                                        id="edit-btn"
+                                        on-tap="_editModel"
+                                        title="Edit" icon="editor:mode-edit">
+                                </paper-icon-button>
+                            </template>
+
+                            <template is="dom-if" if="[[_showDelete]]" >
+                                <paper-icon-button
+                                        id="delete-btn"
+                                        on-tap="_catchSentenceDetailTap"
+                                        title="Delete" class="mode-switch" icon="delete" toggles
+                                                   hidden="[[!selectedProductTypePk]]"
+                                                   active="{{modeDeleteSentence}}">
+                                </paper-icon-button>
+                            </template>
+
+                        </div>
+
+                        <template is="dom-if" if="[[modeDeleteSentence]]" restamp>
+                            <div>
+                                <paper-button hidden=[[_askRemoveFromStory]] toggles active="{{_askRemoveFromStory}}">
+                                    <iron-icon icon="delete"></iron-icon>Remove from this story
+                                </paper-button>
+
+                                <paper-button raised hidden="[[!_askRemoveFromStory]]" on-tap="_confirmRemoveFromStory">Yes, remove from this story.</paper-button>
+                                <paper-button raised hidden="[[!_askRemoveFromStory]]" toggles active="{{!_askRemoveFromStory}}">Cancel</paper-button>
+                            </div>
+                            <div>
+                                <paper-button hidden=[[_askDeleteSentence]] toggles active="{{_askDeleteSentence}}">
+                                    <iron-icon icon="delete"></iron-icon>Delete Sentence Globally
+                                </paper-button>
+
+                                <paper-button raised hidden="[[!_askDeleteSentence]]" on-tap="_deleteModel">Yes, really delete this.</paper-button>
+                                <paper-button raised hidden="[[!_askDeleteSentence]]" toggles active="{{!_askDeleteSentence}}">Cancel</paper-button>
+                            </div>
+                        </template>
+
+                        <template is="dom-if" if="[[_showComment]]" restamp>
+                            <template is="dom-if" if="[[modeComments]]" restamp>
+                                <base-model-inplace-form
+                                        hide-buttons
+                                        on-form-cancel="_stopInplaceEditComment"
+                                        on-model-save-success="_stopInplaceEditComment"
+                                        id="comment-form"
+                                        form-data={{inplaceFormDataComment}}
+                                        model-pk="[[modelPk]]"
+                                        allowed-fields="{{_toArray('comment')}}"
+                                        storage-id="sentence">
+                                    <paper-textarea autofocus label="Comment"
+                                                    value="{{inplaceFormDataComment.comment}}">
+
+                                        <paper-icon-button suffix icon="clear" on-tap="_cancelCommentForm"></paper-icon-button>
+                                        <paper-icon-button suffix icon="done" on-tap="_saveCommentForm"></paper-icon-button>
+                                    </paper-textarea>
+                                </base-model-inplace-form>
+                            </template>
+                        </template>
+
+                        <template is="dom-if" if="[[_isInplaceEditTriggers]]" restamp>
+                            <div>
+                                <view-model-sentence-form-triggers no-heading model-pk="[[modelPk]]" training-pk="[[trainingPk]]" on-form-cancel="_stopInplaceEditTriggers" on-model-save-success="_stopInplaceEditTriggers"></view-model-sentence-form-triggers>
+                            </div>
+                        </template>
+
+                    </div>
+                </template>
+            </div>
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'container-view-model-sentence-list-detail',
+            behaviors: [
+                AxWizard.StoryTypeEditorModeBehavior,
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            _writeModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showFormat', false);
+                this.set('_showComment', false);
+                this.set('_showTrigger', false);
+                this.set('_showValidate', false);
+                this.set('_showEdit', true);
+                this.set('_showDelete', true);
+                this.set('_showSentenceActions', true);
+            },
+
+            _magicModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showFormat', false);
+                this.set('_showComment', false);
+                this.set('_showTrigger', true);
+                this.set('_showValidate', false);
+                this.set('_showEdit', true);
+                this.set('_showDelete', false);
+                this.set('_showSentenceActions', true);
+            },
+
+            _variantModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showFormat', false);
+                this.set('_showComment', false);
+                this.set('_showTrigger', false);
+                this.set('_showValidate', false);
+                this.set('_showEdit', false);
+                this.set('_showDelete', false);
+                this.set('_showSentenceActions', false);
+            },
+
+
+            _cancelCommentForm: function (event) {
+                event.stopPropagation();
+                this.$$('#comment-form').cancel(event);
+                this.set('modeComments', false);
+            },
+            _saveCommentForm: function (event) {
+                event.stopPropagation();
+                this.$$('#comment-form').saveModel(event);
+            },
+
+            _triggerClass: function (isNone, isAuto, isProperty) {
+                if (isNone) {
+                    return 'trigger-none';
+                }
+                if (isAuto) {
+                     return 'trigger-auto';
+                }
+                if (isProperty) {
+                    return 'trigger-property';
+                }
+            },
+
+            _triggerTitle: function (isNone, isAuto, isProperty) {
+                if (isNone) {
+                    return 'Sentence will never be rendered.';
+                }
+                if (isAuto) {
+                    return 'Sentence will always be rendered.';
+                }
+                if (isProperty) {
+                    return 'Sentence will be rendered if Properties match.';
+                }
+            },
+
+            _trimString: function (str) {
+                if (!str) {return '';}
+                return ('' + str).replace(/^\s*/, '').replace(/\s*$/, '');
+            },
+
+            _catchSentenceDetailTap: function (event) {
+                this._stopPropagation(event);
+            },
+
+            _confirmRemoveFromStory: function (event) {
+                event.stopPropagation();
+
+                this.fire('ax-remove-sentence-from-story', {sentenceIdentifier: this.model.data.id}).detail.p.then(function () {
+                    this.set('_askRemoveFromStory', false);
+                    this.set('modeDeleteSentence', false);
+                }.bind(this));
+
+            },
+
+            _deleteModel: function (event) {
+                event.stopPropagation();
+                var sentenceIdentifier = this.model.data.id;
+                this.fire('ax-sentence-deleted', {sentenceIdentifier: sentenceIdentifier, sentencePk: this.modelPk});
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            _getSentenceVariantListFacets: function (language) {
+                if (language) {
+                    return {'language': language};
+                }
+
+                return {};
+            },
+
+            _commentIcon: function (comment) {
+                return comment ? 'communication:chat-bubble' : 'communication:chat-bubble-outline';
+            },
+
+            _toArray: function () {
+                return Array.prototype.slice.call(arguments);
+            },
+
+            _noneOf: function () {
+                return Array.prototype.slice.call(arguments).filter(function (x) {return !!x;}).length === 0;
+            },
+
+            _submitStyleForm: function (event) {
+                if (!this.inplaceFormDataStyle) {
+                    return;
+                }
+                if (this.inplaceFormDataStyle.style === undefined || this.inplaceFormDataStyle.style  === this.model.data.style) {
+                    return;
+                }
+                this.$$('#style-form').saveModel().then(function () {
+
+                }.bind(this));
+            },
+
+
+            _stopInplaceEditComment: function () {
+                this.set('_isInplaceEditComment', false);
+            },
+
+             _stopInplaceEditTriggers: function (event) {
+                event.stopPropagation();
+                this.set('_isInplaceEditTriggers', false);
+            },
+            properties: {
+                language: {
+                    type: String,
+                    notify: true
+                },
+
+
+                trainingPk: {
+                    type: String
+                },
+
+                _isInplaceEditComment: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isInplaceEditTriggers: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                isTriggerAuto: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggerNone: {
+                    type: Boolean,
+                    notify: true
+                },
+                isTriggeredByProperty: {
+                    type: Boolean,
+                    notify: true
+                },
+
+                modelName: {
+                    type: String,
+                    value: 'sentence',
+                    readOnly: true
+                }
+            },
+
+            _modelPkChanged: function (event) {
+                this.set('modeDeleteSentence', false);
+                this.set('_askRemoveFromStory', false);
+                this.set('_askDeleteSentence', false);
+                this.set('_isInplaceEditTriggers', false);
+                this.set('_isInplaceEditComment', false);
+                this.set('modeComments', false);
+                this.refresh();
+            },
+
+            observers: [
+                '_observeIsTriggerAuto(model.isTriggerAuto, model, model.data)',
+                '_observeIsTriggerNone(model.isTriggerNone, model, model.data)',
+                '_observeIsTriggeredByProperty(model.isTriggerAuto, model.isTriggerNone, model, model.data)'
+            ],
+
+            listeners: {
+//                'ax-sentence-variant-added': '_sentenceVariantAdded'
+            },
+
+
+            _observeIsTriggerAuto: function (isTriggerAuto) {
+                this.set('isTriggerAuto', isTriggerAuto);
+            },
+
+            _observeIsTriggerNone: function (isTriggerNone) {
+                this.set('isTriggerNone', isTriggerNone);
+            },
+
+            _observeIsTriggeredByProperty: function (isTriggerAuto, isTriggerNone) {
+                this.set('isTriggeredByProperty', !isTriggerAuto && !isTriggerNone);
+            },
+
+            saveItem: function () {
+                return this.model.save();
+            },
+
+            _validateSentenceVariants: function (event) {
+                event.stopPropagation();
+                this.model.validateSentenceVariants();
+            },
+
+            _onAxGetSentenceName: function (event) {
+                event.detail.sentenceName = this.get('model.data.name');
+            },
+
+            _editModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-modal-edit', params: {modelPk: this.modelPk}});
+            }
+        });
+    })();
+</script>

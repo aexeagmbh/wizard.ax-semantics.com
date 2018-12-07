@@ -1,0 +1,304 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../ax-components/ax-atml-vertigo-highlighter/ax-atml-vertigo-highlighter.html">
+<link rel="import" href="../model-container/view-model-container-detail-chip.html">
+<link rel="import" href="../model-vocabulary/view-model-vocabulary-list.html">
+
+<dom-module id="container-view-model-property-translation-list-detail">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host .horizontal-section-container {
+                @apply(--layout-horizontal);
+                @apply(--layout-wrap);
+            }
+
+            :host .horizontal-section-container > * {
+                min-width: 50%;
+            }
+
+            :host .horizontal-section {
+                position: relative;
+            }
+
+            :host paper-card .title {
+                @apply(--layout-horizontal);
+                @apply(--layout-justified);
+                @apply(--layout-wrap);
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host .card-content-body-form-container .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host paper-icon-item,
+            :host paper-icon-item.list-summary-item {
+                cursor: pointer;
+                position: relative;
+            }
+            :host #highlight-truth-expression {
+                position: absolute;
+                margin: 44px 32px 24px 16px;
+                z-index: 1;
+                line-height: 24px;
+            }
+
+            :host .clickable {
+                cursor: pointer;
+            }
+
+            :host paper-badge,
+            :host .card-header paper-toolbar paper-badge {
+                --paper-badge-text-color: #ffffff;
+                --paper-badge-background: #727272;
+                /*--paper-badge-background: #77bc1f;*/
+            }
+        </style>
+        <div class="list-view-list-item-detail-wrapper" on-ax-open-training-dialog="_interceptVocabularyDialog">
+            <paper-card>
+                <!-- Card Header -->
+                <div class="header paper-card">
+                    <paper-icon-item on-tap="toggleItemListDetail">
+                        <iron-icon item-icon icon="icons:apps"></iron-icon>
+                        <paper-item-body three-line>
+                            <div>
+                                [[model.data.name]]
+                            </div>
+                            <div secondary><i>Property Outputs:&nbsp;</i><span>[[_countSourceLanguageVocabularies]] ([[translateLanguage]])/ [[_countTargetLanguageVocabularies]] ([[language]])</span></div>
+                            <div secondary><i>Referred Properties:&nbsp;</i>[[model.data.referredProperties.length]]</div>
+                        </paper-item-body>
+
+                        <paper-icon-button icon="editor:mode-edit" on-tap="_editModel"
+                                           hidden="[[!isItemListDetailExpanded]]">
+                        </paper-icon-button>
+                        <template is="dom-if" if="[[!noClone]]">
+                            <paper-icon-button icon="icons:content-copy" title="Duplicate" on-tap="_duplicateModel"
+                                               hidden="[[!isItemListDetailExpanded]]">
+                            </paper-icon-button>
+                        </template>
+                        <template is="dom-if" if="[[!noDelete]]">
+                            <ax-delete-ask-button on-ax-delete-ask-button-confirmed="_deleteModel"
+                                                  hidden="[[!isItemListDetailExpanded]]"></ax-delete-ask-button>
+                        </template>
+                        <paper-icon-button icon="{{itemExpandedIcon(isItemListDetailExpanded)}}">
+                        </paper-icon-button>
+                    </paper-icon-item>
+                </div>
+
+                    <div class="card-content" hidden="[[!isItemListDetailExpanded]]">
+                        <section class="card-content-body-container">
+                            <template is="dom-if" if="[[containerPks]]" restamp>
+                                <div>
+                                    <h4>Used at Containers</h4>
+                                    <div class="flex-row">
+                                        <template is="dom-repeat" items="[[containerPks]]" as="containerPk">
+                                            <view-model-container-detail-chip
+                                                    no-edit
+                                                    model-name="sentence-variant-container"
+                                                    model-pk="[[containerPk]]"></view-model-container-detail-chip>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                            <!--<div class="card-content-body-form-container">-->
+                            <div>
+                                <div class="horizontal-section-container">
+                                    <div>
+                                        <div class="horizontal-section">
+
+                                            <h4>Base Property Outputs</h4>
+                                                <view-model-vocabulary-list
+                                                    no-header
+                                                    no-add
+                                                    no-delete
+                                                    no-edit
+                                                    no-clone
+
+                                                    rendered-item-count="{{_countSourceLanguageVocabularies}}"
+                                                    filter-list-facets="{{_getVocabularyListFacets(translateLanguage)}}"
+                                                    parent-pk="[[modelPk]]"
+                                                    ></view-model-vocabulary-list>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="horizontal-section">
+                                            <h4>Translation Property Outputs</h4>
+                                            <view-model-vocabulary-list
+                                                    no-header
+
+                                                    rendered-item-count="{{_countTargetLanguageVocabularies}}"
+                                                    filter-list-facets="{{_getVocabularyListFacets(language)}}"
+                                                    parent-pk="[[modelPk]]"
+                                                    ></view-model-vocabulary-list>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                           <template is="dom-if" if="[[model.data.referredProperties.length]]" restamp>
+                               <div>
+                                    <h4>Referenced Properties</h4>
+                                    <div>
+                                        <template is="dom-repeat" items="[[model.data.referredProperties]]" as="referredPropertyPk">
+                                            <container-view-model-property-translation-list-detail
+                                                    model-pk="[[referredPropertyPk]]"
+                                                    language="[[language]]"
+                                                    translate-language="[[translateLanguage]]"
+                                                    no-delete
+                                                    no-clone
+                                                    ></container-view-model-property-translation-list-detail>
+                                        </template>
+                                    </div>
+                                </div>
+                           </template>
+                        </section>
+                    </div>
+                <!--</template>-->
+            </paper-card>
+        </div>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'container-view-model-property-translation-list-detail',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                modelName: {
+                    type: String,
+                    value: 'property',
+                    readOnly: true
+                },
+                isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+
+                noDelete: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                noClone: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+
+                containerPks: {
+                    notify: true
+                },
+
+                language: {
+                    value: '',
+                    notify: true
+                },
+                translateLanguage: {
+                    value: '',
+                    notify: true
+                }
+
+            },
+
+            _editModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-property-modal-edit', params: {modelPk: this.modelPk}});
+            },
+
+            _duplicateModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-property-modal-duplicate', params: {modelPk: this.modelPk}});
+            },
+
+
+
+            toggleItemListDetail: function (event) {
+//                event.stopPropagation();
+                this.set('isItemListDetailExpanded', !this.isItemListDetailExpanded);
+                this.fire('iron-resize');
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            _toArray: function () {
+                return Array.prototype.slice.call(arguments);
+            },
+
+            itemValidityIcon: function (validity) {
+                if (validity === false) {
+                    return 'icons:warning';
+                }
+                if (validity === true) {
+                    return 'icons:check';
+                }
+                return 'icons:hourglass-empty';
+            },
+            itemValidityMessage: function (validity) {
+                if (validity === false) {
+                    return 'Invalid Expression';
+                }
+                if (validity === true) {
+                    return 'Valid';
+                }
+                return 'Validity not yet checked.';
+
+            },
+            _getVocabularyListFacets: function (filterLanguage) {
+                var languageParts = ('' + filterLanguage).split('-'),
+                    filterLanguages = ['*', filterLanguage];
+
+                if (languageParts[0]) {
+                    filterLanguages.push(languageParts[0] + '-*');
+                }
+
+                if (filterLanguage) {
+                    return {'language': filterLanguages};
+                }
+
+                return {};
+            },
+
+            _interceptVocabularyDialog: function (event) {
+                var detail = event.detail;
+                if (detail.elementType === 'view-model-vocabulary-modal-translate') {
+                    detail.params.language = this.language;
+                }
+                if (detail.elementType === 'view-model-vocabulary-modal-new') {
+                    detail.params.language = this.language;
+                }
+            }
+        });
+    })();
+</script>

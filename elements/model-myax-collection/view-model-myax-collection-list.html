@@ -1,0 +1,227 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+<link rel="import" href="../model-myax-collection/view-model-myax-collection-list-detail.html">
+
+<dom-module id="view-model-myax-collection-list">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host .card-content-body-form-container .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .card-content-body-form-container .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            :host .card-content-body-form-container .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+            :host .paper-width{
+                width: 100%;
+            }
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+            :host paper-tabs {
+                --paper-tabs-selection-bar-color: #77bc1f;
+
+            }
+            :host paper-tabs paper-tab {
+                --paper-tab-ink: #77bc1f;
+            }
+        </style>
+
+        <view-model-list-section-header section-title="myAX Collections" search-term="{{searchTerm}}"
+                                        _is-loading="[[_isLoading]]"
+                                        show-add-button="[[!retTrue]]"></view-model-list-section-header>
+
+
+        <section class="list-view-list">
+
+            <template is="dom-repeat" items="[[data]]"
+                      filter="{{_filterList(searchTerm)}}"
+                      observe="myaxReferences, data">
+                <view-model-myax-collection-list-detail model-pk="[[item.id]]"
+                                                        training-pk="[[parentPk]]"
+                                                        selected-things="{{_getSelectedThings(item.id, myaxReferences)}}"
+                                                        is-myax-reference>
+
+                </view-model-myax-collection-list-detail>
+            </template>
+        </section>
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-myax-collection-list',
+            behaviors: [ AxWizard.BaseModelListViewBehaviour],
+
+            properties: {
+                retTrue: {
+                    type: Boolean,
+                    value: true
+                },
+                selectedCardAction: {
+                    type: Number,
+                    value: 0,
+                    notify: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'storage-myax-collection',
+                    notify: true
+                },
+                displaySubToolbar: {
+                    type: Boolean,
+                    value: false
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name', 'id'
+                        ];
+                    }
+                },
+                myaxReferences: {
+                    type: Array,
+                    notify: true
+                },
+                filterListFacetsReferenced: {
+                    type: Array,
+                    notify: true,
+                    computed: '_computeFilterFacetsReferenced(myaxReferences, myaxReferences.*)'
+                },
+                filterListFacetsNotReferenced: {
+                    type: Array,
+                    notify: true,
+                    computed: '_computeFilterFacetsNotReferenced(data, filterListFacetsReferenced, filterListFacetsReferenced.*, data.length)'
+                }
+            },
+
+            ready: function () {
+                this.set('listRequestParams', this._computeListRequestParams(this.parentPk));
+            },
+
+            _parentPkChanged: function () {
+                this.set('listRequestParams', this._computeListRequestParams(this.parentPk));
+                this.set('data', []);
+                this.set('searchTerm', '');
+                this.set('_isDataLoaded', false);
+                if (this.isAttached) {
+                    this.refresh();
+                }
+            },
+
+            refresh: function () {
+                if (!this.parentPk) {
+                    this.set('data', []);
+                    this.set('_isLoading', false);
+
+                    return Promise.reject(new Error('No training id provided.'));
+                }
+
+                return AxWizard.BaseModelListViewBehaviour.refresh.apply(this, arguments);
+
+            },
+
+            _computeListRequestParams: function (parentPk) {
+                return {
+                    'training_id': parentPk,
+                    'page_size': 10000
+                };
+            },
+
+            _computeDataIds: function (data) {
+                var dataIds = [];
+                if (!data || !data.length) {
+                    return dataIds;
+                }
+                dataIds = data.map(function (dataItem) {
+                    return data.id;
+                });
+                this.set('dataIds', dataIds);
+            },
+
+            _computeFilterFacetsReferenced: function (myaxReferences) {
+                var facets;
+
+                if (!myaxReferences || !myaxReferences.length) {
+                    return {id: []};
+                }
+
+                facets = {
+                    id: myaxReferences.map(function (refernce) {
+                        return refernce['content-project-id'];
+                    }).filter(Boolean)
+                };
+
+                return facets;
+            },
+
+
+            _computeFilterFacetsNotReferenced: function (data, filterListFacetsReferenced) {
+                var facets,
+                        referencedFacetIds = filterListFacetsReferenced.id || [];
+
+
+                if (!data || !data.length) {
+                    return {id: []};
+                }
+
+                facets = {
+                    id: data.map(function (dataData) {
+
+                        return referencedFacetIds.indexOf(dataData.id) === -1 ? dataData.id : undefined;
+
+                    }).filter(Boolean)
+                };
+
+                return facets;
+            },
+
+
+            _getSelectedThings: function (contentProjectPk, myaxReferences) {
+                var things, filtered;
+
+                if (!myaxReferences) {
+                    return null;
+                }
+                filtered = myaxReferences.filter(function (ref) {
+                    return ref.version === 2 && ref['collection-id'] === contentProjectPk;
+                });
+
+                if (filtered && filtered.length) {
+                    return filtered[0].documents || null;
+                }
+                return null;
+            }
+
+
+        });
+    })();
+</script>

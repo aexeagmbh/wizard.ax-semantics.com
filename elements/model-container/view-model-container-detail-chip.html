@@ -1,0 +1,709 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+<link rel="import" href="../model-property/view-model-property-detail-chip.html">
+
+<dom-module id="view-model-container-detail-chip">
+
+    <template>
+
+        <style include="iron-flex">
+            :host {
+                display: inline-block;
+                font-size: initial !important;
+            }
+
+            :host paper-icon-item.dropdown-trigger {
+                min-height: 32px;
+                height: 32px;
+                /*padding: 0 12px 0 0;*/
+                padding: 0;
+                background-color: #dddddd;
+                border-radius: 16px;
+                box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+            }
+
+            :host paper-icon-item.dropdown-trigger ::content #contentIcon {
+                width: 32px;
+                height: 32px;
+            }
+
+            :host paper-icon-item.dropdown-trigger ::content paper-icon-body {
+                padding-left: 8px;
+                padding-right: 12px;
+            }
+
+            .container-avatar {
+                width:100%;
+                flex-direction: column;
+                align-items: center;
+                display: flex;
+                width: 32px;
+                height: 32px;
+                border-radius: 16px;
+                border: 4px solid;
+                color: #77bc1f;
+                box-sizing: border-box;
+                font-weight: bold;
+                opacity: 0.7;
+            }
+
+            :host .card-content paper-card {
+                width: 100%;
+            }
+
+            :host paper-menu-button {
+                padding: 0;
+            }
+            :host iron-icon {
+                opacity: 0.7;
+                color: #77bc1f;
+                padding-right: 8px;
+                box-sizing: border-box;
+                cursor: default;
+            }
+
+            :host .dropdown-content {
+                color: #333333;
+            }
+
+        </style>
+
+
+        <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'value', model.data)]]" restamp>
+            <template is="dom-if" if="[[model.data.containerProperty]]" restamp>
+                <model-property pk="[[model.data.containerProperty]]" data="{{containerPropertyData}}"></model-property>
+            </template>
+        </template>
+
+        <template is="dom-if" if="[[noExpand]]" restamp>
+            <paper-icon-item class="dropdown-trigger" on-tap="_editModel">
+
+                <div item-icon>
+                    <div class="container-avatar">
+                        <div class="flex">
+                            [[_containerTypeAvatar(model.data.containerType)]]
+                        </div>
+                    </div>
+                </div>
+                <paper-icon-body>
+                    <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'value', model.data)]]" restamp>
+                        <div>[[containerPropertyData.name]]</div>
+                    </template>
+                    <template is="dom-if" if="[[!_equalsOneOf(model.data.containerType, 'value', model.data)]]" restamp>
+                        <div>[[model.data.source]]</div>
+                    </template>
+
+                </paper-icon-body>
+                <template is="dom-if" if="[[model.data.comment]]">
+                    <iron-icon icon="communication:comment" id="chip-comment"></iron-icon>
+                    <paper-tooltip for="chip-comment">[[model.data.comment]]</paper-tooltip>
+                </template>
+            </paper-icon-item>
+        </template>
+        <template is="dom-if" if="[[!noExpand]]" restamp>
+            <paper-menu-button dynamic-align id="btn-expand-chip" opened="{{_menuOpened}}">
+                <paper-icon-item class="dropdown-trigger">
+
+                    <div item-icon>
+                        <div class="container-avatar">
+                            <div class="flex">
+                                [[_containerTypeAvatar(model.data.containerType)]]
+                            </div>
+                        </div>
+                    </div>
+                    <paper-icon-body>
+                        <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'value', model.data)]]" restamp>
+                            <div>[[containerPropertyData.name]]</div>
+                        </template>
+                        <template is="dom-if" if="[[!_equalsOneOf(model.data.containerType, 'value', model.data)]]" restamp>
+                            <div>[[model.data.source]]</div>
+                        </template>
+                    </paper-icon-body>
+                    <template is="dom-if" if="[[model.data.comment]]">
+                        <iron-icon icon="communication:comment" id="chip-comment"></iron-icon>
+                        <paper-tooltip for="chip-comment">[[model.data.comment]]</paper-tooltip>
+                    </template>
+                </paper-icon-item>
+
+                <paper-card class="dropdown-content">
+                    <template is="dom-if" if="[[_menuOpened]]" restamp>
+                        <div class="header paper-card">
+                            <paper-icon-item>
+                                <div item-icon>
+                                    <div class="container-avatar">
+                                        <div class="flex">
+                                            [[_containerTypeAvatar(model.data.containerType)]]
+                                        </div>
+                                    </div>
+                                </div>
+                                <paper-item-body three-line>
+                                    <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'group', 'phrase', model.data)]]" restamp>
+                                        <div><i>PropertyOutput of&nbsp;</i><view-model-property-detail-chip model-pk="[[model.data.containerProperty]]"></view-model-property-detail-chip></div>
+                                    </template>
+                                    <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'value', model.data)]]" restamp>
+                                        <div><i>Value of Property&nbsp;</i><view-model-property-detail-chip model-pk="[[model.data.containerProperty]]"></view-model-property-detail-chip></div>
+                                    </template>
+                                    <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'grammar', model.data)]]" restamp>
+                                        <div><i>[[model.data.attributes.word_type]]:&nbsp;</i>[[model.data.text]]</div>
+                                    </template>
+                                    <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'text', model.data)]]" restamp>
+                                        <div><i>Plain Text:&nbsp;</i>[[model.data.text]]</div>
+                                    </template>
+
+                                    <div secondary><i>Source:&nbsp;</i>[[model.data.source]]</div>
+                                    <div secondary><i>Alternative:&nbsp;</i>[[_showWhitespace(model.alternativeText)]]</div>
+                                </paper-item-body>
+                                <template is="dom-if" if="[[!noEdit]]">
+                                    <ax-delete-ask-button  hidden="[[deleteOpen]]" open="{{deleteOpen}}"></ax-delete-ask-button>
+                                    <paper-icon-button hidden="[[deleteOpen]]" icon="editor:mode-edit" on-tap="_editModel"></paper-icon-button>
+                                </template>
+                            </paper-icon-item>
+                        </div>
+                        <div class="card-content" hidden="[[!deleteOpen]]" >
+                            <ax-delete-ask-button on-ax-delete-ask-button-confirmed="_deleteContainer" open="{{deleteOpen}}"></ax-delete-ask-button>
+                        </div>
+                        <div class="card-content">
+
+                            <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'group', 'phrase', model.data)]]">
+                                <!--<template is="dom-if" if="[[_anyOf(model.data.groupMethod, model.data.attributes.preposition, model.data.attributes.determiner, model.data.attributes.use_adjectives, model.data.attributes.pronoun)]]">-->
+
+                                    <paper-card>
+                                        <div class="header paper-card">
+                                            <paper-item>
+                                                <paper-item-body two-line>
+                                                    <div>Details</div>
+                                                </paper-item-body>
+                                                <!--<paper-icon-button hidden="[[noEdit]]" icon="editor:mode-edit" on-tap="_editModel"></paper-icon-button>-->
+                                            </paper-item>
+                                        </div>
+                                        <div class="card-content">
+
+                                                <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'group', model.data)]]">
+
+                                                    <template is="dom-if" if="[[model.data.groupMethod]]">
+                                                        <div class="flex-row">
+                                                            <i>Group:&nbsp;</i><div>[[model.data.groupMethod.method]]</div>
+                                                        </div>
+                                                        <div class="flex-row" hidden="[[!model.data.groupMethod.count]]">
+                                                            <i>Count:&nbsp;</i><div>[[model.data.groupMethod.count]]</div>
+                                                        </div>
+                                                        <div class="flex-row" hidden="[[!model.data.groupMethod.end]]">
+                                                            <i>Range:&nbsp;</i><div>[[model.data.groupMethod.start]], [[model.data.groupMethod.end]]</div>
+                                                        </div>
+                                                        <div class="flex-row" hidden="[[!model.data.attributes.conjunction]]">
+                                                            <i>Conjunction:&nbsp;</i><div>[[model.data.attributes.conjunction]]</div>
+                                                        </div>
+                                                    </template>
+                                                </template>
+
+                                                <div class="flex-row" hidden="[[!model.data.attributes.preposition]]">
+                                                    <i>Preposition:&nbsp;</i><div>[[model.data.attributes.preposition]]</div>
+                                                </div>
+
+                                                <template is="dom-if" if="[[model.data.attributes.determiner]]">
+                                                    <div class="flex-row">
+                                                        <i>Determiner:&nbsp;</i><div>[[model.data.attributes.determiner]]</div>
+                                                        <template is="dom-if" if="[[model.data.attributes.reference_grammar_from]]" restamp>
+                                                            <div>&nbsp;Reference:&nbsp;</div>
+                                                            <view-model-container-detail-chip model-pk="[[model.data.attributes.reference_grammar_from]]"></view-model-container-detail-chip>
+                                                        </template>
+                                                    </div>
+                                                </template>
+
+                                                <div class="flex-row" hidden="[[!model.data.attributes.use_adjectives]]">
+                                                    <i>Use Adjective:&nbsp;</i><div>[[model.data.attributes.use_adjectives]]</div>
+                                                </div>
+
+                                                <div class="flex-row" hidden="[[!model.data.attributes.adjective_conjunction]]">
+                                                    <i>Adjective Conjunction:&nbsp;</i><div>[[model.data.attributes.adjective_conjunction]]</div>
+                                                </div>
+
+                                                <div class="flex-row" hidden="[[!model.data.attributes.pronoun]]">
+                                                    <i>As Pronoun:&nbsp;</i><div>[[model.data.attributes.pronoun]]</div>
+                                                </div>
+
+                                                <template is="dom-if" if="[[_boolean(model.data.attributes.reference_numeral_from)]]" restamp>
+                                                    <div class="flex-row">
+                                                        <i>Use [[model.data.attributes.reference_numeral_from.type]] value of:&nbsp;</i>
+                                                        <view-model-property-detail-chip model-pk="[[model.data.attributes.reference_numeral_from.property]]"></view-model-property-detail-chip>
+
+                                                    </div>
+                                                </template>
+
+                                                <template is="dom-if" if="[[_boolean(model.data.attributes.keep_db_tags)]]" restamp>
+                                                    <div class="flex-row">
+                                                        <i>Keep DBStart / DBEnd</i>
+                                                    </div>
+                                                </template>
+
+                                        </div>
+                                    </paper-card>
+                                <!--</template>-->
+                            </template>
+
+                            <paper-card hidden="[[!_countOnParameters]]">
+                                <div class="header paper-card">
+                                    <paper-item>
+                                        <paper-item-body two-line>
+                                            <div>Conditions</div>
+                                        </paper-item-body>
+                                        <!--<paper-icon-button hidden="[[noEdit]]" icon="editor:mode-edit" on-tap="_editModel"></paper-icon-button>-->
+                                    </paper-item>
+                                    <div class="card-content">
+                                        <div class="flex-row" style="align-items: baseline;">
+                                            <template rendered-item-count="{{_countOnParameters}}" is="dom-repeat" items="[[_extractOnFromParameterData(model.data.parameters)]]" as="onParameter" restamp>
+                                                <view-model-property-detail-chip model-pk="[[onParameter.trigger]]" show-true="[[onParameter.trigger_on]]" show-false="[[!onParameter.trigger_on]]"></view-model-property-detail-chip>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </paper-card>
+
+                             <template is="dom-if" if="[[model.data.parameters.on_random]]">
+
+                                <paper-card>
+                                    <div class="header paper-card">
+                                        <paper-item>
+                                            <paper-item-body two-line>
+                                                <div><i>Randomness:&nbsp;</i>[[model.data.parameters.on_random]]&nbsp;percent</div>
+                                            </paper-item-body>
+                                        </paper-item>
+                                    </div>
+
+                                </paper-card>
+                            </template>
+
+                            <template is="dom-if" if="[[_anyOf(model.parameterPreceding, model.parameterTrailing, model.parameterFormatContent)]]">
+
+                                <paper-card>
+                                    <div class="header paper-card">
+                                        <paper-item>
+                                            <paper-item-body two-line>
+                                                <div>Format</div>
+                                            </paper-item-body>
+                                            <!--<paper-icon-button hidden="[[noEdit]]" icon="editor:mode-edit" on-tap="_editModel"></paper-icon-button>-->
+                                        </paper-item>
+                                    </div>
+                                    <div class="card-content">
+                                        <div class="flex-row" hidden="[[!model.parameterPreceding]]">
+                                            <i>Preceding:&nbsp;</i><div>[[_showWhitespace(model.parameterPreceding)]]</div>
+                                        </div>
+                                        <div class="flex-row" hidden="[[!model.parameterTrailing]]">
+                                            <i>Trailing:&nbsp;</i><div>[[_showWhitespace(model.parameterTrailing)]]</div>
+                                        </div>
+                                        <div class="flex-row" hidden="[[!model.parameterFormatContent]]">
+                                            <i>Format Content:&nbsp;</i>
+                                            <div hidden="[[!_equals(model.parameterFormatContent, 'capitalize')]]">Start with an Upper Case Character</div>
+                                            <div hidden="[[!_equals(model.parameterFormatContent, 'lower')]]">Only Lower Case Characters</div>
+                                            <div hidden="[[!_equals(model.parameterFormatContent, 'upper')]]">Only Upper Case Characters</div>
+                                            <div hidden="[[!_equals(model.parameterFormatContent, 'raw')]]">Raw</div>
+                                            <div hidden="[[!_equals(model.parameterFormatContent, 'void')]]">Show no rendered output (void)</div>
+
+                                        </div>
+                                    </div>
+                                </paper-card>
+                            </template>
+
+                            <template is="dom-if" if="[[_hasGrammar]]">
+                                <paper-card>
+                                    <div class="header paper-card">
+                                        <paper-item>
+                                            <paper-item-body two-line>
+                                                <div>Grammar</div>
+                                            </paper-item-body>
+                                            <!--<paper-icon-button hidden="[[noEdit]]" icon="editor:mode-edit" on-tap="_editModel"></paper-icon-button>-->
+                                        </paper-item>
+                                    </div>
+                                    <div class="card-content">
+                                        <template is="dom-if" if="[[model.data.attributes.copy_grammar_from]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Use same Grammar as:&nbsp;</i><view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[model.data.attributes.copy_grammar_from]]"></view-model-container-detail-chip>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.copy_grammar_from_case]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Case:&nbsp;</i><view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[model.data.attributes.copy_grammar_from_case]]"></view-model-container-detail-chip>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.case]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Case:&nbsp;</i><div>[[model.data.attributes.case]]</div>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.copy_grammar_from_number]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Number:&nbsp;</i><view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[model.data.attributes.copy_grammar_from_number]]"></view-model-container-detail-chip>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.number]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Number:&nbsp;</i><div>[[model.data.attributes.number]]</div>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.switch_number]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Number:&nbsp;</i><div>[[model.data.attributes.switch_number]]</div>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.copy_grammar_from_gender]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Gender:&nbsp;</i><view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[model.data.attributes.copy_grammar_from_gender]]"></view-model-container-detail-chip>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.gender]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Gender:&nbsp;</i><div>[[model.data.attributes.gender]]</div>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.copy_grammar_from_person]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Person:&nbsp;</i><view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[model.data.attributes.copy_grammar_from_person]]"></view-model-container-detail-chip>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.person]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Person:&nbsp;</i><div>[[model.data.attributes.person]]</div>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.copy_grammar_from_tense]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Tense:&nbsp;</i><view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[model.data.attributes.copy_grammar_from_tense]]"></view-model-container-detail-chip>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="[[model.data.attributes.tense]]" restamp>
+                                            <div class="flex-row">
+                                                <i>Tense:&nbsp;</i><div>[[model.data.attributes.tense]]</div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </paper-card>
+                            </template>
+
+                            <template is="dom-if" if="[[model.parameterKeywordId]]">
+
+                                <paper-card>
+                                    <div class="header paper-card">
+                                        <paper-item>
+                                            <paper-item-body two-line>
+                                                <div>Keyword</div>
+                                            </paper-item-body>
+                                        </paper-item>
+                                    </div>
+                                    <div class="card-content">
+                                        <div class="flex-row">
+                                            <i>Keyword Id:&nbsp;</i><div>[[model.parameterKeywordId]]</div>
+                                        </div>
+                                        <div class="flex-row">
+                                            <i>Alternative for Keyword:&nbsp;</i><div>[[model.parameterKeywordAlt]]</div>
+                                        </div>
+                                    </div>
+                                </paper-card>
+                            </template>
+
+                            <template is="dom-if" if="[[model.data.parameters.img]]">
+
+                                <paper-card>
+                                    <div class="header paper-card">
+                                        <paper-item>
+                                            <paper-item-body two-line>
+                                                <div>Image</div>
+                                            </paper-item-body>
+                                        </paper-item>
+                                    </div>
+                                    <div class="card-content">
+                                        <div class="flex-row">
+                                            <i>Image Alt Text:&nbsp;</i><div>[[model.data.parameters.img.text]]</div>
+                                        </div>
+                                        <div class="flex-row">
+                                            <i>Image Title:&nbsp;</i><div>[[model.data.parameters.img.title]]</div>
+                                        </div>
+
+                                    </div>
+                                </paper-card>
+                            </template>
+
+                            <template is="dom-if" if="[[model.data.parameters.url]]">
+
+                                <paper-card>
+                                    <div class="header paper-card">
+                                        <paper-item>
+                                            <paper-item-body two-line>
+                                                <div>URL</div>
+                                            </paper-item-body>
+                                        </paper-item>
+                                    </div>
+                                    <div class="card-content">
+                                        <div class="flex-row" hidden="[[!model.data.parameters.url.text]]">
+                                            <i>Text:&nbsp;</i><div>[[model.data.parameters.url.text]]</div>
+                                        </div>
+                                        <div class="flex-row" hidden="[[!model.data.parameters.url.title]]">
+                                            <i>Title:&nbsp;</i><div>[[model.data.parameters.url.title]]</div>
+                                        </div>
+                                        <div class="flex-row" hidden="[[!model.data.parameters.url.target]]">
+                                            <i>Target:&nbsp;</i><div>[[model.data.parameters.url.target]]</div>
+                                        </div>
+                                        <div class="flex-row" hidden="[[!model.data.parameters.url.rel]]">
+                                            <i>Rel:&nbsp;</i><div>[[model.data.parameters.url.rel]]</div>
+                                        </div>
+
+                                    </div>
+                                </paper-card>
+                            </template>
+
+
+
+                            <template is="dom-if" if="[[_equalsOneOf(model.data.containerType, 'group', model.data)]]">
+                                <template is="dom-if" if="[[model.data.parameters.list]]">
+
+                                    <paper-card>
+                                        <div class="header paper-card">
+                                            <paper-item>
+                                                <paper-item-body two-line>
+                                                    <div hidden="[[!model.data.parameters.list.ordered]]">
+                                                        <i>Render Ordered List</i>
+                                                    </div>
+                                                    <div hidden="[[model.data.parameters.list.ordered]]">
+                                                        <i>Render Unordered List</i>
+                                                    </div>
+                                                </paper-item-body>
+                                            </paper-item>
+                                        </div>
+                                        <div class="card-content">
+
+                                            <div class="flex-row" hidden="[[!model.data.parameters.list.id]]">
+                                                <i>List ID for HTML:&nbsp;</i><div>[[model.data.parameters.list.id]]</div>
+                                            </div>
+                                        </div>
+                                    </paper-card>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
+                </paper-card>
+            </paper-menu-button>
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-container-detail-chip',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                noExpand: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                noEdit: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                modelName: {
+                    type: String,
+//                    value: 'container',
+//                    readOnly: true
+                },
+                _hasGrammar: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                }
+
+            },
+
+            _deleteContainer: function (event) {
+                event.stopPropagation();
+                app.storageContainer.getObject(this.modelName, this.modelPk).then(function (model) {
+                   model.toPlain();
+                });
+            },
+
+            observers: [
+                '_observeModelGrammar(model.data.attributes, model.data.attributes.*)'
+            ],
+
+
+            _observeModelGrammar: function (attributes) {
+                var grammarAttributeNames = [
+                            'tense',
+                            'copy_grammar_from_tense',
+                            'person',
+                            'copy_grammar_from_person' +
+                            'gender',
+                            'copy_grammar_from_gender',
+                            'number',
+                            'copy_grammar_from_number',
+                            'case',
+                            'copy_grammar_from_case',
+                            'copy_grammar_from'
+                        ],
+                    ret;
+
+                if (!attributes) {
+                    this.set('_hasGrammar', false);
+                    return;
+                }
+
+                ret = grammarAttributeNames.filter(function (grammarAttributeName) {
+                   return !!attributes[grammarAttributeName];
+                }).length > 0;
+
+                this.set('_hasGrammar', ret);
+            },
+
+            _showWhitespace: function (str) {
+                if (!str) {
+                    return '';
+                }
+                return str.split(' ').join('·');
+            },
+
+            _equals: function (a, b) {
+                return a === b;
+            },
+
+            /**
+             * Looks for duplicate argument
+             * @returns {boolean}
+             * @private
+             */
+            _equalsOneOf: function () {
+                var args = Array.prototype.slice.call(arguments);
+
+                return args.filter(function (x, idx, ls) {
+                   return ls.indexOf(x) === idx;
+                }).length < args.length;
+            },
+
+            _anyOf: function () {
+
+                var args = Array.prototype.slice.call(arguments),
+                    ret;
+
+                ret = args.filter(function (x) {
+                    return !!x;
+                }).length > 0;
+
+                return ret;
+            },
+
+            _containerTypeAvatar: function (containerType) {
+                if (containerType === 'phrase' || containerType === 'group') {
+                    return 'P';
+                }
+                if (containerType === 'grammar') {
+                    return 'G';
+                }
+                if (containerType === 'text') {
+                    return 'T';
+                }
+
+                if (containerType === 'fail') {
+                    return 'F';
+                }
+                if (containerType === 'value') {
+                    return 'V';
+                }
+
+                return '';
+            },
+
+            _getGroupMethodDisplay: function (groupMethod) {
+                var groupMethodDetails = '';
+
+                groupMethodDetails += groupMethod.method;
+
+
+            },
+
+            _extractOnFromParameterData: function (parameterData) {
+
+                var onParameters;
+
+                if (!parameterData) {
+                    return [];
+                }
+
+                if (Array.isArray(parameterData)) {
+                    if (!parameterData) {
+                        return [];
+                    }
+                    onParameters = parameterData.filter(function (paramData) {
+                        return paramData.type === 'on';
+                    }).map(function (onParameter) {
+                        return {
+                            trigger: onParameter.true ? onParameter.true : onParameter.false,
+                            trigger_on: onParameter.true ? true : false
+                        };
+                    });
+                } else {
+                    // new bling bling
+                    onParameters = parameterData.on || [];
+                }
+                return onParameters;
+            },
+
+            _editModel: function (event) {
+                var btnExpandChip = this.$$('#btn-expand-chip'),
+                    containerPropertyPk = this.get('model.data.containerProperty');
+
+                if (this.noEdit) {
+                    return;
+                }
+                if (event) {
+                    event.stopPropagation();
+                }
+//                if (btnExpandChip) {
+//                    btnExpandChip.close();
+//                }
+                this.set('_menuOpened', false);
+
+                if (this.model.data.containerType === 'value' && (
+                        this.modelName === 'sentence-variant-container' ||
+                        this.modelName === 'lookup-value-container')) {
+                    this.fire('ax-open-training-dialog', {elementType: 'view-model-container-modal-to-phrase', params: {pk: this.modelPk, modelName: this.modelName}});
+
+                } else if (this.model.data.containerType === 'value' && this.modelName === 'vocabulary-container' && containerPropertyPk) {
+
+                    this.model.getParentPropertyPk().then(function (propertyPk) {
+                        if (containerPropertyPk === propertyPk) {
+                            this.fire('ax-open-training-dialog',  {elementType: 'view-model-container-modal-edit', params: {modelPk: this.modelPk, modelName: this.modelName}});
+                        } else {
+                            this.fire('ax-open-training-dialog', {elementType: 'view-model-container-modal-to-phrase', params: {pk: this.modelPk, modelName: this.modelName}});
+
+                        }
+                    }.bind(this));
+
+                } else {
+                    this.fire('ax-open-training-dialog',  {elementType: 'view-model-container-modal-edit', params: {modelPk: this.modelPk, modelName: this.modelName}});
+                }
+
+            },
+
+
+            _boolean: function (a) {
+                return !!a;
+            },
+
+
+        });
+    })();
+</script>

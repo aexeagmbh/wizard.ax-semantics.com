@@ -1,0 +1,127 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../ax-page-routing/page-routing-behavior.html">
+<link rel="import" href="../model-myax-collection/view-model-myax-collection-list.html">
+
+<dom-module id="view-model-validation-data">
+
+    <template>
+         <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host section {
+                width: 100%;
+            }
+
+        </style>
+        <template is="dom-if" if="[[parentPk]]" restamp>
+
+            <view-model-myax-collection-list
+
+                    on-collection-document-add-to-myax-references="addDocumentToValidationData"
+                    on-collection-document-remove-from-myax-references="removeDocumentFromValidationData"
+                    parent-pk="[[parentPk]]"
+                    myax-references="[[myaxReferencesAllReferences]]">
+
+            </view-model-myax-collection-list>
+
+        </template>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-validation-data',
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'storage-validation-data',
+                    notify: true
+                },
+                data: {
+                    type: Array,
+                    notify: true
+                },
+
+                myaxReferencesAllReferences: {
+                    type: Array,
+                    notify: true,
+                    computed: '_computeMyaxReferencesAllReferences(data, data.*)'
+                }
+            },
+
+            _computeMyaxReferencesAllReferences: function (data) {
+
+                var allReferences = [];
+                if (!data || !data.length) {
+                    return allReferences;
+                }
+
+                data.map(function (item) {
+                    var myaxReference;
+                    if (item.myaxReference) {
+                        if (item.myaxApiVersion === 2) {
+                            myaxReference = allReferences.find(function (refItem) {
+                                return refItem.version === 2 && refItem['collection-id'] === item.myaxReference.collection_id;
+                            });
+                            if (myaxReference) {
+                                myaxReference.documents.push(item.myaxReference.document_id);
+                            } else {
+                                allReferences.push({
+                                    version: 2,
+                                    'collection-id': item.myaxReference.collection_id,
+                                    documents: [item.myaxReference.document_id]
+                                });
+                            }
+                        }
+
+                    }
+                });
+
+                return allReferences;
+
+            },
+
+            addDocumentToValidationData: function (event, data) {
+                event.stopPropagation();
+                app.storageContainer.getNewObject('validation-data').then(function (model) {
+                    model.createSynced({training: parseInt(this.parentPk, 10), myax_api_version: 2, myax_reference: {collection_id: data.myaxCollectionPk, document_id: data.myaxDocumentPk}});
+                }.bind(this));
+            },
+
+            removeDocumentFromValidationData: function (event, data) {
+                event.stopPropagation();
+                var validationDataItem = this.data.find(function (item) {
+                    return item.myaxApiVersion === 2 && item.myaxReference && item.myaxReference.collection_id === data.myaxCollectionPk && item.myaxReference.document_id === data.myaxDocumentPk;
+                });
+                if (validationDataItem) {
+                    app.storageContainer.getObject('validation-data', validationDataItem.id).then(function (model) {
+                        model.delete().catch(function() {return;});
+                    });
+                }
+            }
+
+        });
+    })();
+</script>

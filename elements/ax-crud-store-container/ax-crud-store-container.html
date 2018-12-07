@@ -1,0 +1,376 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud-store/ax-crud-higher-level-store.html">
+<link rel="import" href="../rohrpost-client/rohrpost-client.html">
+
+<dom-module id="ax-crud-store-container">
+
+<template>
+<iron-meta id="meta"></iron-meta>
+
+<ax-crud-store id="storage-language" single-end-point="languages/all" list-end-point="languages/all"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Language" verbose-plural-name="Languages" model-name="model-language"
+               notifier-id="userNotifier" params="[[params]]"
+               item-parent-id-property-name=""
+               append-pk-to-single-urls="{{!retTrue()}}"></ax-crud-store>
+
+
+<ax-crud-store id="storage-user" single-end-point="user" list-end-point="user"
+               api-url="[[axCrudApiUrl]]" ax-api-name="Training"
+               verbose-single-name="User" verbose-plural-name="User" model-name="model-user"
+               notifier-id="userNotifier" params="[[params]]"
+               item-parent-id-property-name=""
+               item-id-property-name="_singlepk"
+               single-storage-item-pk="model-user"
+               append-pk-to-single-urls="{{!retTrue()}}"></ax-crud-store>
+
+<ax-crud-store id="storage-training" single-end-point="trainings" list-end-point="trainings"
+               ws-url="[[trainingWsUrl]]"
+               api-url="[[axCrudApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Training" verbose-plural-name="Trainings" model-name="model-training"
+               item-parent-id-property-name=""
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+<ax-crud-store id="storage-aso-request" single-end-point="aso-requests"
+               list-end-point="aso-requests"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="All Sentence Output" verbose-plural-name="All Sentence Outputs"
+               model-name="model-aso-request"
+               item-parent-id-property-name="training"
+               parent-storage-name="training"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+<ax-crud-store id="storage-training-status" single-end-point="trainings/###trainingPk###/status"
+               list-end-point="trainings/###trainingPk###/status"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Training Status" verbose-plural-name="Training Status"
+               model-name="model-training-status"
+               notifier-id="userNotifier" params="[[params]]" no-fields-from-options="1"
+               parent-storage-name="training"
+               append-pk-to-single-urls="{{!retTrue()}}"></ax-crud-store>
+
+<ax-crud-store id="storage-sentence" single-end-point="sentences" action-end-point="sentences"
+               list-end-point="sentences"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Sentence" verbose-plural-name="Sentences" model-name="model-sentence"
+               item-parent-id-property-name="training"
+               parent-storage-name="training"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+<ax-crud-store id="storage-property" single-end-point="properties"
+               list-end-point="properties"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Property" verbose-plural-name="Properties" model-name="model-property"
+               item-parent-id-property-name="training"
+               parent-storage-name="training"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+<ax-crud-store id="storage-lookup-table" single-end-point="lookup-tables"
+               list-end-point="lookup-tables"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Lookup Table" verbose-plural-name="Lookup Tables" model-name="model-lookup-table"
+               item-parent-id-property-name="training"
+               parent-storage-name="training"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+<ax-crud-store id="storage-lookup" single-end-point="lookups"
+               list-end-point="lookups"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Lookup" verbose-plural-name="Lookups" model-name="model-lookup"
+               parent-storage-name="lookup-table"
+               item-parent-id-property-name="lookupTable"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+
+<ax-crud-store id="storage-nested-product-type" single-end-point="story-types" action-end-point="story-types"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               list-end-point="story-types"
+               verbose-single-name="Story Type" verbose-plural-name="Story Types"
+               model-name="model-nested-product-type"
+               item-parent-id-property-name="training"
+               parent-storage-name="training"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+<ax-crud-store id="storage-sentence-group" single-end-point="sentence-groups"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               list-end-point="sentence-groups"
+               verbose-single-name="Sentence Group" verbose-plural-name="Sentence Groups"
+               model-name="model-sentence-group"
+               item-parent-id-property-name="training"
+               parent-storage-name="training"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+
+<ax-crud-store id="storage-vocabulary" single-end-point="vocabularies"
+               list-end-point="vocabularies"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Property Output" verbose-plural-name="Property Outputs" model-name="model-vocabulary"
+               item-parent-id-property-name="property"
+               parent-storage-name="property"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+<ax-crud-store id="storage-sentence-variant" single-end-point="sentence-variants"
+               list-end-point="sentence-variants"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Sentence Variant" verbose-plural-name="Sentence Variants"
+               model-name="model-sentence-variant"
+               item-parent-id-property-name="sentence"
+               parent-storage-name="sentence"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+
+<ax-crud-store id="storage-lookup-value" single-end-point="lookup-values"
+               list-end-point="lookup-values"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Lookup Value" verbose-plural-name="Lookup Values"
+               model-name="model-lookup-value"
+               item-parent-id-property-name="lookup"
+               parent-storage-name="lookup"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+<ax-crud-store id="storage-validation-data" single-end-point="validation-data"
+               list-end-point="validation-data"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Validation Data" verbose-plural-name="Validation Data"
+               model-name="model-validation-data"
+               item-parent-id-property-name="training"
+               parent-storage-name="training"
+               no-fields-from-options="1"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+<ax-crud-store id="storage-sentence-variant-container" single-end-point="sentence-variant-containers"
+               list-end-point="sentence-variant-containers"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Container" verbose-plural-name="Containers"
+               model-name="model-sentence-variant-container" no-fields-from-options="1"
+               item-parent-id-property-name="sentenceVariant"
+               parent-property-url-param-name="sentence_variant"
+               parent-storage-name="sentence-variant"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+<ax-crud-store id="storage-lookup-value-container" single-end-point="lookup-value-containers"
+               list-end-point="lookup-value-containers"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Container" verbose-plural-name="Containers"
+               model-name="model-lookup-value-container" no-fields-from-options="1"
+               item-parent-id-property-name="lookupValue"
+               parent-property-url-param-name="lookup_value"
+               parent-storage-name="lookup-value"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+<ax-crud-store id="storage-vocabulary-container" single-end-point="vocabulary-containers"
+               list-end-point="vocabulary-containers"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Container" verbose-plural-name="Containers"
+               model-name="model-vocabulary-container" no-fields-from-options="1"
+               item-parent-id-property-name="vocabulary"
+               parent-property-url-param-name="vocabulary"
+               parent-storage-name="vocabulary"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+
+<ax-crud-store id="storage-sentence-variant-synonym" single-end-point="sentence-variant-synonyms"
+               list-end-point="sentence-variant-synonyms"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Sentence Variant Synonym" verbose-plural-name="Sentence Variant Synonyms"
+               model-name="model-sentence-variant-synonym" no-fields-from-options="1"
+               item-parent-id-property-name="sentenceVariant"
+               parent-storage-name="sentence-variant"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+
+<ax-crud-store id="storage-sentence-variant-synonym-value" single-end-point="sentence-variant-synonym-values"
+               list-end-point="sentence-variant-synonym-values"
+               api-url="[[trainingApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Sentence Variant Synonym Value"
+               verbose-plural-name="Sentence Variant Synonym Values"
+               model-name="model-sentence-variant-synonym-value"
+               item-parent-id-property-name="sentenceVariantSynonym"
+               parent-storage-name="sentence-variant-synonym"
+               notifier-id="userNotifier" params="[[params]]"></ax-crud-store>
+
+
+<ax-crud-store id="storage-myax-collection" single-end-point="collections"
+               list-end-point="collections"
+               ws-url="[[myAXWsUrl2]]"
+               api-url="[[myAXApiUrl2]]" ax-api-name="MyAX" list-response-item-root="results"
+               verbose-single-name="Collection" verbose-plural-name="Collections"
+               model-name="model-myax-collection"
+               notifier-id="userNotifier" params="[[params]]"
+               no-fields-from-options="1"></ax-crud-store>
+
+<ax-crud-store id="storage-myax-document" single-end-point="documents"
+               list-end-point="documents"
+               ws-url="[[myAXWsUrl2]]"
+               api-url="[[myAXApiUrl2]]" ax-api-name="MyAX" list-response-item-root="results"
+               verbose-single-name="Document" verbose-plural-name="Documents"
+               model-name="model-myax-document"
+               parent-storage-name="myax-collection"
+               item-parent-id-property-name="collection"
+               notifier-id="userNotifier" params="[[params]]"
+               no-fields-from-options="1"></ax-crud-store>
+
+<ax-crud-store id="storage-grammar-definition" single-end-point="definitions"
+               list-end-point="definitions"
+               api-url="[[lexiconApiUrl]]" ax-api-name="Training"
+               verbose-single-name="Grammar Definition"
+               model-name="model-grammar-definition"
+               notifier-id="userNotifier" params="[[params]]"
+               no-fields-from-options="1"
+        ></ax-crud-store>
+
+<rohrpost-client id="myax-rohrpost-client" url="[[myAXWsUrl2]]" token="[[apiToken]]"></rohrpost-client>
+<rohrpost-client id="rincewind-rohrpost-client" url="[[trainingWsUrl]]" token="[[apiToken]]"></rohrpost-client>
+</template>
+</dom-module>
+<script>
+    (function () {
+        'use strict';
+
+        var SETTINGS_QUERY_EVENT = 'ax-crud-get-store';
+
+        Polymer({
+            is: 'ax-crud-store-container',
+
+            retTrue: function () {
+                return true;
+            },
+            properties: {
+                params: {
+                    type: Object,
+                    notify: true
+                },
+
+                isStorageAvailable: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+
+                apiToken: {
+                    type: String,
+                    notify: true
+                },
+
+                trainingApiUrl: {
+                    type: String,
+                    notify: true,
+                    computed: '_computeTrainingApiUrl(axCrudApiUrl, axCrudApiVersion)'
+                },
+
+                axCrudApiVersion: {
+                    type: String,
+                    notify: true,
+                    value: 'v1'
+                },
+
+                axCrudApiUrl: {
+                    type: String,
+                    notify: true,
+                }
+            },
+
+
+            created: function () {
+                app.modelInstances = {};
+            },
+
+            _computeTrainingApiUrl: function (axCrudApiUrl, axCrudApiVersion) {
+                return '' + axCrudApiUrl.replace('v1', '') + axCrudApiVersion;
+            },
+
+
+            ready: function () {
+
+                this._getStoreHandler = this._handleGetStore.bind(this);
+
+                this.set('apiToken', app.token.Training);
+
+                this.set('axCrudApiUrl', this.$.meta.byKey('ax-crud-api-url'));
+//                this.set('trainingApiUrl', this.$.meta.byKey('ax-crud-api-url'));
+                this.set('lexiconApiUrl', this.$.meta.byKey('lexicon-api-url'));
+                this.set('myAXApiUrl2', this.$.meta.byKey('myax-api-url-2'));
+                this.set('trainingWsUrl', this.$.meta.byKey('ax-crud-ws-url') + '/rohrpost/');
+                this.set('myAXWsUrl2', this.$.meta.byKey('myax-ws-url-2'));
+
+            },
+
+
+            attached: function () {
+                app.set('storageContainer', this);
+                this.set('isStorageAvailable', true);
+                app.addEventListener(SETTINGS_QUERY_EVENT, this._getStoreHandler);
+            },
+
+            detached: function () {
+                this.set('isStorageAvailable', false);
+                app.removeEventListener(SETTINGS_QUERY_EVENT, this._getStoreHandler);
+            },
+
+            /**
+             * Handle the query event, if we can.
+             *
+             * @param {!CustomEvent} event
+             */
+            _handleGetStore: function (event) {
+                if (!event.detail || !event.detail.storeName) {
+                    console.warn('Malformed', SETTINGS_QUERY_EVENT, 'event:', event.detail);
+                    return;
+                }
+
+                var detail = event.detail;
+                detail.result = new Promise(function (resolve, reject) {
+                    this.getStorage(detail.storeName).then(function (store) {
+                        resolve(store);
+                    }, function (e) {
+                        reject(e);
+                    });
+                }.bind(this));
+            },
+
+            _getStore: function (type) {
+                var storageId = 'storage-' + type.toLowerCase().replace('storage-', '');
+                return this.$[storageId];
+            },
+
+            getList: function (type, parentPk, params, forceReload) {
+                return this._getStore(type).list(parentPk, params, forceReload);
+            },
+
+            getObject: function (type, pk) {
+                return this._getStore(type).fetchObject(pk);
+            },
+
+            getNewObject: function (type) {
+                return this._getStore(type).getNewObject();
+            },
+
+            getStorage: function (type) {
+                var self = this,
+                        p;
+                p = new Promise(function (resolve, reject) {
+                    var storage = self._getStore(type);
+                    if (storage) {
+                        resolve(storage);
+                    } else {
+                        console.log('No storage found ' + type);
+                        reject(new Error('No storage found ' + type));
+                    }
+                });
+
+                return p;
+            },
+
+            getRohrpostClient: function (rohrpostClientId) {
+                return this.$[rohrpostClientId].getClient();
+            }
+        });
+    })();
+</script>

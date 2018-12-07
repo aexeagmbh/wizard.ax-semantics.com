@@ -1,0 +1,630 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../ax-credentials/ax-user-privileges-behavior.html">
+<link rel="import" href="../ax-components/ax-atml-vertigo-highlighter/ax-prism-highlighter.html">
+<link rel="import" href="../ax-page-routing/page-routing-behavior.html">
+<link rel="import" href="../model-training/page-training-detail-overview.html">
+<link rel="import" href="../model-training/page-training-detail-text-rule-set.html">
+<link rel="import" href="../model-training/page-training-detail-logic-rule-set.html">
+<link rel="import" href="../model-training/page-training-detail-data.html">
+
+<link rel="import" href="../model-training/view-model-training-modal-edit.html">
+<link rel="import" href="../model-training/view-model-training-modal-import-overwrite.html">
+<link rel="import" href="../model-training/view-model-training-modal-export.html">
+
+
+<link rel="import" href="../model-training/story-type-editor/page-story-type-editor.html">
+<link rel="import" href="../model-training/training-dialogs.html">
+<link rel="import" href="../model-aso-request/view-model-aso-panel.html">
+
+
+<dom-module id="page-training-detail">
+
+    <template>
+
+     <style include="iron-flex">
+        :host {
+            display: block;
+        }
+
+        :host paper-card {
+            width: 100%;
+            /*margin-top: 20px;*/
+        }
+
+
+        :host paper-card .title-text {
+            display: inline-flex;
+        }
+
+        :host paper-card .sub-header > * {
+            margin-left: 16px;
+        }
+
+        :host .expanded,
+        :host [expanded] {
+            margin-top: 16px;
+            margin-bottom: 16px;
+        }
+
+        :host paper-toolbar {
+            color: var(--primary-text-color);
+            background-color: #fff;
+        }
+
+        :host .paper-tooltip{
+           font-size: 30px!important;
+        }
+
+        :host  .toolbar-icon {
+            --iron-icon-height: 50px;
+            --iron-icon-width: 50px;
+            color: grey;
+            margin: 16px;
+        }
+
+        :host .header paper-toolbar ::content #bottomBar {
+            display: none;
+        }
+
+        :host paper-toolbar.section-header {
+            margin-top: 16px;
+            /*margin-bottom: 16px;*/
+            background-color: transparent;
+        }
+        :host paper-tabs {
+            --paper-tabs-selection-bar-color: #77bc1f;
+
+        }
+        :host paper-tabs paper-tab {
+            --paper-tab-ink: #77bc1f;
+        }
+        :host .custom {
+            --paper-tooltip: {font-size: 15px};
+            width: 160px;
+        }
+        :host .ax-button-icon-hint {
+              padding: 2px;
+              color:  #77bc1f;
+              z-index: 9;
+              top: -16px;
+              position: absolute;
+              left: 178px;
+        }
+
+
+        :host .horizontal-section-container {
+            @apply(--layout-horizontal);
+            @apply(--layout-wrap);
+            margin-left: -20px;
+        }
+
+        :host .horizontal-section-item {
+            position: relative;
+            width: 50%;
+        }
+
+        :host .horizontal-section-item.horizontal-section-item-big {
+            width: 66.6%;
+        }
+
+        :host .horizontal-section-item.horizontal-section-item-small {
+            width: 33.3%;
+
+        }
+
+        :host .horizontal-section-item:only-of-type {
+            width: 100%;
+        }
+        :host .horizontal-section-item.horizontal-section-item-big:only-of-type {
+            width: 100%;
+        }
+
+
+        :host .horizontal-section-item-content {
+            margin-left: 20px;
+            margin-top: 20px;
+            width: -moz-calc(100% - 20px);
+            width: -webkit-calc(100% - 20px);
+            width: calc(100% - 20px);
+        }
+
+        :host .horizontal-section-item {
+            display: flex;
+        }
+
+        @media (max-width: 1023px) {
+            :host .horizontal-section-item.horizontal-section-item-big,
+            :host .horizontal-section-item.horizontal-section-item-small,
+            :host .horizontal-section-item {
+                width: 100%;
+            }
+
+        }
+
+    </style>
+        <ax-prism-highlighter></ax-prism-highlighter>
+
+
+
+
+        <template is="dom-if" if="[[isRouteActive]]">
+        <template is="dom-if" if="[[modelPk]]" restamp>
+            <training-dialogs id="training-dialogs"
+                              training-version="[[model.data.version]]"
+                              training-uses-container="[[model.data.containerMode]]"
+                              training-pk="[[modelPk]]">
+              </training-dialogs>
+
+            <view-model-training-modal-edit id="edit-model-dialog"
+                                            model-pk="[[modelPk]]"></view-model-training-modal-edit>
+            <view-model-training-modal-import-overwrite id="import-overwrite-dialog" model-pk="[[modelPk]]"
+                                                        on-model-save-success="goToTrainings"></view-model-training-modal-import-overwrite>
+            <view-model-training-modal-export id="export-dialog"
+                                              model-pk="[[modelPk]]"></view-model-training-modal-export>
+
+
+            <template is="dom-if" if="[[model.data.hasPendingImports]]">
+                <div class="horizontal-section-container">
+                    <div class="horizontal-section-item horizontal-section-item-big">
+                        <div class="horizontal-section-item-content">
+                            <!-- Header -->
+                            <paper-card>
+                                <div class="header">
+                                    <paper-toolbar>
+
+                                        <paper-icon-button class="header-back-button" icon="chevron-left"
+                                                           on-tap="goToTrainings"></paper-icon-button>
+                                        <div class="flex"></div>
+                                        <paper-icon-button id="importOverwrite" icon="icons:file-upload"
+                                                       on-tap="_importOverwrite">
+                                    </paper-icon-button>
+                                    <paper-tooltip offset="0" position="top" for="importOverwrite" class="custom"
+                                                   animation-delay="0">
+                                        Import from local file
+                                    </paper-tooltip>
+                                    </paper-toolbar>
+                                    <div class="flex-row" style="margin-top: -16px;">
+
+                                        <iron-icon icon="social:school" class="toolbar-icon middle"></iron-icon>
+                                        <div class="middle flex flex-row" style="font-size: 80%;">
+                                            <div class="flex-column">
+                                                <div class="title">Training</div>
+                                                <div class="paper-font-subhead"><span>[[model.data.name]]</span>
+                                                    <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                                                </div>
+                                            </div>
+                                             <section class="flex flex-column" style="flex-wrap: wrap;">
+                                             <div class="flex flex-row" style="align-items: flex-start; margin-right: 20px; ">
+
+                                                <p>This training has a running import, please note any changes you do now, might be overwritten by the imported ruleset. This might take up to 30 minutes. Refresh to reflect changes.</p>
+
+
+                                             </div>
+
+                                            <paper-spinner active></paper-spinner>
+                                                 </section>
+                                        </div>
+                                    </div>
+                                </div>
+                                <template is="dom-if" if="[[model.data.description]]">
+                                <div class="card-content sub-header">
+                                    <div class="paper-font-body1 preformated">[[model.data.description]]</div>
+                                </div>
+                            </template>
+
+                            </paper-card>
+                             <page-training-detail-overview
+                                        on-ax-training-import="_importOverwrite"
+                                        data-route="trainingOverview"
+                                        is-parent-active="[[isActive]]"
+                                        model-pk="[[modelPk]]"></page-training-detail-overview>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <template is="dom-if" if="[[!model.data.hasPendingImports]]" restamp>
+                <!--<model-training pk="[[modelPk]]" is-push-enabled on-ax-model-loading-failed="_onAxModelLoadingFailed"></model-training>-->
+                <model-training pk="[[modelPk]]" is-rohrpost-enabled on-ax-model-loading-failed="_onAxModelLoadingFailed"></model-training>
+
+            <div class="horizontal-section-container">
+                <div class="horizontal-section-item horizontal-section-item-big">
+                    <div class="horizontal-section-item-content">
+                        <!-- Header -->
+                        <paper-card>
+                            <div class="header">
+                                <paper-toolbar>
+
+                                    <paper-icon-button class="header-back-button" icon="chevron-left"
+                                                       on-tap="goToTrainings"></paper-icon-button>
+                                    <div class="flex"></div>
+
+                                    <paper-icon-button id="toggle-aso-panel" icon="icons:launch"
+                                                       on-tap="_toggleAsoPanel">
+                                    </paper-icon-button>
+                                    <paper-tooltip offset="0" position="top" for="toggle-aso-panel" class="custom"
+                                                   animation-delay="0">
+                                         Show Test View
+                                    </paper-tooltip>
+<template is="dom-if" if="[[!model.data.containerMode]]">
+                                    <paper-icon-button id="exportTraining" icon="icons:file-download"
+                                                       on-tap="_exportTraining">
+                                    </paper-icon-button>
+                                    <paper-tooltip offset="0" position="top" for="exportTraining" class="custom"
+                                                   animation-delay="0">
+                                        Export to local file
+                                    </paper-tooltip>
+</template>
+
+                                    <paper-icon-button id="importOverwrite" icon="icons:file-upload"
+                                                       on-tap="_importOverwrite">
+                                    </paper-icon-button>
+                                    <paper-tooltip offset="0" position="top" for="importOverwrite" class="custom"
+                                                   animation-delay="0">
+                                        Import from local file
+                                    </paper-tooltip>
+
+
+                                    <paper-icon-button id="editModel" icon="editor:mode-edit" on-tap="_editModel">
+                                    </paper-icon-button>
+                                    <paper-tooltip offset="0" position="top" for="editModel" class="cusftom"
+                                                   animation-delay="0">
+                                        Edit description
+                                    </paper-tooltip>
+
+
+                                </paper-toolbar>
+
+                                <div class="flex-row" style="margin-top: -16px;">
+
+                                    <iron-icon icon="social:school" class="toolbar-icon middle"></iron-icon>
+                                    <div class="middle flex flex-row" style="font-size: 80%;">
+                                        <div class="flex-column">
+                                            <div class="title">Training</div>
+                                            <div class="paper-font-subhead"><span>[[model.data.name]]</span>
+                                                <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <template is="dom-if" if="[[model.data.description]]">
+                                <div class="card-content sub-header">
+                                    <div class="paper-font-body1 preformated">[[model.data.description]]</div>
+                                </div>
+                            </template>
+
+
+                            <paper-tabs attr-for-selected="data-route" selected="{{subRoute}}" class="bottom self-end">
+                                <paper-tab data-route="trainingOverview" on-tap="goToTrainingOverview">Overview
+                                </paper-tab>
+                                <paper-tab data-route="trainingData" on-tap="goToTrainingData">Data</paper-tab>
+                                <paper-tab data-route="trainingEditor" on-tap="goToTrainingEditor">Editor</paper-tab>
+                                <paper-tab data-route="trainingTextRuleSet" on-tap="goToTrainingTextRuleSet">
+                                    Text Rule Set
+                                </paper-tab>
+                                <paper-tab data-route="trainingLogicRuleSet" on-tap="goToTrainingLogicRuleSet">Logic
+                                    Rule Set
+                                </paper-tab>
+
+                            </paper-tabs>
+
+                        </paper-card>
+
+                        <iron-pages attr-for-selected="data-route" selected="[[subRoute]]"
+                                    selected-attribute="is-active">
+
+                            <template is="dom-if" if="[[_isSubRouteActive('trainingOverview', subRoute)]]" restamp>
+                                <page-training-detail-overview
+                                        on-ax-training-import="_importOverwrite"
+                                        data-route="trainingOverview"
+                                        is-parent-active="[[isActive]]"
+                                        model-pk="[[modelPk]]"></page-training-detail-overview>
+                            </template>
+
+                            <template is="dom-if" if="[[_isSubRouteActive('trainingData', subRoute)]]" restamp>
+                                <page-training-detail-data
+                                        data-route="trainingData"
+                                        is-parent-active="[[isActive]]"
+                                        model-pk="[[modelPk]]"></page-training-detail-data>
+                            </template>
+                            <template is="dom-if" if="[[_isSubRouteActive('trainingEditor', subRoute)]]" >
+                                <page-story-type-editor
+                                        data-route="trainingEditor"
+                                        model-pk="[[modelPk]]">
+                                </page-story-type-editor>
+                            </template>
+                            <template is="dom-if" if="[[_isSubRouteActive('trainingTextRuleSet', subRoute)]]" restamp>
+
+                                <page-training-detail-text-rule-set
+                                        show-tab="{{showTabText}}"
+                                        data-route="trainingTextRuleSet"
+                                        is-parent-active="[[isActive]]"
+                                        model-pk="[[modelPk]]">
+
+                                </page-training-detail-text-rule-set>
+                            </template>
+                            <template is="dom-if" if="[[_isSubRouteActive('trainingLogicRuleSet', subRoute)]]" restamp>
+
+                                <page-training-detail-logic-rule-set
+                                        show-tab="{{showTabLogic}}"
+                                        data-route="trainingLogicRuleSet"
+                                        is-parent-active="[[isActive]]"
+                                        model-pk="[[modelPk]]">
+
+                                </page-training-detail-logic-rule-set>
+                            </template>
+                        </iron-pages>
+                    </div>
+                </div>
+
+                <template is="dom-if" if="[[showAsoPanel]]" restamp>
+                    <div class="ax-output horizontal-section-item horizontal-section-item-small">
+                        <div class="horizontal-section-item-content">
+                            <view-model-aso-panel model-pk="[[modelPk]]"></view-model-aso-panel>
+                        </div>
+                    </div>
+                </template>
+
+            </div>
+                </template>
+        </template>
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+
+        var dependentStoreNames = [
+            'training-status',
+            'sentence',
+            'property',
+            'lookup',
+            'nested-product-type',
+            'sentence-group',
+            'vocabulary',
+            'sentence-variant',
+            'lookup-value',
+            'sentence-variant-synonym',
+            'sentence-variant-synonym-value',
+            'aso-request',
+            'myax-collection',
+            'myax-document',
+            'sentence-variant-container',
+            'lookup-value-container',
+            'vocabulary-container'
+        ];
+
+        Polymer({
+            is: 'page-training-detail',
+            behaviors: [
+                AxWizard.AxUserPrivilegesBehavior,
+                AxWizard.PageRoutingBehavior,
+                AxWizard.BaseModelViewBehavior
+            ],
+            properties: {
+                modelName: {
+                    value: 'training'
+                },
+                storageId: {
+                    type: String,
+                    value: 'training',
+                    notify: true
+                },
+                paramsPkName: {
+                    type: String,
+                    value: 'trainingPk',
+                    notify: true
+                },
+                subRoute: {
+                    type: String,
+                    notify: true,
+                    computed: '_computeSubRoute(route, fullRoute, currentRouteName)'
+                },
+                isActive: {
+                    type: Boolean,
+                    readOnly: true,
+                    value: true
+                },
+                dependentStoreNames: {
+                    type: Array,
+                    value: dependentStoreNames
+                },
+                showAsoPanel: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                }
+            },
+
+            listeners: {
+                'ax-get-training-languages': '_queryTrainingLanguages',
+                'ax-open-training-dialog': '_openTrainingDialog',
+                'ax-get-training': '_queryTraining'
+            },
+
+            _modelPkHasChanged: function (event) {
+                this._purgeDependentStores();
+                this._initModel().then(function (model) {
+                    app.storageContainer.set('axCrudApiVersion', model.get('data.vnext') ? 'v3': 'v1');
+                });
+            },
+
+            _hasPendingImportsChanged: function (hasPendingImports) {
+                if (hasPendingImports) {
+                    this._purgeDependentStores();
+                }
+            },
+
+            _purgeDependentStores: function () {
+                this.dependentStoreNames.forEach(function (storeName) {
+                   app.storageContainer.getStorage(storeName).then(function (store) {
+                       store.purgeAll();
+                   });
+                });
+            },
+
+            onAxModelDataChanged: function (event) {
+                var data = event.detail || [];
+                this.notifyPath('model.' + data[0], data[1]);
+                this._hasPendingImportsChanged(this.get('model.data.hasPendingImports'));
+            },
+
+            _changeDocumentTitle: function (model) {
+                  if (model && model.data) {
+                      document.title = 'AXWizard: ' + model.pk + ' ' + model.data.name;
+                  } else {
+                      document.title = 'AXWizard';
+                  }
+            },
+
+            _openTrainingDialog: function (event, details) {
+                var dialogs = this.$$('#training-dialogs');
+                event.stopPropagation();
+                if (dialogs) {
+                    dialogs.openDialog(details.elementType, details.params);
+                }
+            },
+
+
+
+            _queryTraining: function (event) {
+
+                var detail = event.detail;
+
+                detail.training = this.getModel();
+            },
+
+            _queryTrainingLanguages: function (event) {
+
+                var detail = event.detail;
+                detail.languages = this.getModel().then(function (model) {
+                        return model.getConfiguredLanguageList(event.detail.alwaysIncludeLanguageIds);
+                });
+            },
+
+            _computeSubRoute: function (route, fullRoute, currentRouteName) {
+                var subRoute,
+                        idxCurrentRoute = fullRoute.indexOf(currentRouteName);
+
+                if (idxCurrentRoute === -1) {
+                    return '';
+                }
+                subRoute = fullRoute[idxCurrentRoute + 1] || '';
+
+                return subRoute;
+            },
+
+            _processBreadcrumb: function (breadcrumb) {
+
+                if (!this.model || !this.model.data || !this.model.data.name) {
+                    return;
+                }
+                for (var id in breadcrumb) {
+                    if (breadcrumb[id].placeholder === '[Training]') {
+                        breadcrumb[id].title = this.model.data.name;
+                    }
+                }
+            },
+
+            observers: [
+                '_breadcrumbObserver(breadCrumb, model.data.name, model, model.data)'
+            ],
+
+            _routeChanged: function (event, newVal) {
+                this.set('isRouteActive', newVal.value.indexOf(this.get('currentRouteName')) > -1);
+                this._handleSubRoutes(newVal.value);
+            },
+
+            _initModel: function () {
+                var p = AxWizard.BaseModelViewBehavior._initModel.apply(this, arguments);
+                p.then(function (model) {
+                    this._changeDocumentTitle(model);
+                }.bind(this));
+                return p;
+            },
+
+
+            _breadcrumbObserver: function (breadcrumb, name) {
+
+                for (var id in breadcrumb) {
+                    if (breadcrumb[id].placeholder === '[Training]') {
+                        breadcrumb[id].title = name;
+                        this.set('breadCrumb.' + id + '.title', name);
+
+                    }
+                }
+            },
+
+            _isSubRouteActive: function (a, b) {
+                return a === b;
+            },
+
+            _editModel: function () {
+                this.$$('#edit-model-dialog').open();
+            },
+
+            _importOverwrite: function (event) {
+                event.stopPropagation();
+                this.$$('#import-overwrite-dialog').open();
+            },
+
+            _exportTraining: function () {
+                if (this.get('model.data.containerMode')) {
+                    return;
+                }
+                this.$$('#export-dialog').open();
+            },
+
+
+
+            _toggleAsoPanel: function (event){
+                this.set('showAsoPanel', !this.showAsoPanel);
+            },
+
+            goToTrainings: function (event) {
+                page('/trainings');
+                event.preventDefault();
+            },
+            goToTrainingOverview: function (event) {
+                page('/trainings/' + this.params.trainingPk);
+                event.preventDefault();
+            },
+            goToTrainingTextRuleSet: function (event) {
+                page('/trainings/' + this.params.trainingPk + '/text-rule-set');
+                event.preventDefault();
+            },
+            goToTrainingLogicRuleSet: function (event) {
+                page('/trainings/' + this.params.trainingPk + '/logic-rule-set');
+                event.preventDefault();
+            },
+            goToTrainingData: function (event) {
+                page('/trainings/' + this.params.trainingPk + '/data');
+                event.preventDefault();
+            },
+            goToTrainingEditor: function (event) {
+                page('/trainings/' + this.params.trainingPk + '/editor');
+                event.preventDefault();
+            },
+
+            _onAxModelLoadingFailed: function (event) {
+                event.stopPropagation();
+                page('/trainings');
+            }
+
+        });
+    })();
+</script>

@@ -1,0 +1,122 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-form/iron-form.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+
+<dom-module id="base-model-inplace-form">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            :host * {
+                font-size: initial;
+            }
+
+        </style>
+        <form on-submit="saveModel" is="iron-form" id="model-form">
+            <input type="submit" value="save" style="display: none;">
+            <content selector=".form-content"></content>
+            <paper-button hidden="[[hideButtons]]" on-tap="saveModel">Save</paper-button>
+            <paper-button hidden="[[hideButtons]]" on-tap="cancel">Cancel</paper-button>
+        </form>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'base-model-inplace-form',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+
+            properties: {
+                hideButtons: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                loadModel: {
+                    type: Boolean,
+                    value: true,
+                    reflectToAttribute: true,
+                    readOnly: true
+                },
+                allowedFields: {
+                    type: Array,
+
+                    value: function () {
+                        return [];
+                    },
+
+                    notify: true
+                }
+            },
+
+
+            saveModel: function (event) {
+                if (event) {
+                    event.stopPropagation();
+                }
+                if (this.$['model-form'].validate()) {
+                    return AxWizard.BaseModelFormBehavior.saveModel.call(this);
+                } else {
+                    return;
+                }
+            },
+
+            refresh: function () {
+                var modelP = this._loadModel(this.modelPk);
+                modelP.then(function (model) {
+                    model.refresh(true).then(function (model) {
+                        this._modelChanged(model);
+                    }.bind(this));
+                }.bind(this));
+            },
+
+            _loadModel: function (modelPk) {
+                var self = this,
+                    p;
+                self.set('_isLoading', true);
+                p = new Promise(function (resolve, reject) {
+                    self._getStorage(self.storageId.replace('storage-', '')).then(function (storage) {
+                        var modelP;
+                        if (!self.loadModel) {
+                            modelP = storage.getNewObject();
+                        } else {
+                            //no forced refresh here.
+                            modelP = storage.fetchObject(modelPk);
+                        }
+
+
+                        modelP.then(function (model) {
+                            self.set('model', model);
+                            self._initFormData(model);
+                            self.set('_isLoading', false);
+                            self.fire('model-loaded', storage.getItemIdOrDefault(model.data));
+                            resolve(modelP);
+                        }, function () {
+                            console.log('noModel loaded');
+                            self.set('formData', {});
+                            self.set('model', null);
+                            reject(modelP);
+                        });
+
+                    });
+                });
+                return p;
+            },
+        });
+    })();
+</script>

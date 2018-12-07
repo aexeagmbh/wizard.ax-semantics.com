@@ -1,0 +1,120 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+
+<link rel="import" href="./view-model-lookup-value-detail-inplace-fields.html">
+
+<dom-module id="view-model-lookup-value-form">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+            :host  .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+        </style>
+
+        <template is="dom-if" if="[[!modelPk]]" restamp>
+            <form is="iron-form" on-submit="saveModel" id="model-form">
+                <input type="submit" value="save" style="display: none;">
+
+                <paper-input value="{{formData.noun}}" label="Noun" autofocus></paper-input>
+                <paper-input value="{{formData.adjective}}" label="Adjective"></paper-input>
+                <paper-input value="{{formData.headnoun}}" label="Head Noun" ></paper-input>
+
+            </form>
+        </template>
+        <template is="dom-if" if="[[modelPk]]" restamp>
+            <view-model-lookup-value-detail-inplace-fields has-unsaved-changes="{{hasUnsavedChanges}}" training-uses-container="[[trainingUsesContainer]]" training-pk="[[trainingPk]]" model-pk="[[modelPk]]"></view-model-lookup-value-detail-inplace-fields>
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-lookup-value-form',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'lookup-value',
+                    notify: true
+                },
+                lookupPk: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                allowedFields: {
+                    type: Array,
+                    value: function () {
+                        return ['adjective', 'noun', 'headnoun'];
+                    },
+                    notify: true
+                },
+
+                trainingUsesContainer: {
+                    notify: true
+                },
+                hasUnsavedChanges: {
+                    type: Boolean,
+                    notify: true
+                }
+            },
+
+            _preSaveModel: function () {
+                if (this.lookupPk) {
+                    this.set('formData.lookup', parseInt(this.lookupPk, 10));
+                }
+            },
+
+
+            saveModel: function () {
+
+                var redirectAfterSave = !this.modelPk && this.trainingUsesContainer;
+
+
+                if (this.$$('#model-form').validate()) {
+                    return AxWizard.BaseModelFormBehavior.saveModel.call(this).then(function (model) {
+                        if (redirectAfterSave) {
+                            this.fire('ax-open-training-dialog', {elementType: 'view-model-lookup-value-modal-edit', params: {modelPk: model.get('pk')}});
+                        }
+                    }.bind(this));
+                } else {
+                    return;
+                }
+            },
+
+
+            _modelChanged: function (model) {
+
+            }
+
+
+
+
+        });
+    })();
+</script>

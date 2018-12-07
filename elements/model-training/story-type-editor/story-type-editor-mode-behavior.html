@@ -1,0 +1,95 @@
+<script>
+    var AxWizard = AxWizard || {};
+
+    AxWizard.StoryTypeEditorModeBehavior = {
+
+        properties: {
+            activeMode: {
+                type: String,
+                value: 'write',
+                notify: true
+            },
+            writeMode: {
+                type: Boolean,
+                computed: '_computeWriteMode(activeMode)',
+                notify: true,
+                observer: '_writeModeChanged'
+            },
+            magicMode: {
+                type: Boolean,
+                computed: '_computeMagicMode(activeMode)',
+                notify: true,
+                observer: '_magicModeChanged'
+            },
+            variantMode: {
+                type: Boolean,
+                computed: '_computeVariantMode(activeMode)',
+                notify: true,
+                observer: '_variantModeChanged'
+            },
+            translateMode: {
+                type: Boolean,
+                computed: '_computeTranslateMode(activeMode)',
+                notify: true,
+                observer: '_translateModeChanged'
+            },
+            readOnlyMode: {
+                type: Boolean,
+                computed: '_computeReadOnlyMode(activeMode)',
+                notify: true,
+                observer: '_readOnlyModeChanged'
+            },
+            createOnlyMode: {
+                type: Boolean,
+                computed: '_computeCreateOnlyMode(activeMode)',
+                notify: true,
+                observer: '_createOnlyModeChanged'
+            }
+        },
+
+        _writeModeChanged: function (isOn) {
+
+        },
+
+        _magicModeChanged: function (isOn) {
+
+        },
+
+        _variantModeChanged: function (isOn) {
+
+        },
+
+        _translateModeChanged: function (isOn) {
+
+        },
+
+        _readOnlyModeChanged: function (isOn) {
+
+        },
+
+        _createOnlyModeChanged: function (isOn) {
+
+        },
+
+        _computeWriteMode: function (modeName) {
+            return modeName === 'write';
+        },
+        _computeMagicMode: function (modeName) {
+            return modeName === 'magic';
+        },
+        _computeVariantMode: function (modeName) {
+            return modeName === 'variant';
+        },
+        _computeTranslateMode: function (modeName) {
+            return modeName === 'translate';
+        },
+        _computeReadOnlyMode: function (modeName) {
+            return modeName === 'readOnly';
+        },
+        _computeCreateOnlyMode: function (modeName) {
+            return modeName === 'createOnly';
+        }
+
+
+    };
+</script>

@@ -1,0 +1,65 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="ax-list-view-add-element-card">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            :host .add-element-card {
+                background-color: #dddddd;
+                color: #333;
+                cursor: pointer;
+            }
+
+            :host .add-element-card paper-icon-item {
+                background-color: transparent;
+            }
+            :host .add-element-card .header {
+                color: #333;
+            }
+            :host .add-element-card .header .title-text {
+                color: #333;
+            }
+
+        </style>
+        <div class="list-view-list-item-detail-wrapper">
+            <paper-card class="add-element-card" on-tap="_fireAddAction">
+                <div class="header paper-card">
+                    <paper-icon-item class="paper-font-button">
+                        <iron-icon item-icon icon="icons:add"></iron-icon>
+                        <paper-item-body>
+                            <content select=".header"></content>
+                        </paper-item-body>
+                    </paper-icon-item>
+                </div>
+                <content select=".card-content"></content>
+            </paper-card>
+        </div>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'ax-list-view-add-element-card',
+
+            _fireAddAction: function (event) {
+                event.stopPropagation();
+                this.fire('ax-list-view-add-element-card-add-element');
+            }
+
+        });
+    }());
+</script>

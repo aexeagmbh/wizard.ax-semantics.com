@@ -1,0 +1,213 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-form/iron-form.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+<link rel="import" href="../model-property/trigger-select-fields.html">
+
+<dom-module id="view-model-sentence-form">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            :host .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host paper-material.warning {
+                background-color: orange;
+            }
+
+
+              paper-checkbox {
+                  --paper-checkbox-checkmark-color: var(--primary-text-color);
+              }
+
+        </style>
+
+
+        <form on-submit="saveModel" is="iron-form" id="model-form">
+            <input type="submit" value="save" style="display: none;">
+
+
+            <paper-input value="{{formData.name}}" label="Name" autofocus="[[!disableSubmit]]"
+                             required
+                             auto-validate
+                             pattern="[a-zA-Z0-9öäüÖÄÜß&_]+"
+                             error-message="This field is required and may only contain characters a-z, A-Z, 0-9, ö, ä, ü, Ö, Ä, Ü, ß, &, and _"></paper-input>
+            <paper-textarea
+                label="Leave a comment to this sentence"
+                value="{{formData.comment}}">
+            </paper-textarea>
+
+            <div class="input-container">
+                <div class="floated-label-placeholder">
+                    <span>Is this sentence obligatory in your text?</span>
+                    <i>Please consider that your text maybe needs shortening according to your maximum text length.</i>
+                </div>
+                <paper-checkbox toggles checked="{{formData.obligatory}}">Yes, it is obligatory.</paper-checkbox>
+            </div>
+
+
+            <template is="dom-if" if="[[!loadModel]]">
+                <paper-input value="{{formData.command}}" label="Add a Story Mode Command"></paper-input>
+            </template>
+
+            <template is="dom-if" if="[[loadModel]]">
+                <template is="dom-if" if="[[isStoryMode]]">
+                    <paper-input value="{{formData.command}}" label="Story Mode Command" required
+                                 error-message="This field is required."></paper-input>
+                </template>
+
+                <template is="dom-if" if="[[!isStoryMode]]">
+                    <paper-dropdown-menu label="Style" on-iron-overlay-opened="stopPropagation">
+
+                        <paper-menu fallbackSelection="" class="dropdown-content" attr-for-selected="value"
+                                    selected="{{formData.style}}">
+                            <paper-item label="Normal Text" value="">Normal Text</paper-item>
+                            <paper-item label="Heading" value="heading">Heading</paper-item>
+                            <paper-item label="Heading Level 2" value="subheading">Heading Level 2</paper-item>
+                            <paper-item label="Heading Level 3" value="subsubheading">Heading Level 3</paper-item>
+                            <paper-item label="Heading Level 4" value="subsubsubheading">Heading Level 4</paper-item>
+                        </paper-menu>
+                    </paper-dropdown-menu>
+                </template>
+
+            </template>
+
+             <template is="dom-if" if="[[!_isLoading]]">
+                <trigger-select-fields training-pk="[[trainingPk]]" triggers="{{formData.triggers}}" auto-triggered="{{formData.autoTriggered}}"></trigger-select-fields>
+            </template>
+        </form>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-form',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            properties: {
+                _retNull: {
+                   value: null,
+                    readOnly: true
+                },
+                _hideSentenceTriggerListHeadArea: {
+                    type: Boolean,
+                    value: true,
+                    readOnly: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'sentence',
+                    notify: true
+                },
+                trainingPk: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                allowedFields: {
+                    type: Array,
+
+                    value: function () {
+                        return ['name', 'comment', 'obligatory', 'command', 'triggers', 'autoTriggered'];
+                    },
+                    notify: true
+                },
+                isStoryMode: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                disableSubmit: {
+                    type: Boolean,
+                    value: false
+                }
+            },
+
+            _preSaveModel: function () {
+                if (this.trainingPk) {
+                    this.set('formData.training', parseInt(this.trainingPk, 10));
+                }
+
+                if (!this.loadModel) {
+                    this.set('allowedFields', ['name', 'comment', 'obligatory', 'command', 'triggers', 'autoTriggered']);
+                } else {
+                    if (this.isStoryMode) {
+                        this.set('allowedFields', ['name', 'comment', 'obligatory', 'command', 'triggers', 'autoTriggered']);
+                    } else {
+                        this.set('allowedFields', ['name', 'comment', 'obligatory', 'style', 'triggers', 'autoTriggered']);
+                    }
+                }
+            },
+
+            _modelChanged: function (model) {
+                var self = this;
+                if (!model) {
+                    return;
+                }
+                this.set('isStoryMode', !!(model.data.command));
+
+                self.set('trainingPk', self.trainingPk || model.data.training);
+
+            },
+
+            saveModel: function () {
+                if (this.$['model-form'].validate()) {
+                    return AxWizard.BaseModelFormBehavior.saveModel.call(this);
+                } else {
+                    return;
+                }
+            },
+
+            refresh: function () {
+                // reload model because reference by name --> not autoupdated if sentence name has changed
+                var modelP = this._loadModel(this.modelPk);
+                modelP.then(function (model) {
+                    model.refresh(true).then(function (model) {
+                        this._modelChanged(model);
+                    }.bind(this));
+                }.bind(this));
+            },
+
+            _initFormData: function (model) {
+                this.set('formData', null);
+                this.set('formData', JSON.parse(JSON.stringify(model.data)));
+                if (this.formData.style === null) {
+                    this.set('formData.style', '');
+                }
+            },
+
+
+        });
+    })();
+</script>

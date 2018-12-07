@@ -1,0 +1,370 @@
+<script>
+var AxWizard = AxWizard || {};
+
+AxWizard.ModelRohrpostSubscribableBehavior = {
+
+    properties: {
+
+        pk: {
+            notify: true
+        },
+        isRohrpostEnabled: {
+            type: Boolean,
+            value: false,
+            reflectToAttribute: true
+        },
+        rohrpostGroupType: {
+            type: String,
+            readOnly: true
+        },
+        rohrpostClientId: {
+            type: String,
+            readOnly: true
+        },
+        _subscribedGroup: {
+            type: Object,
+            value: function () {
+                return {};
+            }
+        },
+        _rohrpostClient: {
+            type: Object
+        }
+
+    },
+    listeners: {
+        'pk-changed': '_pushEndpointChanged',
+        'model-pushable-close': '_onModelPushableClose',
+        'model-pushable-open': '_onModelPushableOpen'
+    },
+
+    _onModelPushableClose: function (event) {
+        event.stopPropagation();
+        this._unsubscribe();
+    },
+
+    _onModelPushableOpen: function (event) {
+        event.stopPropagation();
+        this._subscribe();
+    },
+
+    attached: function () {
+        if (this.isRohrpostEnabled) {
+            this._subscribe();
+        }
+    },
+
+    detached: function () {
+        this._unsubscribe();
+    },
+
+    _pushEndpointChanged: function () {
+        if (this.isRohrpostEnabled && this.isAttached) {
+            this._unsubscribe();
+            this._subscribe();
+        }
+    },
+
+    _onRohrpostMessage: function (error, data) {
+        var messageData;
+        // overwrite this in your implementing object
+        // refactor and split this method
+
+
+        if (error) {
+            console.log(error);
+            return;
+        }
+
+        if (!data) {
+            console.log('No data received.');
+            return;
+        }
+
+        messageData = data.object;
+        if (!messageData) {
+            console.log('No payload received.');
+            return;
+        }
+
+        var action = messageData.action || data.type,
+                modelType = messageData.object_type,
+                modelPk = messageData.object_pk,
+                modelData,
+                storageName;
+
+        storageName = this._getStorageNameByModelType(modelType);
+
+        if (action === 'update') {
+            app.storageContainer.getStorage(storageName).then(function (storage) {
+
+                if (!storage.checkIsItemLoaded(modelPk)) {
+                    return;
+                }
+
+                modelData = this._getModelData(messageData.data);
+
+                storage.fetchObject(modelPk).then(function (model) {
+                    Object.keys(modelData).forEach(function (fieldName) {
+
+                        if (fieldName !== 'selectedByUserForLanguages') { //FIXME: dirty fix for magically disappearing selected testdata...
+                            model.set('data.' + fieldName, modelData[fieldName]);
+                        }
+                    });
+                    storage.setItem(model.get('data'));
+                });
+
+            }.bind(this), function (e) {
+                //pass silent
+                console.log('push updated', e);
+            });
+        } else if (action === 'delete') {
+            app.storageContainer.getStorage(storageName).then(function (storage) {
+                if (!storage.checkIsItemLoaded(modelPk)) {
+                    return;
+                }
+
+                storage.deleteLocalItem(modelPk);
+
+            }.bind(this), function (e) {
+                //pass silent
+                console.log('push deleted', e);
+            });
+        } else if (action === 'create') {
+            app.storageContainer.getStorage(storageName).then(function (storage) {
+
+                modelData = this._getModelData(messageData.data);
+
+                var modelParentPk = storage.getItemParentIdOrDefault(modelData, null);
+                if (modelParentPk) {
+                    app.storageContainer.getStorage(storage.parentStorageName).then(function (parentStorage) {
+                        if (!parentStorage.checkIsItemLoaded(modelParentPk)) {
+                            return;
+                        } else {
+                            storage.setItem(modelData);
+                        }
+
+
+                    }, function (e) {
+                        //pass silent
+                        console.log('push created parent', e);
+                    });
+                } else {
+                    storage.setItem(modelData);
+                }
+
+            }.bind(this), function (e) {
+
+                //pass silent
+                console.log('push created', e);
+            });
+
+        } else if (action === 'bulk_update') {
+
+            app.storageContainer.getStorage(storageName).then(function (storage) {
+                var modelDataList;
+
+                modelDataList = this._getModelData(messageData.data);
+
+                modelDataList.forEach(function (modelData) {
+                    var modelPk = modelData.pk;
+
+                    if (!storage.checkIsItemLoaded(modelPk)) {
+                        return;
+                    }
+
+                    storage.fetchObject(modelPk).then(function (model) {
+                        Object.keys(modelData).forEach(function (fieldName) {
+                            if (fieldName !== 'selectedByUserForLanguages') { //FIXME: dirty fix for magically disappearing selected testdata...
+                                model.set('data.' + fieldName, modelData[fieldName]);
+                            }
+                        });
+                        storage.setItem(model.get('data'));
+                    });
+
+                }.bind(this));
+
+
+            }.bind(this));
+
+        } else if (action === 'selected') {
+
+            // it's always validationData...
+
+            modelData = this._getModelData(messageData.data) || {};
+
+            app.storageContainer.getObject('user').then(function (userModel) {
+
+                if (modelData.userId !== userModel.get('data.id')) {
+                    return; //not for this user
+                }
+
+
+                app.storageContainer.getStorage(storageName).then(function (storage) {
+
+                    if (storage.checkIsItemLoaded(modelPk)) {
+                        storage.fetchObject(modelPk).then(function (model) {
+                            model.set('data.selectedByUserForLanguages', [modelData.selectedForLanguage]);
+                            storage.setItem(model.get('data'));
+                        });
+                    }
+
+                    if (modelData.previousSelectionId && storage.checkIsItemLoaded(modelData.previousSelectionId)) {
+                        storage.fetchObject(modelData.previousSelectionId).then(function (model) {
+                            model.set('data.selectedByUserForLanguages', []);
+                            storage.setItem(model.get('data'));
+                        });
+                    }
+
+
+                }.bind(this), function (e) {
+                    //pass silent
+                    console.log('push selected', e);
+                });
+
+            }.bind(this));
+
+
+        } else {
+            app.storageContainer.getStorage(storageName).then(function (storage) {
+                modelData = this._getModelData(messageData.data);
+
+                if (storage.checkIsItemLoaded(modelPk)) {
+                    storage.fetchObject(modelPk).then(function (model) {
+                        Object.keys(modelData).forEach(function (fieldName) {
+                            model.set('data.' + fieldName, modelData[fieldName]);
+                        });
+                        storage.setItem(model.get('data'));
+                    });
+
+                } else {
+
+                    var modelParentPk = storage.getItemParentIdOrDefault(modelData, null);
+                    if (modelParentPk) {
+                        app.storageContainer.getStorage(storage.parentStorageName).then(function (parentStorage) {
+
+                            if (!parentStorage.checkIsItemLoaded(modelParentPk)) {
+                                return;
+                            } else {
+                                storage.fetchObject(modelPk).then(function (model) {
+                                    Object.keys(modelData).forEach(function (fieldName) {
+                                        model.set('data.' + fieldName, modelData[fieldName]);
+                                    });
+                                    storage.setItem(model.get('data'));
+                                });
+                            }
+                        }, function (e) {
+
+                            //pass silent
+                            console.log('push created parent ' + action, e);
+                        });
+                    }
+
+                }
+
+            }.bind(this), function (e) {
+                //pass silent
+                console.log('push ' + action, e);
+            });
+        }
+
+        return;
+
+    },
+
+    _getModelData: function (strOrObj) {
+        var modelDataObj,
+            modelDataList = [],
+            modelData = {};
+
+        if (typeof strOrObj === 'string') {
+            modelDataObj = JSON.parse(strOrObj);
+        } else {
+            modelDataObj = JSON.parse(JSON.stringify(strOrObj));
+        }
+
+        if (!Array.isArray(modelDataObj)) {
+
+            Object.keys(modelDataObj).forEach(function (fieldName) {
+                modelData[this._underscoreToCamelCase(fieldName)] = modelDataObj[fieldName];
+            }.bind(this));
+
+            return modelData;
+
+        } else {
+
+            modelDataObj.forEach(function(modelDataObjItem) {
+                var modelData = {};
+
+                Object.keys(modelDataObjItem).forEach(function (fieldName) {
+                    modelData[this._underscoreToCamelCase(fieldName)] = modelDataObjItem[fieldName];
+                }.bind(this));
+
+                modelDataList.push(modelData);
+            }.bind(this));
+
+            return modelDataList;
+        }
+
+
+
+    },
+
+    _underscoreToCamelCase: function (str) {
+        return str.replace(/_([a-z])/g, function (u) {
+            return u[1].toUpperCase();
+        });
+    },
+
+    _getStorageNameByModelType: function (modelType) {
+        var storageName = modelType.replace(/\.?([A-Z])/g, function (x, y) {
+            return '-' + y.toLowerCase();
+        }).replace(/^-/, '');
+
+        if (storageName === 'product-type' || storageName === 'story-type') {
+            return 'nested-product-type'; // FIXME: rework productType Endpoint to fullfill all needs
+        }
+
+        return storageName;
+    },
+
+    _subscribe: function () {
+        var pk = isNaN(1 * this.pk) ? this.pk : (1 * this.pk);
+        var _subscribedGroup = {type: this.rohrpostGroupType, id: pk};
+        if (!pk) {
+            return;
+        }
+
+        if (!this._rohrpostClient) {
+
+             app.storageContainer.getRohrpostClient(this.rohrpostClientId).then(function (client) {
+                 client.subscribe(_subscribedGroup).then(function (data) {
+                    this.set('_subscribedGroup', _subscribedGroup);
+                    this._rohrpostClient.on(data.group, this._onRohrpostMessage.bind(this));
+                }.bind(this)).catch(function (e) {
+                    console.log(e);
+                });
+
+                 this.set('_rohrpostClient', client);
+
+             }.bind(this));
+
+        }
+
+
+
+
+
+    },
+
+
+    _unsubscribe: function () {
+        if (!this._rohrpostClient) {
+            return;
+        }
+        this._rohrpostClient.unsubscribe(this._subscribedGroup);
+
+    },
+
+};
+</script>

@@ -1,0 +1,63 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+
+<link rel="import" href="../ax-crud/view-model-action-duplicate.html">
+
+
+
+<dom-module id="view-model-lookup-modal-duplicate">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            :host paper-dialog {
+                width: 90%;
+            }
+        </style>
+        <paper-dialog  class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm"
+                       no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                       opened="{{_opened}}">
+            <h2>Duplicate Lookup</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="{{_opened}}" restamp>
+                <view-model-action-duplicate load-model id="modal-dialog-form" model-pk="[[modelPk]]"
+                                             is-named
+                                             storage-id="lookup"
+                                                             on-model-save-success="handleResponse"></view-model-action-duplicate>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Duplicate now</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-lookup-modal-duplicate',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+
+            },
+
+            handleResponse: function (event, model) {
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-lookup-modal-edit', params: {modelPk: model.pk, isFirstEdit: true}});
+                this.cancelModalForm();
+            }
+        });
+
+    })();
+</script>

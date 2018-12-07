@@ -1,0 +1,470 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+<link rel="import" href="../model-sentence-variant-synonym-value/view-model-sentence-variant-synonym-value-form.html">
+<link rel="import" href="../model-sentence-variant-synonym-value/view-model-sentence-variant-synonym-value-list.html">
+
+
+<dom-module id="view-model-sentence-variant-synonym-form">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            .flex-row {
+                display: flex;
+                align-items: center;
+            }
+
+            :host #preview-container {
+                position: relative;
+                background-color: #dddddd;
+            }
+
+            :host view-model-container-list {
+                padding: 24px;
+                font-size: 20px;
+            }
+            :host #preview {
+                position: absolute;
+                color: transparent;
+                z-index: 10;
+                padding: 24px;
+                font-size: 20px;
+                white-space: pre-wrap;
+            }
+
+            :host #preview-text {
+                position: relative;
+                padding: 24px;
+                font-size: 20px;
+                white-space: pre-wrap;
+            }
+
+            :host #synonyms-external-links > a {
+                display: block;
+            }
+
+            :host #synonyms-external-links {
+                margin-left: 24px;
+            }
+
+            :host paper-tabs {
+                --paper-tabs-selection-bar-color: #77bc1f;
+
+            }
+            :host paper-tabs paper-tab {
+                --paper-tab-ink: #77bc1f;
+            }
+
+        </style>
+
+        <model-sentence-variant data="{{variantData}}" pk="[[variantPk]]"
+                                on-ax-model-loaded="_onSentenceVariantModelLoaded"></model-sentence-variant>
+        <paper-material class="model-list-section-header-description" elevation="0">
+            <p>
+                To create new synonyms, select a text fragment by marking it in your sentence variant.
+            </p>
+        </paper-material>
+
+        <section id="preview-container">
+
+            <template is="dom-if" if="[[trainingUsesContainer]]">
+                <view-model-container-list
+                        on-mouseup="selectObserver"
+                        storage-id="storage-sentence-variant-container"
+                        model-name="sentence-variant-container"
+                        parent-model-name="sentence-variant"
+                        active-mode="readOnly"
+                        no-expand
+                        parent-pk="[[variantPk]]">
+                </view-model-container-list>
+            </template>
+
+                <div hidden="[[trainingUsesContainer]]" id="preview" on-mouseup="selectObserver">[[variantData.text]]</div>
+                <div hidden="[[trainingUsesContainer]]" id="preview-text">[[highlightedText]]</div>
+
+
+        </section>
+
+        <form on-submit="saveModel" is="iron-form" id="model-form">
+            <paper-input
+                    label="Input: [[formData.text]]"
+                    value="{{formData.text}}"
+                    required error-message="This field is required."
+                    >
+            </paper-input>
+        </form>
+
+
+            <div hidden="[[!formData.text]]">
+
+
+            <div class="flex-row">
+                <div class="flex-column flex">
+                    <paper-tabs attr-for-selected="data-tab" class="flex-row flex" selected="{{selectedSynonymInputTab}}">
+                        <paper-tab data-tab="single">Add Single Synonym</paper-tab>
+                        <paper-tab data-tab="list">Paste a list of Synonyms</paper-tab>
+                    </paper-tabs>
+
+                    <iron-pages attr-for-selected="data-tab" class="flex-row flex" selected="[[selectedSynonymInputTab]]">
+
+                        <form data-tab="single" class="flex-row flex" id="new-value-form" on-submit="addSynonymValue" is="iron-form">
+                            <paper-input
+                                    class="flex"
+                                    id="new-synonym-value-text"
+                                    label="New Synonym for &quot;[[formData.text]]&quot;"
+                                    value="{{newSynonymValueText}}"
+                                    required error-message="This field is required."
+                                    >
+                            </paper-input>
+                            <paper-button raised on-tap="addSynonymValue">Add This Synonym</paper-button>
+                        </form>
+
+                        <form data-tab="list" class="flex-row flex" id="new-values-form" on-submit="addSynonymValues" is="iron-form">
+                            <paper-textarea
+                                    class="flex"
+                                    id="new-synonym-values-text"
+                                    label="New Synonyms for &quot;[[formData.text]]&quot;"
+                                    value="{{newSynonymValuesText}}"
+                                    required error-message="This field is required."
+                                    >
+                            </paper-textarea>
+                            <paper-button raised on-tap="addSynonymValues">Add These Synonyms</paper-button>
+                        </form>
+                    </iron-pages>
+                </div>
+
+
+                <div id="synonyms-external-links">
+                    <template is="dom-if" if="{{_variantInLanguage(variantData.language, 'de')}}">
+                        <h4>Look up Synonyms for &quot;[[formData.text]]&quot;</h4>
+                        <a href="https://www.openthesaurus.de/synonyme/[[formData.text]]" rel="noopener noreferrer" target="_blank">
+                            at OpenThesaurus
+                        </a>
+                        <a href="http://synonyme.woxikon.de/synonyme/[[formData.text]].php" rel="noopener noreferrer" target="_blank">
+                            at Woxikon
+                        </a>
+                        <a href="http://www.duden.de/suchen/dudenonline/[[formData.text]]" rel="noopener noreferrer" target="_blank">
+                            at Duden
+                        </a>
+                    </template>
+                    <template is="dom-if" if="{{_variantInLanguage(variantData.language, 'es')}}">
+                        <h4>Look up Synonyms for &quot;[[formData.text]]&quot;</h4>
+                        <a href="http://servicios.elpais.com/diccionarios/sinonimos-antonimos/[[formData.text]]"
+                           rel="noopener noreferrer" target="_blank">
+                            at ElPais
+                        </a>
+                        <a href="http://www.wordreference.com/sinonimos/[[formData.text]]" rel="noopener noreferrer" target="_blank">
+                            WordReference
+                        </a>
+                    </template>
+                    <template is="dom-if" if="{{_variantInLanguage(variantData.language, 'en')}}">
+                        <h4>Look up Synonyms for &quot;[[formData.text]]&quot;</h4>
+                        <a href="http://synonyme.woxikon.de/synonyme-englisch/[[formData.text]].php" rel="noopener noreferrer" target="_blank">
+                            at Woxikon
+                        </a>
+                        <a href="http://www.wordreference.com/synonyms/[[formData.text]]" rel="noopener noreferrer" target="_blank">
+                            at WordReference
+                        </a>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+
+        <template is="dom-repeat" items="{{synonymValues}}" id="view-model-sentence-variant-synonym-value-forms">
+            <div class="flex-row">
+                <paper-input class="flex" label="Value" value="{{item}}"></paper-input>
+                <paper-icon-button icon="delete" on-tap="_deleteNewSynonymValue"
+                                   data-idx="[[index]]"></paper-icon-button>
+            </div>
+        </template>
+
+        <template is="dom-if" if="[[modelPk]]">
+            <view-model-sentence-variant-synonym-value-list
+                    parent-pk="[[modelPk]]"
+                    on-iron-overlay-opened="stopPropagation"
+                    on-model-save-success="stopPropagation">
+            </view-model-sentence-variant-synonym-value-list>
+        </template>
+
+
+    </template>
+</dom-module>
+<script>
+(function () {
+
+    var synonymLinksByLanguage = {
+        'de': [
+            {
+                name: 'OpenThesaurus',
+                url: 'https://www.openthesaurus.de/synonyme/###REPLACE_ME###'
+            },
+            {
+                name: 'Woxikon',
+                url: 'http://synonyme.woxikon.de/synonyme/###REPLACE_ME###.php'
+            },
+            {
+                name: 'Duden',
+                url: 'http://www.duden.de/suchen/dudenonline/###REPLACE_ME###'
+            }
+        ],
+        'es': [
+            {
+                name: 'ElPais',
+                url: 'http://servicios.elpais.com/diccionarios/sinonimos-antonimos/###REPLACE_ME###'
+            },
+            {
+                name: 'WordReference',
+                url: 'http://www.wordreference.com/sinonimos/###REPLACE_ME###'
+            }
+        ],
+        'en': [
+            {
+                name: 'Woxikon',
+                url: 'http://synonyme.woxikon.de/synonyme-englisch/###REPLACE_ME###.php'
+            },
+            {
+                name: 'WordReference',
+                url: 'http://www.wordreference.com/synonyms/###REPLACE_ME###'
+            }
+        ]
+    };
+
+
+    Polymer({
+        is: 'view-model-sentence-variant-synonym-form',
+
+        behaviors: [AxWizard.BaseModelFormBehavior],
+
+        properties: {
+            trainingUsesContainer: {
+                type: Boolean,
+                value: false
+            },
+            _hideSearchForNewSynonyms: {
+                type: Boolean,
+                value: true
+            },
+            _showAddButtonForNewSynonyms: {
+                type: Boolean,
+                value: false
+            },
+            selectedSynonymInputTab: {
+                type: String,
+                value: 'single'
+            },
+            storageId: {
+                type: String,
+                value: 'sentence-variant-synonym',
+                notify: true
+            },
+            variantPk: {
+                type: String,
+                notify: true,
+                value: ''
+            },
+            allowedFields: {
+                type: Array,
+
+                value: function () {
+                    return ['text'];
+                },
+                notify: true
+            },
+            synonymValues: {
+                type: Array,
+                notify: true,
+                value: function () {
+                    return [];
+                }
+            },
+            newSynonymValueText: {
+                type: String,
+                value: ''
+            },
+            newSynonymValuesText: {
+                type: String,
+                value: ''
+            },
+            highlightedText: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            variantData: {
+                type: Object,
+                notify: true
+            }
+        },
+
+        listeners: {
+            'highlighted-text-changed': '_highlightedTextChanged'
+        },
+        observers: [
+            '_highlightText(variantData.text, formData.text)'
+        ],
+
+        stopPropagation: function (event) {
+            event.stopPropagation();
+        },
+
+        _variantInLanguage: function (languageCode, languageStr) {
+            return languageCode.split('-')[0] === languageStr;
+        },
+
+        _highlightedTextChanged: function (event, newVal) {
+            this.$['preview-text'].innerHTML = newVal.value;
+        },
+
+        _escapeHTML: function (html) {
+            return document.createElement('div').appendChild(document.createTextNode(html)).parentNode.innerHTML;
+        },
+
+        _highlightText: function (text, highlightText) {
+            var escapedText = this._escapeHTML(text),
+                    ret;
+            if (highlightText === undefined || !highlightText.length) {
+                this.set('highlightedText', escapedText);
+            }
+            ret = escapedText.split(highlightText).join('<mark class="bg-only">' + highlightText + '</mark>');
+            this.set('highlightedText', ret);
+        },
+
+        _onSentenceVariantModelLoaded: function (event) {
+            event.stopPropagation();
+            this._highlightText(this.variantData.text, this.formData.text);
+        },
+
+        _preSaveModel: function () {
+            if (this.variantPk) {
+                this.set('formData.sentenceVariant', parseInt(this.variantPk, 10));
+            }
+            if (!this.loadModel) {
+                this.set('allowedFields', ['text']);
+            } else {
+                this.set('allowedFields', ['text']);
+            }
+        },
+
+        saveModel: function () {
+            if (this.$['model-form'].validate()) {
+                return AxWizard.BaseModelFormBehavior.saveModel.call(this).then(function (savedModel) {
+
+                    var p;
+                    p = this.synonymValues.map(function (synonymValueText) {
+                        return app.storageContainer.getNewObject('sentence-variant-synonym-value').then(function (modelSynonymValue) {
+                            modelSynonymValue.set('data', {sentenceVariantSynonym: savedModel.pk, value: synonymValueText});
+                            return modelSynonymValue.save();
+                        });
+                    });
+
+                    Promise.all(p).then(function () {
+                        this.cancel();
+                    }.bind(this));
+
+
+                }.bind(this));
+            } else {
+                return;
+            }
+        },
+
+        addSynonymValue: function (event) {
+
+            event.stopPropagation();
+            if (this.$['new-value-form'].validate()) {
+                this.push('synonymValues', '' + this.newSynonymValueText);
+                this.set('newSynonymValueText', '');
+                this.set('newSynonymValuesText', '');
+                this.$['new-synonym-value-text'].focus();
+            }
+        },
+
+        addSynonymValues: function (event) {
+            event.stopPropagation();
+            var newSynonymValuesText;
+            if (this.$['new-values-form'].validate()) {
+                // newSynonymValueText can be a 'list' of strings seperated by newlines.
+                newSynonymValuesText = ('' + this.newSynonymValuesText).split(/\r?\n+/).filter(function (x) {
+                    return x;
+                });
+                newSynonymValuesText.forEach(function (val) {
+                    this.push('synonymValues', '' + val);
+                }.bind(this));
+                this.set('newSynonymValueText', '');
+                this.set('newSynonymValuesText', '');
+                this.$['new-synonym-values-text'].focus();
+            }
+        },
+
+        addSynonym: function (synonymText) {
+            this.set('formData.text', synonymText);
+            this.$['new-synonym-value-text'].focus();
+        },
+
+        _deleteNewSynonymValue: function (event) {
+            var idx = event.target.dataHost.dataIdx;
+            if (idx === undefined) {
+                console.log('no dataIdx', arguments);
+            }
+            this.splice('synonymValues', idx, 1);
+        },
+
+        selectObserver: function (event) {
+            var sel,
+                    synonymText;
+            event.stopPropagation();
+
+            sel = window.getSelection();
+            if (sel.anchorNode !== sel.focusNode) {
+                return;
+            }
+            
+            if (sel.anchorNode.parentElement && sel.anchorNode.parentElement.className.indexOf('view-model-container-detail-chip') > -1) {
+                return;
+            }
+
+            synonymText = sel.toString();
+            if (synonymText.length < 1) {
+                return;
+            }
+
+            this.addSynonym(synonymText);
+        },
+
+        cancel: function () {
+            AxWizard.BaseModelFormBehavior.cancel.apply(this, arguments).then(function () {
+                this.set('synonymValues', []);
+                this.set('newSynonymValueText', '');
+                this._highlightText(this.variantData.text, this.formData.text);
+            }.bind(this));
+        },
+
+        _loadModel: function () {
+            var p = AxWizard.BaseModelFormBehavior._loadModel.apply(this, arguments);
+            p.then(function (model) {
+                if (!(this.variantPk)) {
+                    this.set('variantPk', model.data.sentenceVariant);
+                }
+            }.bind(this));
+            return p;
+        }
+
+    });
+})();
+</script>

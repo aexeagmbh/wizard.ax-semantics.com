@@ -1,0 +1,508 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../model-training/story-type-editor/story-type-editor-mode-behavior.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-validity.html">
+
+<dom-module id="container-view-translate-model-sentence-variant-list-detail">
+
+    <template>
+
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host #preview-container {
+                width: 100%;
+                background-color: lightgray;
+
+            }
+
+            :host #preview-container-content {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            :host .flex-row {
+                align-items: stretch;
+            }
+
+            :host .ax-validity-invalid {
+                border-bottom: 1px dotted red;
+            }
+
+            :host ax-highlight-atml-containers {
+                display: inline-block;
+                outline: none;
+            }
+             :host ax-highlight-atml-containers:focus {
+                 outline: none;
+             }
+
+            :host #new-variant-form ::content paper-textarea ::content paper-input-container ::content iron-autogrow-textarea,
+            :host  #new-variant-form ::content paper-textarea ::content paper-input-container ::content .input-content.paper-input-container #mirror,
+            :host  #new-variant-form ::content paper-textarea ::content paper-input-container ::content .input-content.paper-input-container .textarea-container,
+            :host  #new-variant-form ::content paper-textarea ::content paper-input-container ::content  .input-content.paper-input-container .textarea-container textarea,
+            :host  #new-variant-form ::content paper-textarea,
+
+
+            :host base-model-inplace-form ::content *.base-model-inplace-form,
+            :host base-model-inplace-form ::content paper-textarea ::content paper-input-container ::content iron-autogrow-textarea,
+            :host base-model-inplace-form ::content paper-textarea ::content paper-input-container ::content .input-content.paper-input-container #mirror,
+            :host base-model-inplace-form ::content paper-textarea ::content paper-input-container ::content .input-content.paper-input-container .textarea-container,
+            :host base-model-inplace-form ::content paper-textarea ::content paper-input-container ::content  .input-content.paper-input-container .textarea-container textarea,
+            :host base-model-inplace-form ::content paper-textarea {
+                font-size: inherit !important;
+            }
+
+            :host #new-variant-form ::content paper-button,
+            :host base-model-inplace-form ::content paper-button {
+                font-size: initial !important;
+            }
+
+            :host paper-card {
+                width: 100%;
+                background-color: transparent;
+            }
+            :host paper-card[elevation="0"] .main-card-content {
+                padding: 0;
+            }
+
+            :host .normal-size {
+                font-size: initial !important;
+            }
+            :host .btn-expand-item-list-detail {
+                flex-shrink: 0;
+            }
+
+            :host .content-container {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            :host .card-content {
+                padding-left: 0;
+                padding-right: 0;
+            }
+
+            :host div[data-inactive] {
+                background-color: lightgray;
+            }
+
+            :host paper-button.mode-switch[active]  {
+                background-color: rgba(119, 188, 31, 0.5);
+            }
+            :host paper-button.mode-switch[active] span {
+                margin-bottom: -2px;
+            }
+
+            :host paper-toolbar paper-toggle-button ::content .toggle-label{
+                color: white !important;
+            }
+
+            :host paper-toolbar {
+                background-color: grey;
+                width: 100%;
+            }
+            :host .hints paper-material {
+                background-color: lightgray;
+            }
+            :host paper-tabs {
+                --paper-tabs-selection-bar-color: #77bc1f;
+
+            }
+            :host paper-tabs paper-tab {
+                --paper-tab-ink: #77bc1f;
+            }
+        </style>
+
+        <template is="dom-if" if="[[modelPk]]" restamp>
+            <div class="content-container" data-inactive$="[[!model.data.active]]">
+            <paper-card elevation="0">
+
+
+                <div class="card-content main-card-content flex-row" style="margin-bottom: 12px;">
+
+                     <template is="dom-if" if="[[_allOf(readOnlyMode, _inactive)]]">
+                         <paper-toolbar>
+                             <div class="flex"></div>
+                             <div style="padding: 12px;" class="paper-font-caption">
+                                [[_toggleSentenceVariantActiveTitleText(model.data.active)]]
+                            </div>
+                         </paper-toolbar>
+
+                         </template>
+                    <template is="dom-if" if="[[!readOnlyMode]]">
+                        <paper-toolbar>
+
+                            <paper-tabs selected="{{translationStep}}" autoselect
+                                        attr-for-selected="data-translate-mode">
+                                <paper-tab data-translate-mode="write">Write a Translation</paper-tab>
+                                <paper-tab data-translate-mode="magic">Add Magic To Translation</paper-tab>
+                                <paper-tab data-translate-mode="translatePhrases">Translate Properties</paper-tab>
+                            </paper-tabs>
+
+                            <template is="dom-if" if="[[_anyOf(_showDisable, _showSort, _inactive)]]">
+                                <div class="flex"></div>
+                                <template is="dom-if" if="[[_showDisable]]">
+                                    <paper-button>
+                                        <paper-toggle-button
+                                                on-tap="_toggleSentenceVariantActive"
+                                                checked="[[model.data.active]]"
+                                                title="[[_toggleSentenceVariantActiveTitleText(model.data.active)]]"
+                                                class="mode-switch">
+                                            [[_toggleSentenceVariantActiveTitleText(model.data.active)]]
+                                        </paper-toggle-button>
+                                    </paper-button>
+                                </template>
+                                <template is="dom-if" if="[[!_showDisable]]">
+                                    <template is="dom-if" if="[[!model.data.active]]">
+                                        <div style="padding: 12px;" class="paper-font-caption">
+                                            [[_toggleSentenceVariantActiveTitleText(model.data.active)]]
+                                        </div>
+                                    </template>
+                                </template>
+
+                                <template is="dom-if" if="[[_showSort]]">
+
+
+                                    <paper-button class="mode-switch" active="{{isSortable}}" toggles><span>Arrange Containers</span>
+                                    </paper-button>
+                                </template>
+                            </template>
+                        </paper-toolbar>
+                    </template>
+                </div>
+
+
+                <div class="hints">
+                    <template is="dom-if" if="[[magicMode]]">
+                        <paper-material elevation="0" class="paper-font-caption"
+                                        style="white-space: normal; overflow: visible;">
+                            <p>
+                                Please mark the parts in your Translation that need to be containers.
+                                You can choose to make the containers work the same way they do in the selected Base
+                                Variant.
+                                You then might need to change a few words and grammar rules depending on your
+                                translation.
+                            </p>
+
+                            <p>
+                                Hint: It is best to start with Phrase and Group Containers (the ones marked with a
+                                P) because dynamic grammar might depend on them.
+                            </p>
+                        </paper-material>
+                    </template>
+                    <template is="dom-if" if="[[writeMode]]">
+                        <paper-material elevation="0">
+                            <template is="dom-if" if="[[modelPk]]">
+                                <h4>Work on selected Translation or write a new Translation.</h4>
+                            </template>
+                            <template is="dom-if" if="[[!modelPk]]">
+                                <h4>Write a new Translation.</h4>
+                            </template>
+                        </paper-material>
+                    </template>
+                </div>
+
+                <div class="card-content main-card-content flex-row">
+
+                    <view-model-container-list
+                            is-sortable="[[isSortable]]"
+                            storage-id="storage-sentence-variant-container"
+                            model-name="sentence-variant-container"
+                            parent-model-name="sentence-variant"
+                            is-containers-detectable="{{isContainersDetectable}}"
+                            active-mode="[[_getActiveModeForContainer(activeMode)]]"
+                            class$="[[_computeValidityClassName(model.data.valid)]]"
+                    parent-pk="[[modelPk]]">
+                    </view-model-container-list>
+                </div>
+
+                <template is="dom-if" if="[[_showPreview]]" restamp>
+                    <div class="card-content flex-row">
+                        <div id="preview-container">
+                            <div id="preview-container-content">
+                                 <view-model-sentence-variant-validity
+                                        model-pk="[[modelPk]]"
+                                        validate-button-label="Validate"
+                                        on-ax-validate-sentence-variant="_validateSentenceVariant"
+                                        hide-validate-button="[[!_showValidate]]">
+                                 </view-model-sentence-variant-validity>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </template>
+
+            </paper-card>
+            </div>
+
+        </template>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'container-view-translate-model-sentence-variant-list-detail',
+            behaviors: [
+                AxWizard.StoryTypeEditorModeBehavior,
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            _getActiveModeForContainer: function (activeMode) {
+                return ['readOnly', 'write', 'magic'].indexOf(activeMode) > -1 ? activeMode : 'readOnly';
+            },
+
+            _cancelInplaceEditForm: function (event) {
+                var form = this.$$('#inplace-edit-form');
+                event.stopPropagation();
+                if (form) {
+                    form.cancel();
+                }
+            },
+
+            _saveInplaceEditForm: function (event) {
+                var form = this.$$('#inplace-edit-form');
+                event.stopPropagation();
+                if (form) {
+                    form.saveModel();
+                }
+            },
+
+            _deleteModel: function (event) {
+                event.stopPropagation();
+                var model = this.model;
+                if (model) {
+                    model.delete().then(function () {
+                        this.set('_isInplaceEdit', false);
+                        this.fire('item-deleted');
+                    }.bind(this));
+                }
+
+            },
+
+            _detectContainers: function () {
+                this.model.detectContainers();
+            },
+
+            _join: function () {
+                return Array.prototype.join.call(arguments, ' ');
+            },
+
+             itemValidityIcon: function (validity) {
+                if (validity === false) {
+                    return 'icons:warning';
+                }
+                if (validity === true) {
+                    return 'icons:check';
+                }
+                return 'icons:hourglass-empty';
+            },
+
+            properties: {
+                translationStep: {
+                    type: String,
+                    value: 'write',
+                    notify: true
+                },
+                modelName: {
+                    value: 'sentence-variant'
+                },
+                _isInplaceEdit: {
+                    type: Boolean,
+                    value: false
+                },
+                trainingUsesContainers: {
+                    type: Boolean,
+                    value: false
+                },
+                isContainersDetectable: {
+                    type: Boolean,
+                    value: false
+                },
+                translatePhrasesMode: {
+                    type: Boolean,
+                    computed: '_computeTranslatePhrasesMode(activeMode)',
+                    notify: true,
+                    observer: '_translatePhrasesModeChanged'
+                },
+
+                _inactive: {
+                    type: Boolean,
+                    computed: '_not(model.data.active)',
+                    notify: true,
+                }
+
+            },
+
+            _not: function (x) {
+                return !x;
+            },
+
+            _computeTranslatePhrasesMode: function (modeName) {
+                return modeName === 'translatePhrases';
+            },
+
+            _computePaperCardElevation: function (x) {
+                return x ? 1 : 0;
+            },
+
+            _anyOf: function () {
+                var args = Array.prototype.slice.call(arguments);
+
+                return args.filter(function (x) {
+                    return !!x;
+                }).length > 0;
+            },
+
+            _allOf: function () {
+                return Array.prototype.slice.call(arguments).filter(function (x) {return !!x;}).length === arguments.length;
+            },
+
+            _writeModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('_showDisable', true);
+                this.set('_showSort', true);
+
+                this.set('_showDelete', false);
+                this.set('_showNewSentence', true);
+                this.set('_allowEditText', true);
+                this.set('_showSynonyms', false);
+                this.set('_showPreview', false);
+                this.set('_showValidate', false);
+            },
+
+            _magicModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showDisable', true);
+                this.set('_showSort', true);
+
+                this.set('_showDelete', false);
+                this.set('_allowEditText', !this.trainingUsesContainers);
+                this.set('_showNewSentence', false);
+                this.set('_showSynonyms', false);
+                this.set('_showPreview', true);
+                this.set('_showValidate', true);
+            },
+
+            _translatePhrasesModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showDisable', false);
+                this.set('_showSort', false);
+
+                this.set('_showDelete', false);
+                this.set('_allowEditText', false);
+                this.set('_showNewSentence', false);
+                this.set('_showSynonyms', false);
+                this.set('_showPreview', true);
+                this.set('_showValidate', true);
+            },
+
+            _readOnlyModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('_showDisable', false);
+                this.set('_showSort', false);
+
+                this.set('_showDelete', true);
+                this.set('_allowEditText', false);
+                this.set('_showNewSentence', false);
+                this.set('_showSynonyms', false);
+                this.set('_showPreview', false);
+                this.set('_showValidate', false);
+            },
+
+            _computeValidityClassName: function (isValid) {
+                if (isValid === false) {
+                    return 'ax-validity-invalid';
+                }
+                if (isValid === true) {
+                    return 'ax-validity-valid';
+                }
+                return 'ax-validity-checking';
+            },
+
+            _startInplaceEdit: function () {
+                this.set('_isInplaceEdit', this._allowEditText);
+            },
+            _stopInplaceEdit: function () {
+                this.set('_isInplaceEdit', false);
+            },
+
+            _toArray: function () {
+                return Array.prototype.slice.call(arguments);
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            _editSynonyms: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-synonym-wizard-modal', params: {variantPk: this.modelPk}});
+            },
+
+            _initModel: function () {
+
+
+                return new Promise(function (resolve, reject) {
+                        if (this.modelPk === undefined || this.modelPk === 'undefined') {
+                            return;
+                        }
+                        app.storageContainer.getObject(this.modelName, this.modelPk).then(function (model) {
+                            this.set('model', model);
+                            model.addEventListener('ax-model-data-changed', this.onAxModelDataChanged.bind(this));
+                            resolve(model);
+                        }.bind(this), function () {
+                            //FIXME pass silent for now. here's an empty string sometimes???
+                        }.bind(this));
+
+
+                }.bind(this));
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            _validateSentenceVariant: function (event) {
+                event.stopPropagation();
+                this.model.validate();
+            },
+            _toggleSentenceVariantActiveTitleText: function (isOn) {
+                return isOn ? 'Variant is active' : 'Variant is not active';
+            },
+
+            _toggleSentenceVariantActive: function (event) {
+                event.stopPropagation();
+                this.model.save(['active'], {active: !this.model.get('data.active')});
+            },
+        });
+    })();
+</script>

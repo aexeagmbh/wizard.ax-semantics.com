@@ -1,0 +1,168 @@
+<script>
+    var AxWizard = AxWizard || {};
+    AxWizard.BaseModelViewBehavior = {
+
+        properties: {
+            modelPk: {
+                type: String,
+                notify: true,
+                reflectToAttribute: true,
+                observer: '_modelPkHasChanged'
+            },
+            model: {
+                type: Object,
+                notify: true
+            },
+            _modelP: {
+                type: Object
+            },
+            _isLoading: {
+                type: Boolean,
+                value: false
+            }
+        },
+
+        listeners: {
+            'model-pk-changed': '_modelPkChanged',
+            'modelPk-changed': '_modelPkChanged',
+            'ax-model-deleted': 'onAxModelDeleted'
+        },
+
+        _editModel: function (event) {
+            event.stopPropagation();
+            var editDialog = this.$$('#edit-model-dialog');
+            if (editDialog) {
+                editDialog.open();
+            } else {
+
+                console.warn('No edit dialog available');
+            }
+
+        },
+
+        _duplicateModel: function (event) {
+            event.stopPropagation();
+            var dialog = this.$$('#duplicate-model-dialog');
+            if (dialog) {
+                dialog.open();
+            } else {
+                console.warn('No duplicate dialog');
+            }
+        },
+
+        _deleteModel: function (event) {
+            event.stopPropagation();
+            this.model.delete().then(function () {
+                this.fire('item-deleted');
+            }.bind(this));
+        },
+
+        _modelPkHasChanged: function (modelPk) {
+            this._initModel();
+        },
+
+
+        _modelPkChanged: function (event) {
+            this._initModel();
+        },
+
+        _initModel: function () {
+            var p;
+
+            p = new Promise(function (resolve, reject) {
+                if (this.modelName) {
+                    if (this.modelPk === undefined || this.modelPk === 'undefined') {
+                        return;
+                    }
+                    app.storageContainer.getObject(this.modelName, this.modelPk).then(function (model) {
+                        this.set('model', model);
+                        model.addEventListener('ax-model-data-changed', this.onAxModelDataChanged.bind(this));
+                        resolve(model);
+                    }.bind(this), function () {
+                        //FIXME pass silent for now. here's an empty string sometimes???
+                    }.bind(this));
+
+                } else {
+
+                    this.set('model', this.$$('#model'));
+                    if (this.model) {
+                        this.model.addEventListener('ax-model-data-changed', this.onAxModelDataChanged.bind(this));
+                         resolve(this.model);
+                    }
+                }
+            }.bind(this));
+
+            p.then(function (model) {
+                this.modelChanged(model);
+            }.bind(this));
+
+            this.set('_modelP', p);
+            return p;
+        },
+
+        ready: function () {
+            this._initModel();
+        },
+
+        onAxModelDataChanged: function (event) {
+            var data = event.detail || [];
+            this.notifyPath('model.' + data[0] , data[1]);
+        },
+
+        onAxModelDeleted: function (event) {
+
+            var data,
+                modelIs,
+                modelPk;
+
+            data = event.detail || [];
+            modelIs = data[0];
+            modelPk = data[1];
+
+            event.stopPropagation();
+            if (this.model && this.model.is === modelIs && '' + this.model.pk === '' + modelPk) {
+                this.remove();
+            }
+        },
+
+        modelChanged: function (model) {
+            // Implemented in children
+        },
+
+        refresh: function () {
+        },
+
+        getModel: function () {
+//            return Promise.resolve(this.model);
+            if (!this._modelP) {
+                return this._initModel();
+            } else {
+                return this._modelP;
+            }
+        },
+
+        detached: function () {
+            if (this.model) {
+                this.model.removeEventListener('ax-model-data-changed', this.onAxModelDataChanged.bind(this));
+            }
+
+            this.set('model', null);
+        },
+
+        attached: function () {
+            if (!this.model) {
+                this._initModel();
+            }
+        },
+
+        _ironMetaQuery: function (key, prependStr, appendStr) {
+            var ret = [
+                prependStr,
+                new Polymer.IronMetaQuery({key: key}).value,
+                appendStr
+            ];
+
+            return ret.join('');
+        }
+    };
+</script>

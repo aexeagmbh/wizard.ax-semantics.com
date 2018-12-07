@@ -1,0 +1,122 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+<link rel="import" href="../model-validation-data/view-model-validation-data-list-detail.html">
+
+
+<dom-module id="form-validation-data-select">
+    <template>
+        <form is="iron-form" on-submit="saveModel" id="model-form">
+            <base-model-list-select
+                    search-filter-properties="[[searchFilterProperties]]"
+                    search-placeholder="Search"
+                    selected="{{selectedValidationDataPk}}"
+                    required="1"
+                    show-search
+                    template-id="list-select-validation-data-template"
+                    label="Validation Data"
+                    storage-id="storage-validation-data"
+                    parent-pk="[[modelPk]]">
+                <template id="list-select-validation-data-template" is="dom-template">
+                    <div label="[[baseModelListItem.name]]" value="[[baseModelListItem.id]]">
+                        <view-model-validation-data-list-detail language="{{baseModelListItem.__language}}" parent-obj-name="{{baseModelListItem.__parentObjName}}" hide-details model-pk="[[baseModelListItem.id]]"></view-model-validation-data-list-detail>
+                    </div>
+                </template>
+            </base-model-list-select>
+
+
+        </form>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'form-validation-data-select',
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            properties: {
+                selectedValidationDataPk: {
+                    notify: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'training',
+                    readOnly: true
+                },
+
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name',
+                            'uid',
+                            '__language',
+                            '__parentObjName'
+                        ];
+                    }
+                },
+
+            },
+
+
+            _initFormData: function (model) {
+
+                app.storageContainer.getList('validation-data', model.get('pk')).then(function (l) {
+                    var selectedItem;
+                    selectedItem = l.find(function (item) {
+                        return item.selectedByUserForLanguages && item.selectedByUserForLanguages[0] === '*';
+                    });
+                    if (selectedItem) {
+                        this.set('selectedValidationDataPk', selectedItem.id);
+                    }
+
+                }.bind(this));
+            },
+
+
+            _modelPkChanged: function (newVal) {
+                if (newVal === undefined) {
+                    this.set('model', null);
+                    return;
+                }
+                return this._loadModel(newVal);
+            },
+
+            _modelChanged: function (model) {
+
+            },
+
+
+            _saveModel: function () {
+                var self = this,
+                        p;
+                app.fire('ax-ga-event', {category: 'Form', action: 'save', label: this.is});
+                p = app.storageContainer.getObject('validation-data', this.selectedValidationDataPk).then(function (m) {
+                    m.select('*').then(function () {
+                        self.fire('model-save-success', m);
+                        self.set('_isLoading', false);
+                    }, function (e) {
+                        console.log('model-save-error', e);
+                        self.set('_isLoading', false);
+                        self.fire('model-save-error', e);
+                    });
+                });
+                return p;
+            },
+
+            saveModel: function () {
+
+                if (this.selectedValidationDataPk) {
+                    return this._saveModel();
+                } else {
+                    return;
+                }
+            }
+
+        });
+    }());
+</script>

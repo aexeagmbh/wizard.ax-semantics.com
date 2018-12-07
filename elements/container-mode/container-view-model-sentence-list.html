@@ -1,0 +1,427 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-list/iron-list.html">
+
+<link rel="import" href="../../bower_components/polymer-sortablejs/polymer-sortablejs.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../container-mode/container-view-model-sentence-list-detail.html">
+<link rel="import" href="../container-mode/container-view-translate-model-sentence-list-detail.html">
+
+
+
+<dom-module id="container-view-model-sentence-list">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host .card-content-body-form-container .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .card-content-body-form-container .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            :host .card-content-body-form-container .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host .sortable-drag-handle {
+                /*margin-left: -24px;*/
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host container-view-model-sentence-list-detail {
+                margin-bottom: 1ex;
+                min-height: 40px;
+            }
+            :host #sentence-detail-container-fake {
+                display: flex;
+                flex-basis: 10%;
+                flex-grow: 0;
+                flex-shrink: 0;
+                margin-left: 16px;
+                margin-right: 0;
+            }
+
+            :host .sortable-drag-handle {
+                padding: 8px;
+                cursor: move;
+            }
+        </style>
+
+        <paper-spinner active="[[_isLoading]]" hidden="[[!_isLoading]]"></paper-spinner>
+        <p hidden="[[!_isLoading]]">[[_loadingMessage]]</p>
+
+        <template is="dom-if" if="[[_isDataLoaded]]" restamp>
+            <section id="container" class="list-view-list" hidden="[[_isLoading]]">
+                <sortable-js disabled="[[!_enableSortSentences]]" id="sortable-list" on-update="_onSelectedSortChange" handle=".sortable-drag-handle">
+
+
+
+                    <template data-id="__ax-snape-sortable-list-items" id="sortable-list-items" is="dom-repeat" items="[[sentenceIdentifiers]]">
+                        <div data-id$="[[item]]"  value="[[item]]" class="flex-row" style="align-items: flex-start;">
+
+                            <div class="flex">
+                                <template is="dom-if" if="[[item]]" restamp>
+                                    <template is="dom-if" if="[[translateMode]]">
+                                        <container-view-translate-model-sentence-list-detail
+                                            active-mode="[[activeMode]]"
+                                            class="flex"
+                                            language="[[language]]"
+                                            translate-language="[[translateLanguage]]"
+                                            training-pk="[[trainingPk]]"
+                                            training-uses-containers="[[trainingUsesContainers]]"
+                                            model-pk="[[item]]"></container-view-translate-model-sentence-list-detail>
+                                    </template>
+                                    <template is="dom-if" if="[[!translateMode]]">
+                                        <container-view-model-sentence-list-detail
+                                            active-mode="[[activeMode]]"
+                                            class="flex"
+                                            language="[[language]]"
+                                            translate-language="[[translateLanguage]]"
+                                            training-pk="[[trainingPk]]"
+                                            training-uses-containers="[[trainingUsesContainers]]"
+                                            model-pk="[[item]]"></container-view-model-sentence-list-detail>
+                                    </template>
+
+                                </template>
+                            </div>
+
+                            <iron-icon title="Change Sentence Order" class="sortable-drag-handle" item-icon icon="editor:format-line-spacing" hidden="[[!_enableSortSentences]]"></iron-icon>
+                        </div>
+                    </template>
+                </sortable-js>
+                <template is="dom-if" if="[[_showAddSentence]]" restamp>
+
+                    <div>
+                        <div class="flex-row">
+                            <div class="flex">
+                                <form is="iron-form" id="new-sentence-form" on-submit="_createNewSentence">
+                                    <paper-textarea  no-label-float id="new-variant-input" tabindex="1" value="{{_newSentenceVariantText}}" placeholder="Write the next Sentence here">
+
+                                        <paper-icon-button hidden="[[!_newSentenceVariantText.length]]" suffix icon="clear" on-tap="_cancelNewSentenceForm"></paper-icon-button>
+                                        <paper-icon-button hidden="[[!_newSentenceVariantText.length]]" suffix icon="done" on-tap="_createNewSentence"></paper-icon-button>
+                                    </paper-textarea>
+                                </form>
+                            </div>
+                            <div id="sentence-detail-container-fake" class="flex">
+
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+            </section>
+        </template>
+    </template>
+</dom-module>
+<script>
+(function () {
+    Polymer({
+        is: 'container-view-model-sentence-list',
+        behaviors: [
+            AxWizard.StoryTypeEditorModeBehavior,
+            AxWizard.BaseModelListViewBehaviour
+        ],
+
+        properties: {
+            trainingPk: {
+                type: String
+            },
+            productTypePk: {
+                type: String,
+                notify: true
+            },
+
+            storageId: {
+                type: String,
+                value: 'storage-sentence',
+                notify: true
+            },
+
+            _enableSortSentences: {
+                type: Boolean,
+                value: true,
+                notify: true
+            },
+
+            sentenceIdentifiers: {
+                type: Array
+            },
+            language: {
+                type: String,
+                notify: true,
+                observer: '_languageChanged'
+            },
+            translateLanguage: {
+                type: String,
+                notify: true,
+                observer: '_languageChanged'
+            },
+            _loadingMessage: {
+                type: String
+            },
+            _dataIdentifierIdMap: {
+                type: Object
+            },
+            _newSentenceVariantText: {
+                 type: String,
+                value: ''
+            },
+            listRequestParams: {
+                notify: true,
+                computed: '_computeListRequestParams(productTypePk)'
+            }
+        },
+        
+        _computeListRequestParams: function (productTypePk) {
+//            return {story_type: productTypePk};
+            return {};
+        },
+
+        _writeModeChanged: function (isOn) {
+            if (!isOn) {
+                return;
+            }
+
+            this.set('_showAddSentence', true);
+            this.set('_enableSortSentences', true);
+        },
+
+        _magicModeChanged: function (isOn) {
+            if (!isOn) {
+                return;
+            }
+
+            this.set('_showAddSentence', false);
+            this.set('_enableSortSentences', false);
+        },
+
+        _variantModeChanged: function (isOn) {
+            if (!isOn) {
+                return;
+            }
+
+            this.set('_showAddSentence', false);
+            this.set('_enableSortSentences', false);
+        },
+
+        _translateModeChanged: function (isOn) {
+            if (!isOn) {
+                return;
+            }
+
+            this.set('_showAddSentence', false);
+            this.set('_enableSortSentences', false);
+        },
+
+        _parentPkChanged: function () {
+            this.set('data', []);
+            this.set('searchTerm', '');
+            this.set('w', false);
+            if (this.isAttached) {
+                this.refresh();
+            }
+        },
+
+        _languageChanged: function (newVal, oldVal) {
+            if (oldVal === undefined) {
+                return;
+            }
+
+            if (this.isAttached) {
+                this.set('_isDataLoaded', false);
+                this._loadSentenceVariantsByLanguage(this.productTypePk, [].concat(this.sentenceIdentifiers || []), newVal).then(function () {
+                    this.set('_isDataLoaded', true);
+                }.bind(this));
+            }
+        },
+
+
+        _cancelNewSentenceForm: function (event) {
+                if (event) {
+                    event.stopPropagation();
+                }
+                this.set('_newSentenceVariantText', '');
+            },
+
+        _createNewSentence: function (event) {
+            this.fire('create-new-sentence', {}).detail.sentence.then(function (sentence) {
+
+
+                var language = this.language;
+                app.storageContainer.getNewObject('sentence-variant').then(function (model) {
+                        model.save(null, {sentence: sentence.data.id, language: this.language, text: this._newSentenceVariantText}).then(function () {
+                            this._cancelNewSentenceForm();
+                            this.fire('ax-sentence-variant-added');
+                        }.bind(this));
+                }.bind(this));
+
+            }.bind(this));
+        },
+
+
+        _loadSentenceVariantsByLanguage: function (productTypePk, sentencePks, language) {
+            var p1, p2, p3;
+            p1 = app.storageContainer.getStorage('sentence-variant');
+            p2 = p1.then(function (stSentenceVariant) {
+                this.set('_loadingMessage', 'Loading Texts...');
+                if (!sentencePks || !sentencePks.length) {
+                    return Promise.resolve([]);
+                }
+                return stSentenceVariant.bulkList(sentencePks); // Do not filter by language here, because translation etc won't work properly
+
+            }.bind(this));
+
+            if (this.trainingUsesContainers) {
+                p3 = p2.then(function (sentenceVariantItems) {
+
+                    if (!sentenceVariantItems || !sentenceVariantItems.length) {
+                        return Promise.resolve([]);
+                    }
+                    var sentenceVariantPks = sentenceVariantItems.filter(function (item) {
+                        return item.language === language;
+                    }).map(function (item) {
+                        return item.id;
+                    }).filter(function (item, idx, arr) {
+                        return  arr.indexOf(item) === idx;
+                    });
+
+                    if (!sentenceVariantPks.length) {
+                        return Promise.resolve([]);
+                    }
+
+                    return new Promise(function (resolve, reject) {
+                        this.set('_loadingMessage', 'Loading Magic...');
+                        app.storageContainer.getStorage('sentence-variant-container').then(function (stSentenceVariantContainer) {
+                            resolve(stSentenceVariantContainer.bulkList(sentenceVariantPks, {product_type: productTypePk, language: language, sentenceVariant: '-1'}, true));
+                        });
+                    }.bind(this));
+
+                }.bind(this));
+            } else {
+                p3 = p2;
+            }
+
+            return p3;
+        },
+
+        dataLoaded: function (data) {
+
+            var self = this,
+                    p;
+            p = new Promise(function (resolve, reject) {
+                var p1, p2, p3, p4;
+
+//                var sentencePks = data.map(function (x) {
+//                    return x.id;
+//                });
+
+                var sentencePks = [].concat(this.sentenceIdentifiers || []);
+
+                if (!sentencePks.length) {
+                    resolve(data);
+                    return;
+                }
+
+                if (this._isDataLoaded) {
+                    p4 = Promise.resolve();
+
+                } else {
+                    this.set('_loadingMessage', 'Loading dependencies...');
+
+                    p3 = this._loadSentenceVariantsByLanguage(this.productTypePk, sentencePks, this.language);
+
+                    p4 = p3.then(function () {
+                        return new Promise(function (resolve, reject) {
+                            self.set('_loadingMessage', 'Loading Properties...');
+                            resolve(app.storageContainer.getList('property', self.trainingPk, {fields: 'id,name,comment,training,valid,validity_message,truth_expression,mapping_expression'}));
+                        }.bind(this));
+
+                    });
+                }
+
+
+
+
+                p4.then(function () {
+
+                    this.set('_loadingMessage', '');
+                    resolve(data);
+
+                }.bind(this));
+
+
+            }.bind(this));
+
+            return p;
+
+
+        },
+
+
+
+        _onSelectedSortChange: function (event, targetEvent) {
+
+            if (!targetEvent) {
+                return;
+            }
+            var selectedElements;
+            var selectedValues = [];
+            selectedElements = [].filter.call(event.target.children, function (el) {
+                return !!el.value;
+            });
+            selectedElements.forEach(function (el) {
+                selectedValues.push(el.value);
+            }.bind(this));
+
+            this.fire('ax-sentence-order-changed', {sentenceOrder: selectedValues}).detail.p.then(function () {
+
+            }.bind(this));
+        },
+
+        _orderItemListLikeFacet: function (facets, itemFacetKeyName) {
+
+            return function (itemA, itemB) {
+                var itemAProperty = itemA[itemFacetKeyName],
+                        itemBProperty = itemB[itemFacetKeyName],
+                        itemAIdxInFacet = facets.indexOf(itemAProperty),
+                        itemBIdxInFacet = facets.indexOf(itemBProperty);
+                return itemAIdxInFacet - itemBIdxInFacet;
+            };
+        },
+
+        addSentenceDialog: function () {
+            this.$['add-sentence-dialog'].open();
+        },
+
+        _validateSentenceVariants: function (event) {
+            event.stopPropagation();
+            app.storageContainer.getObject('training', this.parentPk).then(function (training) {
+                training.validateSentenceVariants();
+            });
+        }
+
+    });
+})();
+</script>

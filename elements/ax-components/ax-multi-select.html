@@ -1,0 +1,276 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/sortable-list/sortable-list.html">
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+
+<dom-module id="ax-multi-select">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host sortable-list paper-item,
+            :host sortable-list paper-icon-item {
+                cursor: move;
+            }
+            :host .model-list-section-header-description {
+                margin-bottom: 0;
+            }
+
+        </style>
+        <paper-toolbar class="section-header" hidden="[[!label]]">
+            <h4>[[label]]</h4>
+        </paper-toolbar>
+        <paper-material hidden="[[_activeOrderedChoices.length]]" class="model-list-section-header-description"
+                        elevation="0">
+            <content select="#no-elements-selected-message"></content>
+        </paper-material>
+
+        <div class="ax-multi-select-buttons">
+            <paper-button raised on-tap="openSelect">[[openSelectLabel]]</paper-button>
+        <template is="dom-if" if="[[showCreate]]">
+            <paper-button raised on-tap="createChoice">Create New Choice</paper-button>
+        </template>
+        </div>
+        <paper-material hidden="[[!_activeOrderedChoices.length]]" class="model-list-section-header-description"
+                        elevation="0"><content select="#elements-selected-message"></content>
+        </paper-material>
+        <paper-dialog on-iron-overlay-opened="stopPropagation" id="select-dialog" no-cancel-on-outside-click>
+            <div class="buttons">
+                <ax-search-field search-term="{{searchTerm}}"></ax-search-field>
+                <paper-icon-button on-tap="closeSelect" icon="icons:close"></paper-icon-button>
+            </div>
+
+            <paper-dialog-scrollable>
+
+                <paper-listbox selected-values="{{selectedValues}}" id="select-dialog-list" multi
+                               attr-for-selected="value">
+                    <template is="dom-repeat" items="[[choices]]" filter="{{_filterList(searchTerm)}}">
+                        <template is="dom-if" if="[[icon]]">
+                            <paper-icon-item value="[[item.value]]" label="[[item.display_name]]" toggle>
+                                <iron-icon item-icon icon="[[icon]]"></iron-icon>
+                                <div class="flex">[[item.display_name]]</div>
+                            </paper-icon-item>
+                        </template>
+                        <template is="dom-if" if="[[!icon]]">
+                            <paper-item value="[[item.value]]" label="[[item.display_name]]" toggle>
+                                <div class="flex">[[item.display_name]]</div>
+                            </paper-item>
+                        </template>
+                    </template>
+                </paper-listbox>
+            </paper-dialog-scrollable>
+        </paper-dialog>
+
+        <div class="ax-multi-select-selected-list">
+            <template is="dom-if" if="[[sortable]]">
+                <sortable-list id="sortable-list"
+                               on-sort-change="_onSelectedSortChange">
+
+                    <template id="sortable-list-items" is="dom-repeat" items="{{_activeOrderedChoices}}">
+
+                        <div value="[[item.value]]" ax-order="{{item.order}}">
+                            <template is="dom-if" if="[[icon]]">
+                                <paper-icon-item value="[[item.value]]" label="[[item.display_name]]">
+                                    <iron-icon item-icon icon="editor:drag-handle"></iron-icon>
+                                    <iron-icon item-icon icon="[[icon]]"></iron-icon>
+                                    <div class="flex">[[item.display_name]]</div>
+                                </paper-icon-item>
+                            </template>
+                            <template is="dom-if" if="[[!icon]]">
+                                <paper-icon-item value="[[item.value]]" label="[[item.display_name]]">
+                                    <iron-icon item-icon icon="editor:drag-handle"></iron-icon>
+                                    <div class="flex">[[item.display_name]]</div>
+                                </paper-icon-item>
+                            </template>
+                        </div>
+                    </template>
+                </sortable-list>
+            </template>
+            <template is="dom-if" if="[[!sortable]]">
+                <template is="dom-repeat" items="[[_activeOrderedChoices]]">
+                    <template is="dom-if" if="[[icon]]">
+                        <paper-icon-item value="[[item.value]]" label="[[item.display_name]]">
+                            <iron-icon item-icon icon="[[icon]]"></iron-icon>
+                            <div class="flex">[[item.display_name]]</div>
+                        </paper-icon-item>
+                    </template>
+                    <template is="dom-if" if="[[!icon]]">
+                        <paper-item value="[[item.value]]" label="[[item.display_name]]">
+                            <div class="flex">[[item.display_name]]</div>
+                        </paper-item>
+                    </template>
+                </template>
+            </template>
+        </div>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'ax-multi-select',
+
+            stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            logE: function () {
+                console.log('logE', arguments);
+            },
+
+            _onSelectedSortChange: function (event) {
+                var selectedElements;
+                var selectedValues = [];
+                selectedElements = [].filter.call(event.target.children, function (el) {
+                    return el.axOrder !== undefined;
+                });
+                selectedElements.forEach(function (el, idx) {
+                    var item = this.$$('#sortable-list-items').itemForElement(el);
+                    item.axOrder = idx;
+                    selectedValues.push(item.value);
+                }.bind(this));
+
+                this.set('selectedValuesOrdered', selectedValues);
+            },
+
+            createChoice: function () {
+                this.fire('ax-multi-select-create-choice');
+            },
+
+            _filterList: function () {
+                return AxWizard.BaseModelListViewBehaviour._filterList.apply(this, arguments);
+            },
+
+            properties: {
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'value',
+                            'display_name'
+                        ];
+                    }
+                },
+                openSelectLabel: {
+                    type: String,
+                    value: 'Add / Remove Choice',
+                },
+                searchTerm: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                _showTitleOnSelect: {
+                    type: Boolean,
+                    value: false
+                },
+                sortable: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                showCreate: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                label: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                selectedValues: {
+                    type: Array,
+                    notify: true,
+                    value: function () {
+                        return [];
+                    }
+                },
+                selectedValuesOrdered: {
+                    type: Array,
+                    notify: true,
+                    value: function () {
+                        return [];
+                    }
+                },
+                choices: {
+                    type: Array,
+                    notify: true,
+                    value: function () {
+                        return [];
+                    }
+                },
+
+                _activeOrderedChoices: {
+                    type: Array,
+                    notify: true,
+                    value: function () {
+                        return [];
+                    }
+                },
+
+                _selectedOrderedChoices: {
+                    type: Array,
+                    notify: true,
+                    value: function () {
+                        return [];
+                    }
+                },
+                icon: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                }
+
+            },
+
+            observers: [
+                '_computeActiveOrderedChoices(choices, selectedValues, selectedValues.length)'
+            ],
+
+            _computeActiveOrderedChoices: function (choices, selectedValues) {
+                var orderedChoices = choices.filter(function (item) {
+                    return selectedValues.indexOf(item.value) > -1;
+                }).sort(function (itemA, itemB) {
+                    var itemAProperty = itemA.value,
+                        itemBProperty = itemB.value,
+                        itemAIdxInSelectedValues = selectedValues.indexOf(itemAProperty),
+                        itemBIdxInSelectedValues = selectedValues.indexOf(itemBProperty);
+
+                    itemAIdxInSelectedValues = itemAIdxInSelectedValues === -1 ? selectedValues.length : itemAIdxInSelectedValues;
+                    itemBIdxInSelectedValues = itemBIdxInSelectedValues === -1 ? selectedValues.length : itemBIdxInSelectedValues;
+                    return itemAIdxInSelectedValues - itemBIdxInSelectedValues;
+                });
+
+                var ret = orderedChoices.map(function (choice, idx) {
+                    choice.order = idx;
+                    return choice;
+                });
+                this.set('_activeOrderedChoices', ret);
+
+            },
+
+
+            clearSelectedValues: function (event) {
+                if (event) {
+                    event.preventDefault();
+                }
+                this.set('selectedValues', []);
+            },
+
+            openSelect: function () {
+                this.$$('#select-dialog').open();
+            },
+            closeSelect: function () {
+                this.$$('#select-dialog').close();
+            }
+
+        });
+    }());
+</script>

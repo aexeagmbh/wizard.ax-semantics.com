@@ -1,0 +1,303 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud-store/ax-crud-store-behavior.html">
+
+<dom-module id="ax-crud-higher-level-store">
+
+    <template>
+
+        <ax-crud id="drfCrud"  ax-api-name="[[axApiName]]"></ax-crud>
+
+    </template>
+</dom-module>
+<script>
+(function () {
+    Polymer({
+        is: 'ax-crud-higher-level-store',
+        behaviors: [AxWizard.AxCrudStoreBehavior],
+
+
+        properties: {
+            isListAtParent: {
+              type: Boolean,
+              value: false,
+              notify: true,
+              reflectToAttribute: true
+            },
+            axApiName: {
+                type: String,
+                notify: true
+            },
+            parentStorageName: {
+                type: String,
+                notify: true
+            },
+            propertyNameAtParent: {
+                type: String,
+                notify: true
+            }
+        },
+
+
+        _attachParentObjObserver: function (parentObj, model) {
+            parentObj.addEventListener('ax-model-data-changed', this._getOnParentObjUpdated(model));
+        },
+
+        _getOnParentObjUpdated: function (model) {
+            var propertyNameAtParent = this.propertyNameAtParent;
+            var handler = function (event) {
+                var detail = event.detail || [],
+                    path,
+                    data;
+                if (!detail.length) {
+                    return;
+                }
+                path = detail[0];
+                data = detail[1];
+
+                if (path === 'data') {
+                    model.notifyPath('data', data[propertyNameAtParent]);
+                } else if (path === 'data.' + propertyNameAtParent) {
+                    model.notifyPath('data.' + propertyNameAtParent, data);
+                }
+
+            };
+
+            return handler;
+        },
+
+        _getParentStorage: function () {
+            var self = this,
+                    p;
+            p = new Promise(function (resolve, reject) {
+                var storageContainer = document.querySelector('#storage-container');
+                storageContainer.getStorage(self.parentStorageName).then(function (storage) {
+                    if (storage) {
+                        resolve(storage);
+                    } else {
+                        reject();
+                    }
+
+                }, function (e) {
+                    reject();
+                });
+
+            });
+            return p;
+        },
+
+         /**
+         *
+         * @param Simple Object item
+         * @param String pk
+         * @param String parentPk
+         * @returns Promise
+         * @private
+         */
+        _setItem: function (item, pk, parentPk) {
+
+             var p = AxWizard.AxCrudStoreBehavior._setItem.apply(this, arguments);
+             p.then(function (itemData) {
+                 var itemId = this._getItemId(itemData);
+                 this.fetchObject(itemId).then(function (model) {
+                     this._getParentObj(itemId).then(function (parentObj) {
+                        this._attachParentObjObserver(parentObj, model);
+                     }.bind(this));
+                 }.bind(this));
+             }.bind(this));
+             return p;
+        },
+
+
+        _getParentObj: function (parentPk) {
+            var self = this,
+                    p;
+
+            p = new Promise(function (resolve, reject) {
+                self._getParentStorage().then(function (parentStorage) {
+                    parentStorage.fetchObject(parentPk).then(function (parentObj) {
+                        resolve(parentObj);
+                    }).catch(function (e) {
+                        reject(e);
+                    });
+                }, function (e) {
+                    reject();
+                });
+            });
+
+            return p;
+        },
+
+        _ensureJsonObject: function (rawData) {
+            var re = new RegExp('\'', 'g'),
+                reNl = new RegExp('\\n', 'g'),
+                reFalse = new RegExp('False', 'g'),
+                reTrue = new RegExp('True', 'g'),
+                fixedJSON;
+
+            if (typeof(rawData) === 'string') {
+                console.warn('JSON expected. Trying to parse string.');
+                fixedJSON = ('' + rawData).replace(re, '"').replace(reNl, ' ').replace(reTrue, 'true').replace(reFalse, 'false');
+
+                return JSON.parse(fixedJSON);
+            }
+
+            return rawData;
+
+        },
+
+        list: function (parentPk) {
+            var self = this,
+                p;
+            p = new Promise(function (resolve, reject) {
+                self._getParentObj(parentPk).then(function (parentObj) {
+                    var propertyData = self._ensureJsonObject(parentObj.get('data.' + self.propertyNameAtParent));
+                    if (self.isListAtParent) {
+                        resolve(propertyData);
+                    } else {
+                        resolve([propertyData]);
+                    }
+
+                }).catch(function (e) {
+                    reject(e);
+                });
+            });
+            p.then(function (payload) {
+                return payload;
+            });
+            p.catch(function (e) {
+                console.log('promiseGet', e);
+                self._displayMessage('ERROR: Loading ' + self.verboseSingleName + ' failed');
+            });
+            return p;
+        },
+
+
+        _getDataOrDefaultData: function (parentObj) {
+            var p;
+            p = new Promise(function (resolve, reject) {
+                var dataFromParent = this._ensureJsonObject(parentObj.get('data.' + this.propertyNameAtParent));
+
+                if (dataFromParent) {
+                    resolve(dataFromParent);
+                } else {
+                    this.getNewObject().then(function (model) {
+                        resolve(JSON.parse(JSON.stringify(model.data)));
+                    });
+                }
+
+            }.bind(this));
+
+            return p;
+        },
+
+        promiseGet: function (parentPk) {
+            var self = this,
+                    item;
+
+            // item exists; so return it
+            item = self._getItem(parentPk);
+            if (item) {
+                return Promise.resolve(item);
+            }
+
+            // item is already loading; return loading promise
+            if (self.getPromiseMap[parentPk]) {
+                return self.getPromiseMap[parentPk];
+            }
+
+            self.getPromiseMap[parentPk] = new Promise(function (resolve, reject) {
+                self._getParentObj(parentPk).then(function (parentObj) {
+
+                    self._getDataOrDefaultData(parentObj).then(function (data) {
+                        if (!data.id) {
+                            data.id = parentPk;
+                        }
+                        self._setItem(data, parentPk).then(function (o) {
+                            delete self.getPromiseMap[parentPk];
+                            resolve(o);
+                        });
+                    });
+                }).catch(function (e) {
+                    self._displayMessage('ERROR: Loading ' + self.verboseSingleName + ' failed');
+                    delete self.getPromiseMap[parentPk];
+                    reject(e);
+                });
+            });
+
+            return self.getPromiseMap[parentPk];
+        },
+
+        put: function (data, parentPk) {
+            var self = this,
+                    p;
+
+            p = new Promise(function (resolve, reject) {
+
+                self._getParentObj(parentPk).then(function (parentObj) {
+                    parentObj.set('data.' + self.propertyNameAtParent, data);
+                    parentObj.save([self.propertyNameAtParent]).then(function (pObj) {
+                        resolve(pObj.get('data.' + self.propertyNameAtParent));
+                    }).catch(function (e) {
+                        reject(e);
+                    });
+
+                }).catch(function (e) {
+                    reject(e);
+                });
+            });
+            p.then(function (payload) {
+                self._displayMessage(self.verboseSingleName + ' saved');
+                return payload;
+            });
+            p.catch(function (e) {
+                self._displayMessage('ERROR: Saving ' + self.verboseSingleName + ' failed');
+            });
+            return p;
+        },
+
+        patch: function (data, parentPk) {
+            return this.put(data, parentPk);
+        },
+
+        delete: function (parentPk) {
+            var self = this,
+                    p;
+
+            p = new Promise(function (resolve, reject) {
+                self._getParentObj(parentPk).then(function (parentObj) {
+                    parentObj.set('data.' + self.propertyNameAtParent, null);
+                    parentObj.save().then(function (pObj) {
+                        self._deleteItem(parentPk);
+                        resolve();
+                    }).catch(function (e) {
+                        reject(e);
+                    });
+                });
+            });
+            p.then(function () {
+                self._displayMessage(self.verboseSingleName + ' deleted');
+            });
+            p.catch(function (e) {
+                self._displayMessage('ERROR: Deleting ' + self.verboseSingleName + ' failed');
+            });
+            return p;
+        },
+
+        optionsPost: function() {
+
+        }
+
+    });
+})();
+</script>

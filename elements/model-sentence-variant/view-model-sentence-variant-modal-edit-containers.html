@@ -1,0 +1,57 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-form-containers.html">
+
+
+<dom-module id="view-model-sentence-variant-modal-edit-containers">
+
+    <template>
+         <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Edit Variant</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+
+                    <view-model-sentence-variant-form-containers id="modal-dialog-form" model-pk="[[modelPk]]" training-pk="[[trainingPk]]">
+
+                    </view-model-sentence-variant-form-containers>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Close</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-sentence-variant-modal-edit-containers',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                trainingPk: {
+                    notify: true
+                }
+            }
+
+        });
+
+    })();
+</script>

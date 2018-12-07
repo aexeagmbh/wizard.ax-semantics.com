@@ -1,0 +1,312 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+
+<link rel="import" href="../container-mode/container-view-translate-model-sentence-variant-list-detail.html">
+
+<dom-module id="container-view-translate-model-sentence-variant-list">
+
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+            :host paper-card {
+                width: 100%;
+                background-color: transparent;
+            }
+
+            :host .flex-row {
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+            :host .all-variants > * {
+                flex-basis: 25%;
+            }
+
+
+            :host container-view-model-sentence-variant-list-detail {
+                margin-right: 16px;
+                margin-bottom: 1ex;
+            }
+
+            :host .variant-select {
+                align-items: baseline;
+            }
+            :host .variant-header {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+            }
+        </style>
+
+        <paper-spinner active="[[_isLoading]]" hidden="[[!_isLoading]]"></paper-spinner>
+            <paper-card hidden="[[_isLoading]]" elevation="0">
+
+
+                <div class="header paper-card">
+                    <paper-item>
+                        <div class="paper-item-body flex-row variant-header">
+                            <div>[[language]]</div>
+                            <template is="dom-if" if="[[_showVariantSelector]]">
+                                <div class="flex-row variant-select paper-font-caption" hidden="[[!countItems]]">
+                                    <paper-icon-button icon="icons:chevron-left" on-tap="_selectPrevious"
+                                                       disabled="[[!index]]"
+                                                       raised>Previous Variant
+                                    </paper-icon-button>
+                                    <div hidden="[[!countItems]]">
+                                       [[_idxToItemNumber(selectedVariantIdx)]] / [[countItems]]
+                                    </div>
+                                    <paper-icon-button icon="icons:chevron-right" on-tap="_selectNext"
+                                                       raised>Next Variant
+                                    </paper-icon-button>
+                                </div>
+                            </template>
+                        </div>
+                    </paper-item>
+
+                </div>
+            <div class="card-content flex-column">
+
+                    <iron-pages selected="[[selectedVariantIdx]]" selected-item="{{_selectedListItem}}" id="variants-container" class="flex" hidden="[[!countItems]]">
+                        <template is="dom-repeat" items="{{data}}"
+                                  id="variants-list"
+                                  filter="{{_filterList(searchTerm, filterListFacets)}}"
+                                  rendered-item-count="{{countItems}}"
+                                  restamp>
+                            <div class="flex-row">
+                                <template is="dom-if" if="[[_equals(selectedVariantIdx, index)]]" restamp>
+                                    <container-view-translate-model-sentence-variant-list-detail
+                                            on-ax-sentence-variant-added="_sentenceVariantAdded"
+                                            on-item-deleted="_selectPrevious"
+                                            translation-step="{{translationStep}}"
+                                            active-mode="[[activeMode]]"
+                                            training-uses-containers="[[trainingUsesContainers]]"
+                                            class="flex"
+                                            language="[[language]]"
+                                            sentence-pk="[[parentPk]]"
+                                            model-pk="[[item.id]]">
+                                    </container-view-translate-model-sentence-variant-list-detail>
+                                </template>
+                            </div>
+                        </template>
+
+
+                    </iron-pages>
+                    <template is="dom-if" if="[[!countItems]]">
+                        <div class="flex flex-row">
+                            <i><iron-icon icon="icons:warning"></iron-icon>No Variant in this language available.</i>
+                        </div>
+                    </template>
+
+
+            </div>
+
+            <paper-card>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'container-view-translate-model-sentence-variant-list',
+            behaviors: [
+                AxWizard.StoryTypeEditorModeBehavior,
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            properties: {
+                translationStep: {
+                    type: String,
+                    value: 'write',
+                    notify: true
+                },
+                selectedVariantIdx: {
+                    type: Number,
+                    value: 0
+                },
+                _selectedListItem: {
+                    notify: true,
+                },
+                selectedVariantPk: {
+                    notify: true,
+                    computed: '_computeSelectedVariantPk(_selectedListItem)'
+                },
+                storageId: {
+                    type: String,
+                    value: 'storage-sentence-variant',
+                    notify: true
+                },
+
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'text',
+                            'language'
+                        ];
+                    }
+                },
+                _newSentenceVariantText: {
+                    type: String,
+                    value: ''
+                },
+                isTranslationBase: {
+                    notify: true,
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                isTranslationTarget: {
+                    notify: true,
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                }
+
+            },
+
+            _equals: function (a, b) {
+                return a === b;
+            },
+
+            _idxToItemNumber: function (idx) {
+                return idx + 1;
+            },
+
+            observers: [
+                '_filterListFacetsChanged(filterListFacets, filterListFacets.*)'
+            ],
+
+            listeners: {
+                'ax-sentence-variant-added': '_sentenceVariantAdded',
+                'is-translation-target-changed': '_isTranslationTargetChanged'
+            },
+
+            _computeSelectedVariantPk: function (_selectedListItem) {
+                var selectedVariantPk,
+                    variantList = this.$$('#variants-list');
+                if (!_selectedListItem || !variantList) {
+                    return selectedVariantPk;
+                }
+                selectedVariantPk = variantList.itemForElement(_selectedListItem).id;
+
+                return selectedVariantPk;
+            },
+
+            _isTranslationTargetChanged: function (event, val) {
+                if (this.translateMode) {
+                    this.set('_showAddSentenceVariant', !!val.value);
+                }
+            },
+
+            attached: function () {
+                if (this.translateMode) {
+                    this.set('_showAddSentenceVariant', !!this.isTranslationTarget);
+                }
+            },
+
+            _writeModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+
+                this.set('_showAddSentenceVariant', false);
+                this.set('_showVariantSelector', true);
+            },
+
+            _magicModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showAddSentenceVariant', false);
+                this.set('_showVariantSelector', true);
+            },
+
+            _variantModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showAddSentenceVariant', true);
+                this.set('_showVariantSelector', true);
+            },
+
+            _translateModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showAddSentenceVariant', !!this.isTranslationTarget);
+                this.set('_showVariantSelector', true);
+            },
+
+            _readOnlyModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_showAddSentenceVariant', !!this.isTranslationTarget);
+                this.set('_showVariantSelector', true);
+            },
+
+            _filterListFacetsChanged: function () {
+                this.set('selectedVariantIdx', 0);
+                this.refresh();
+            },
+
+
+            _cancelNewVariantForm: function (event) {
+                if (event) {
+                    event.stopPropagation();
+                }
+                this.set('_newSentenceVariantText', '');
+            },
+
+
+            _createNewSentenceVariant: function (event) {
+                event.stopPropagation();
+                var language = this.language;
+                return app.storageContainer.getNewObject('sentence-variant').then(function (model) {
+                        model.save(null, {sentence: this.parentPk, language: this.language, text: this._newSentenceVariantText}).then(function () {
+                            this._cancelNewVariantForm();
+                            this.fire('ax-sentence-variant-added');
+                        }.bind(this));
+                }.bind(this));
+            },
+
+
+            _sentenceVariantAdded: function (event) {
+                this.selectLastVariant();
+            },
+
+            selectLastVariant: function () {
+                var variantsContainer = this.$$('#variants-container');
+                var idxLength = variantsContainer? variantsContainer.queryAllEffectiveChildren('div').length - 1 : 0;
+                this.set('selectedVariantIdx', idxLength);
+            },
+
+            _selectPrevious: function (event) {
+                event.stopPropagation();
+                this.set('selectedVariantIdx', 0 + this.selectedVariantIdx <= 1 ? 0 : this.selectedVariantIdx - 1);
+            },
+
+            _selectNext: function (event) {
+                event.stopPropagation();
+                var variantsContainer = this.$$('#variants-container');
+                var idxLength = variantsContainer? variantsContainer.queryAllEffectiveChildren('div').length - 1 : 0;
+                var nextIdx = this.selectedVariantIdx + 1;
+                this.set('selectedVariantIdx', (nextIdx <= idxLength ? nextIdx : idxLength));
+            }
+        });
+    })();
+</script>

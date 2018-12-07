@@ -1,0 +1,397 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="ax-crud">
+    <template>
+
+        <iron-ajax id="axList"
+                   url="{{listUrl}}"
+                   handle-as="json"
+                   content-type="application/json"
+                   method="GET"
+                   on-response="onListCompleted"
+                   on-error="onListError"></iron-ajax>
+        <iron-ajax id="axGet"
+                   url="{{getUrl}}"
+                   handle-as="json"
+                   content-type="application/json"
+                   method="GET"
+                   on-response="onGetCompleted"
+                   on-error="onGetError"></iron-ajax>
+        <iron-ajax id="axPost"
+                   url="{{postUrl}}"
+                   handle-as="json"
+                   content-type="application/json"
+                   method="POST"
+                   on-response="onPostCompleted"
+                   on-error="onPostError"></iron-ajax>
+        <iron-ajax id="axPut"
+                   url="{{putUrl}}"
+                   handle-as="json"
+                   content-type="application/json"
+                   method="PUT"
+                   on-response="onPutCompleted"
+                   on-error="onPutError"></iron-ajax>
+        <iron-ajax id="axPatch"
+                   url="{{patchUrl}}"
+                   handle-as="json"
+                   content-type="application/json"
+                   method="PATCH"
+                   on-response="onPatchCompleted"
+                   on-error="onPatchError"></iron-ajax>
+        <iron-ajax id="axDelete"
+                   url="{{deleteUrl}}"
+                   handle-as="text"
+                   content-type="application/text"
+                   method="DELETE"
+                   on-response="onDeleteCompleted"
+                   on-error="onDeleteError"></iron-ajax>
+        <iron-ajax id="axOptionsPost"
+                   url="{{optionsUrl}}"
+                   handle-as="json"
+                   content-type="application/text"
+                   method="OPTIONS"
+                   on-response="onOptionsPostCompleted"
+                   on-error="onOptionsPostError"></iron-ajax>
+
+        <iron-ajax id="ax-action"
+                   url=""
+                   handle-as="json"
+                   content-type="application/json"
+                   method=""
+                   on-response="onActionCompleted"
+                   on-error="onActionError"></iron-ajax>
+
+
+    </template>
+</dom-module>
+<script>
+(function () {
+
+    var headersForApis = {
+        'Training': function (params) {
+            return {
+                'Accept': '*/*',
+                'Authorization': 'JWT ' + params.token,
+                'Cache-Control': 'no-cache'
+
+            };
+        },
+        'MyAX': function (params) {
+            return {
+                'Accept': '*/*',
+                'Authorization': 'JWT ' + params.token,
+                'Cache-Control': 'no-cache'
+//                'Authorization': 'Token ' + params.token
+            };
+        }
+    };
+
+    Polymer({
+        is: 'ax-crud',
+
+
+        properties: {
+            axApiName: {
+                type: String,
+                notify: true
+            },
+            listEndPoint: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            singleEndPoint: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            listUrl: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            getUrl: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            postUrl: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            putUrl: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            patchUrl: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            deleteUrl: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            optionsUrl: {
+                type: String,
+                value: '',
+                notify: true
+            }
+        },
+
+        _handle401: function () {
+            if (this.axApiName === 'Training') {
+                this.fire('iron-signal', {name: 'ax-auth-invalidate', data: null});
+            }
+        },
+
+        _getHeaderForApi: function () {
+            return headersForApis[this.axApiName]({token: app.token.Training});
+//            return headersForApis[this.axApiName]({token: app.token[this.axApiName]});
+        },
+
+        onListCompleted: function (e) {
+            this.fire('list-completed', { response: e.detail.response });
+        },
+        onListError: function (e, obj) {
+            this._logError(obj.request.xhr);
+            if (obj.request.xhr.status === 401) {
+                this._handle401();
+            }
+            obj.axCrudErrorMsg = this._buildErrorMsg(obj.request.xhr);
+            obj.axCrudErrorFields = obj.request.xhr.response;
+            this.fire('list-error', obj);
+        },
+        onGetCompleted: function (e) {
+            this.fire('get-completed', { response: e.detail.response });
+        },
+        onGetError: function (e, obj) {
+            this._logError(obj.request.xhr);
+            if (obj.request.xhr.status === 401) {
+                this._handle401();
+            }
+            obj.axCrudErrorMsg = this._buildErrorMsg(obj.request.xhr);
+            obj.axCrudErrorFields = obj.request.xhr.response;
+            this.fire('get-error', obj);
+        },
+        onPostCompleted: function (e) {
+            this.fire('post-completed', { response: e.detail.response });
+        },
+        onPostError: function (e, obj) {
+            this._logError(obj.request.xhr);
+            if (obj.request.xhr.status === 401) {
+                this._handle401();
+            }
+            obj.axCrudErrorMsg = this._buildErrorMsg(obj.request.xhr);
+            obj.axCrudErrorFields = obj.request.xhr.response;
+            this.fire('post-error', obj);
+        },
+        onPutCompleted: function (e) {
+            this.fire('put-completed', { response: e.detail.response });
+        },
+        onPutError: function (e, obj) {
+            this._logError(obj.request.xhr);
+            if (obj.request.xhr.status === 401) {
+                this._handle401();
+            }
+            obj.axCrudErrorMsg = this._buildErrorMsg(obj.request.xhr);
+            obj.axCrudErrorFields = obj.request.xhr.response;
+            this.fire('put-error', obj);
+        },
+        onPatchCompleted: function (e) {
+            this.fire('patch-completed', { response: e.detail.response });
+        },
+        onPatchError: function (e, obj) {
+            this._logError(obj.request.xhr);
+            if (obj.request.xhr.status === 401) {
+                this._handle401();
+            }
+            obj.axCrudErrorMsg = this._buildErrorMsg(obj.request.xhr);
+            obj.axCrudErrorFields = obj.request.xhr.response;
+            this.fire('patch-error', obj);
+        },
+        onDeleteCompleted: function (e) {
+            this.fire('delete-completed', { response: e.detail.response });
+        },
+        onDeleteError: function (e, obj) {
+            this._logError(obj.request.xhr);
+            if (obj.request.xhr.status === 401) {
+                this._handle401();
+            }
+            obj.axCrudErrorMsg = this._buildErrorMsg(obj.request.xhr);
+            obj.axCrudErrorFields = obj.request.xhr.response;
+            this.fire('delete-error', obj);
+        },
+        onOptionsPostCompleted: function (e) {
+            this.fire('options-post-completed', { response: e.detail.response });
+        },
+        onOptionsPostError: function (e, obj) {
+            this._logError(obj.request.xhr);
+            if (obj.request.xhr.status === 401) {
+//                    this._handle401();
+            }
+            obj.axCrudErrorMsg = this._buildErrorMsg(obj.request.xhr);
+            obj.axCrudErrorFields = obj.request.xhr.response;
+            this.fire('options-post-error', obj);
+        },
+
+        _buildErrorMsg: function (xhr) {
+            var status = xhr.status,
+                errorMsg;
+            if (status >= 500) {
+                errorMsg = 'Server Error: ' + xhr.statusText;
+            } else if (status > 400) {
+                errorMsg = xhr.statusText;
+            } else if (status === 400) {
+                errorMsg =  xhr.statusText;
+                if (typeof xhr.response === 'object') {
+                    Object.keys(xhr.response).forEach(function (fieldName) {
+                        if (typeof xhr.response[fieldName] === 'string') {
+                            errorMsg += ' "' + fieldName + '": ' + xhr.response[fieldName];
+                        } else {
+                            errorMsg += ' "' + fieldName + '": ' + xhr.response[fieldName].join(' ');
+                        }
+
+                    });
+                }
+            }
+
+            return errorMsg;
+        },
+
+
+        _axRequest: function (ax) {
+            var p;
+            p = new Promise (function (resolve, reject) {
+                var req = ax.generateRequest();
+                req.completes.then(function (arg) {
+                    resolve(arg);
+                }, function (e) {
+                    var obj = {};
+
+                    if (req.xhr.status === 401) {
+                        this._handle401();
+                    }
+
+                    obj.axCrudErrorMsg = this._buildErrorMsg(req.xhr);
+                    obj.axCrudErrorFields = req.xhr.response;
+                    obj.request = req;
+
+                    reject(obj);
+                }.bind(this));
+
+            }.bind(this));
+            return p;
+        },
+
+        promiseList: function (params) {
+            var ax = this.$.axList;
+            ax.set('headers', this._getHeaderForApi(this.axApiName));
+            ax.set('params', params);
+//            return ax.generateRequest().completes;
+            return this._axRequest(ax);
+        },
+        promiseGet: function (params) {
+            var ax = this.$.axGet;
+            ax.set('headers', this._getHeaderForApi(this.axApiName));
+            ax.set('params', params);
+
+            return this._axRequest(ax);
+        },
+
+        promisePost: function (params, body) {
+            var ax = this.$.axPost,
+                request;
+            ax.set('headers', this._getHeaderForApi(this.axApiName));
+            ax.set('params', params);
+            ax.set('body', body);
+//            return ax.generateRequest().completes;
+            return this._axRequest(ax);
+        },
+        promisePut: function (params, body) {
+            var ax = this.$.axPut;
+            ax.set('headers', this._getHeaderForApi(this.axApiName));
+            ax.set('params', params);
+            ax.set('body', body);
+//            return ax.generateRequest().completes;
+            return this._axRequest(ax);
+        },
+        promisePatch: function (params, body) {
+            var ax = this.$.axPatch;
+            ax.set('headers', this._getHeaderForApi(this.axApiName));
+            ax.set('params', params);
+            ax.set('body', body);
+//            return ax.generateRequest().completes;
+            return this._axRequest(ax);
+        },
+        promiseDelete: function (params) {
+            var ax = this.$.axDelete;
+            ax.set('headers', this._getHeaderForApi(this.axApiName));
+            ax.set('params', params);
+//            return ax.generateRequest().completes;
+            return this._axRequest(ax);
+        },
+        promiseOptionsPost: function (params) {
+            var ax = this.$.axOptionsPost;
+            ax.set('headers', this._getHeaderForApi(this.axApiName));
+            ax.set('params', params);
+//            return ax.generateRequest().completes;
+            return this._axRequest(ax);
+        },
+
+        promiseAction: function (setup, params, body) {
+            var ax = this.$['ax-action'],
+                    setupConnection = setup || {};
+            ax.set('headers', this._getHeaderForApi(this.axApiName));
+            ax.set('params', params);
+            ax.set('body', body);
+            Object.keys(setupConnection).forEach(function (key) {
+                ax.set(key, setupConnection[key]);
+            });
+
+//            return ax.generateRequest().completes;
+            return this._axRequest(ax);
+        },
+
+        onActionCompleted: function (e) {
+            this.fire('action-completed', { response: e.detail.response });
+        },
+
+        onActionError: function (e, obj) {
+            this._logError(obj.request.xhr);
+            if (obj.request.xhr.status === 401) {
+                this._handle401();
+            }
+
+            obj.axCrudErrorMsg = this._buildErrorMsg(obj.request.xhr);
+            obj.axCrudErrorFields = obj.request.xhr.response;
+            this.fire('action-error', obj);
+        },
+
+        _logError: function (xhr) {
+            var msg;
+            if (xhr.status !== 401 && xhr.status !== 400) {
+//                msg = xhr.status + ' ' + xhr.statusText + '\n' + xhr.responseText;
+                if (window.Raven && window.Raven.captureMessage) {
+                    window.Raven.captureMessage('Server reported error ' + msg, xhr);
+                }
+
+            }
+        }
+    });
+})();
+</script>

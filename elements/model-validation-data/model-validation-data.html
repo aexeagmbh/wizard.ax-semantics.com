@@ -1,0 +1,160 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-behaviour.html">
+
+<script>
+(function () {
+    Polymer({
+        is: 'model-validation-data',
+        behaviors: [AxWizard.BaseModelBehaviour],
+        properties: {
+            defaultData: {
+                type: Object,
+                value: function () {
+                    return {};
+                }
+            }
+        },
+
+        delete: function () {
+            var msg;
+            if (this.get('data.inUse')) {
+                msg = 'Validation Data is in use and can not be deleted.';
+                this._displayMessage(msg);
+                return Promise.reject(msg);
+            }
+
+            return AxWizard.BaseModelBehaviour.delete.apply(this, arguments);
+        },
+
+        createSynced: function (payload) {
+
+           /* {
+                    training: trainingId,
+                    myax_api_version: 2,
+                    myax_reference: {
+                        collection_id,
+                        document_id: document.id
+                    }
+            }*/
+
+            var self = this,
+                p;
+            p = this._performJsonPostAction('create-synced', null, payload);
+            p.then(function () {
+                self._displayMessage('Validation Data created');
+            }, function (e) {
+                var msg = 'Creating Validation Data failed.';
+                if (e.axCrudErrorFields) {
+                    msg += ' ' + e.axCrudErrorFields;
+                }
+                self._displayMessage(msg);
+            });
+
+            return p;
+
+        },
+
+        generateContent: function () {
+            var self = this,
+                p;
+            return this._getDataLanguage().then(function (languageId) {
+
+                self.set('data.processingResponse', null);
+                self.set('data.processingState', 'requested');
+
+                p = self._performJsonPostAction('generate-content', null, {language: languageId});
+                p.then(function () {
+                    self._displayMessage('Text Generation scheduled');
+                }, function (e) {
+                    self._displayMessage('Text Generation failed');
+                });
+
+                return p;
+            });
+        },
+
+        select: function (languageId) {
+            var self = this,
+                p;
+
+                p = self._performJsonPutAction('select', null, {language: languageId}).then(function () {
+                    return app.storageContainer.getList('validation-data', self.parentPk, null, true);
+                });
+                p.then(function () {
+                    self._displayMessage('Validation Data selected');
+                }, function (e) {
+                    var msg = 'Selecting Validation Data failed.';
+                    if (e.axCrudErrorFields) {
+                        msg += ' ' + e.axCrudErrorFields;
+                    }
+                    self._displayMessage(msg);
+                });
+
+                return p;
+        },
+
+
+        sync: function () {
+            var self = this,
+                p;
+
+                p = self._performJsonPutAction('sync');
+                p.then(function () {
+                    self._displayMessage('Data synchronization scheduled');
+                }, function (e) {
+                    var msg = 'Scheduling data synchronization failed.';
+                    if (e.axCrudErrorFields) {
+                        msg += ' ' + e.axCrudErrorFields;
+                    }
+                    self._displayMessage(msg);
+                });
+
+                return p;
+        },
+
+        _getDataLanguage: function () {
+            if (this.get('data.myaxApiVersion') === 2) {
+
+                return new Promise (function (resolve) {
+                    app.storageContainer.getObject('myax-collection', this.get('data.myaxReference.collection_id')).then(function (myaxCollection) {
+                        resolve(myaxCollection.get('data.language'));
+                    });
+                }.bind(this));
+
+            } else {
+                return Promise.reject('No api version');
+            }
+        },
+
+        getMyaxParent: function () {
+
+            if (this.get('data.myaxApiVersion') === 2) {
+                return new Promise (function (resolve) {
+                    app.storageContainer.getObject('myax-collection', this.get('data.myaxReference.collection_id')).then(function (myaxCollection) {
+                        resolve(myaxCollection);
+                    });
+                }.bind(this));
+
+            } else {
+                return Promise.reject('No api version');
+            }
+
+        },
+
+        getDataLanguage: function () {
+            return this._getDataLanguage();
+        }
+
+    });
+})();
+</script>

@@ -1,0 +1,418 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-behaviour.html">
+<link rel="import" href="../ax-crud/model-pushable-behavior.html">
+
+<link rel="import" href="../ax-crud/model-rohrpost-subscribable-behavior.html">
+
+<dom-module id="model-training">
+
+
+</dom-module>
+<script>
+(function () {
+    Polymer({
+        is: 'model-training',
+        behaviors: [
+            AxWizard.BaseModelBehaviour,
+            AxWizard.ModelRohrpostSubscribableBehavior
+        ],
+        properties: {
+            defaultData: {
+                type: Object,
+                value: function () {
+                    return {
+                        id: null,
+                        created: null,
+                        modified: null,
+                        name: '',
+                        version: '3.0',
+
+                        workflowData: {
+                            dataSource: {
+                                links: [],
+                                isDone: false
+                            },
+                            textBriefing: {
+                                links: [],
+                                isDone: false
+                            },
+                            dataAnalysis: {
+                                links: [],
+                                isDone: false
+                            },
+                            textConcept: {
+                                links: [],
+                                isDone: false
+                            },
+                            sentenceFramework: {
+                                links: [],
+                                isDone: false
+                            },
+                            trainingRuleset: {
+                                links: [],
+                                isDone: false
+                            },
+                            lexiconMaintenance: {
+                                links: [],
+                                isDone: false
+                            },
+                            qualityCheck: {
+                                links: [],
+                                isDone: false
+                            },
+                            contentProduction: {
+                                links: [],
+                                isDone: false
+                            }
+                        }
+                    };
+                }
+            },
+            nonDisplayFields: {
+                type: Array,
+                value: function () {
+                    return ['id', 'created', 'modified', 'revision',
+                        'workflowData'
+                    ];
+                }
+            },
+            isRohrpostEnabled: {
+                type: Boolean,
+                value: false,
+                reflectToAttribute: true
+            },
+            rohrpostGroupType: {
+                type: String,
+                readOnly: true,
+                value: 'training-activity'
+            },
+            rohrpostClientId: {
+                type: String,
+                readOnly: true,
+                value: 'rincewind-rohrpost-client'
+            },
+            isContainerTraining: {
+                type: Boolean,
+                notify: true,
+                computed: '_computeIsContainerTraining(data, data.version)'
+            }
+        },
+
+        _computeIsContainerTraining: function (data, version) {
+            if (!version) {
+                return undefined;
+            }
+            var versionInfo = version.split('.');
+
+            if ((versionInfo[1] && versionInfo[1] >= 1) || versionInfo[0] > 3) {
+                return true;
+            }
+
+            return false;
+        },
+
+        hasUnpublishedDraft: function () {
+            var lastPublishedTime,
+                lastDraftedTime;
+            if (!this.data || !this.data.lastDrafted) {
+                return false;
+            }
+
+            if (!this.data.lastPublished) {
+                return true;
+            }
+
+            lastPublishedTime = new Date(this.data.lastPublished).getTime();
+            lastDraftedTime = new Date(this.data.lastDrafted).getTime();
+
+            return lastPublishedTime < lastDraftedTime;
+        },
+
+
+        /* ACTIONS */
+        draft: function () {
+            var self = this,
+                    p;
+            p = self._performJsonPostAction('draft');
+            p.then(function () {
+                self._displayMessage('Training ' + self.data.name + ' successfully drafted.');
+            }, function (e) {
+                self._displayMessage('Error drafting Training ' + self.data.name);
+            });
+
+            return p;
+        },
+
+        publish: function () {
+            var self = this,
+                    p;
+            p = self._performJsonPostAction('publish');
+            p.then(function () {
+                self._displayMessage('Training ' + self.data.name + ' successfully published.');
+            }, function (e) {
+                self._displayMessage('Error publishing Training ' + self.data.name);
+            });
+
+            return p;
+        },
+
+        generateLookupsFromEs: function (params) {
+            var self = this,
+                    p;
+            p = self._performJsonPostAction('generate-lookups-from-es', params, params);
+            p.then(function () {
+                self._displayMessage('Generation of Lookups scheduled');
+            }, function (e) {
+                self._displayMessage('Generation of Lookups failed');
+            });
+
+            return p;
+        },
+
+        generatePropertiesFromEs: function (params) {
+            var self = this,
+                    p;
+            p = self._performJsonPostAction('generate-properties-from-es', params, params);
+            p.then(function () {
+                self._displayMessage('Generation of Properties scheduled');
+            }, function (e) {
+                self._displayMessage('Generation of Properties failed');
+            });
+
+            return p;
+        },
+
+        generateProperties: function (params) {
+            var self = this,
+                    p;
+            p = self._performJsonPostAction('generate-properties', null, params).then(function (req) {
+                if (!req || !req.response || !req.response.length) {
+                    return;
+                }
+                app.storageContainer.getStorage('property').then(function (storage) {
+                    req.response.forEach(function (item) {
+                        storage.setItem(item);
+                    });
+
+                });
+            });
+            p.then(function () {
+                self._displayMessage('Properties generated');
+            }, function (e) {
+                self._displayMessage('Generation of Properties failed');
+            });
+
+            return p;
+        },
+
+        importNewTraining: function (atmlStr) {
+            var self = this,
+                    p;
+
+            p = self._performJsonPostAction('import', null, atmlStr);
+            p.then(function () {
+                self._displayMessage('Import scheduled');
+            }, function (e) {
+                self._displayMessage('Import failed');
+            });
+
+            return p;
+        },
+
+        importOverwriteTraining: function (atmlStr) {
+            var self = this,
+                    p;
+
+            p = self._performJsonPutAction('import', null, atmlStr);
+            p.then(function () {
+                self._displayMessage('Import scheduled');
+            }, function (e) {
+                self._displayMessage('Import failed');
+            });
+
+            return p;
+        },
+
+        getTrainingExportDownloadUrl: function () {
+            var self = this,
+                actionName = 'download-export',
+                p;
+            p = new Promise(function (resolve) {
+                self._getStorage().then(function (storage) {
+                    resolve(storage.buildActionUrl(storage.getActionEndPoint(self.pk, self.params), actionName));
+                });
+            });
+
+            return p;
+        },
+
+        getTrainingExport: function () {
+            return this._performJsonGetAction('download-export');
+        },
+
+        getTrainingExportFile: function () {
+            return this._performFileGetAction('download-export');
+        },
+
+        createTrainingExport: function () {
+            var p = this._performJsonPostAction('export');
+            p.then(function () {
+                this._displayMessage('Export scheduled. It will be ready in about 30s.');
+            }.bind(this), function (e) {
+                this._displayMessage('Export failed');
+            }.bind(this));
+
+            return p;
+        },
+
+        getTrainingStatus: function () {
+            return this._performJsonGetAction('status');
+        },
+
+        validateSentenceVariants: function () {
+            var p = this._performJsonPostAction('validate-sentence-variants');
+            p.then(function () {
+                this._displayMessage('Validation scheduled');
+            }.bind(this), function (e) {
+                this._displayMessage('Validation failed');
+            }.bind(this));
+
+            return p;
+        },
+
+        validatePropertyExpressions: function () {
+            var p = this._performJsonPostAction('validate-property-expressions');
+            p.then(function () {
+                this._displayMessage('Validation scheduled');
+            }.bind(this), function (e) {
+                this._displayMessage('Validation failed');
+            }.bind(this));
+
+            return p;
+        },
+
+
+        generateAso: function (formData) {
+            var p;
+            formData = formData || {};
+//            formData.aso_mode = 'json';
+            formData.aso_mode = 'editorial';
+            p = new Promise(function (resolve, reject) {
+                this._performJsonPostAction('aso-request', null, formData).then(function (req) {
+                    resolve(req.response);
+                }, function (e) {
+                    reject(e);
+                });
+            }.bind(this));
+
+
+            return p;
+        },
+
+
+        _getAso: function (queryParams) {
+            var p;
+
+            queryParams.training = this.pk;
+            p = new Promise(function (resolve, reject) {
+                app.storageContainer.getNewObject('aso-request').then(function (model) {
+                    model._performJsonGetAction('', queryParams).then(function (req) {
+                        resolve(req.response[0]);
+                    }, function (e) {
+                        reject(e);
+                    });
+                });
+            }.bind(this));
+
+            return p;
+        },
+
+        getLastAso: function () {
+            var queryParams = {
+                latest: 1
+            };
+            return this._getAso(queryParams);
+        },
+
+        getLastSuccessfullAso: function () {
+            var queryParams = {
+                latest: 1,
+                state: 'SUCCESS'
+            };
+            return this._getAso(queryParams);
+        },
+
+        _getTrainingImport: function (queryParams) {
+            var p;
+            p = new Promise(function (resolve, reject) {
+                this._performJsonGetAction('import', queryParams).then(function (req) {
+                    resolve(req.response);
+                }, function (e) {
+                    reject(e);
+                });
+            }.bind(this));
+
+            return p;
+        },
+
+        getLastTrainingImport: function (num) {
+            num = num || 1;
+            var queryParams = {
+                latest: num
+            };
+            return this._getTrainingImport(queryParams);
+        },
+
+        getLastSuccessfullTrainingImport: function () {
+            var queryParams = {
+                latest: 1,
+                state: 'success'
+            };
+            return this._getTrainingImport(queryParams);
+        },
+
+
+        getConfiguredLanguageList: function (alwaysIncludeLanguageIds) {
+            var p;
+            p = new Promise(function (resolve, reject) {
+                app.storageContainer.getList('language', '').then(function (list) {
+                    var languages = this.get('data.languages') || [],
+                        filteredLanguages;
+
+                    if (!languages.length) {
+                        resolve(list);
+                        return;
+                    }
+
+                    if (alwaysIncludeLanguageIds) {
+                        languages = languages.concat(alwaysIncludeLanguageIds);
+                    }
+
+                    filteredLanguages = list.filter(function (languageData) {
+                        return languages.indexOf(languageData.id) > -1;
+                    });
+
+                    resolve(filteredLanguages);
+
+                }.bind(this));
+            }.bind(this));
+
+            return p;
+        }
+
+
+
+
+    });
+})();
+</script>

@@ -1,0 +1,324 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+<link rel="import" href="../model-container/view-model-container-list-detail.html">
+<link rel="import" href="../model-container/view-model-container-fake.html">
+
+<dom-module id="view-model-container-list">
+
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+            }
+            :host .list-view-list {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                flex-wrap: wrap;
+                flex-grow: 0
+                flex-shrink: 0;
+            }
+
+            :host sortable-js view-model-container-list-detail ::content *,
+            :host sortable-js view-model-container-list-detail {
+                cursor: move !important;
+            }
+
+        </style>
+        <section class="list-view-list">
+
+
+
+            <template is="dom-if" if="[[!isSortable]]" restamp>
+                <template is="dom-repeat" items="[[_sortedFilteredItems]]" sort="[[_sortList]]">
+
+                    <template is="dom-if" if="[[_renderFakeContainer(_sortedFilteredItems, item, index, 'before')]]" restamp>
+                        <view-model-container-fake
+                                show-edit-text-icon="[[showEditTextIcon]]"
+                                active-mode="[[activeMode]]"
+                                before="[[item.id]]"
+                                parent-model-name="[[parentModelName]]"
+                                parent-pk="[[parentPk]]">
+                        </view-model-container-fake>
+                    </template>
+                    <view-model-container-list-detail
+                          show-edit-text-icon="[[showEditTextIcon]]"
+                          model-name="[[modelName]]"
+                          on-ax-has-unsaved-changes-changed="_containerUnsavedChanged"
+                          model-pk="[[item.id]]"
+                          active-mode="[[activeMode]]"
+                          no-expand="[[noExpand]]"
+                          replace-container-with-source="[[replaceContainerWithSource]]"></view-model-container-list-detail>
+
+                    <template is="dom-if" if="[[_renderFakeContainer(_sortedFilteredItems, item, index, 'after')]]" restamp>
+                        <view-model-container-fake
+                                show-edit-text-icon="[[showEditTextIcon]]"
+                                active-mode="[[activeMode]]"
+                                after="[[item.id]]"
+                                parent-model-name="[[parentModelName]]"
+                                parent-pk="[[parentPk]]">
+                        </view-model-container-fake>
+                    </template>
+                </template>
+            </template>
+
+
+            <template is="dom-if" if="[[isSortable]]" restamp>
+                <sortable-js id="sortable-list" on-update="_onSelectedSortChange" handle=".sortable-drag-handle">
+                    <template data-id="__ax-snape-sortable-list-items" id="sortable-list-items" is="dom-repeat" items="[[_sortedFilteredItems]]">
+                        <view-model-container-list-detail
+                            class="sortable-drag-handle"
+                            data-id$="[[item.id]]"  value="[[item.id]]"
+                          model-name="[[modelName]]"
+                          model-pk="[[item.id]]"
+                          active-mode="readOnly"
+                          no-expand
+                          replace-container-with-source="[[replaceContainerWithSource]]"></view-model-container-list-detail>
+
+                    </template>
+                </sortable-js>
+            </template>
+        </section>
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-container-list',
+            behaviors: [AxWizard.BaseModelListViewBehaviour],
+
+            properties: {
+                _sortedFilteredItems: {
+                    type: Array
+                },
+
+                hasContent: {
+                    type: Boolean,
+                    notify: true,
+                    computed: '_computeHasContent(_sortedFilteredItems)'
+                },
+
+                parentModelName: {
+                    type: String,
+                    notify: true
+                },
+                modelName: {
+                    type: String,
+                    notify: true
+                },
+                storageId: {
+                    type: String,
+                    notify: true
+                },
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    value: false
+                },
+                isContainersDetectable: {
+                    type: Boolean,
+                    notify: true
+                },
+                _unsavedContainers: {
+                    type: Array,
+                    notify: true,
+                    value: function () {
+                        return [];
+                    }
+                },
+                hasUnsavedChanges: {
+                    type: Boolean,
+                    notify: true,
+                    computed: '_computeHasUnsavedChanges(_unsavedContainers, _unsavedContainers.length)'
+                },
+
+                noExpand: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+
+                isSortable: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true,
+                    observer: '_isSortableChanged'
+                },
+                showEditTextIcon: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                }
+
+            },
+
+            _isSortableChanged: function (newVal, oldVal) {
+                if (oldVal === undefined) {
+                    return;
+                }
+                this._getParentObject().then(function (parentObject) {
+                    parentObject.cleanupContainers();
+                });
+
+            },
+
+            _getParentObject: function () {
+                return app.storageContainer.getObject(this.parentModelName, this.parentPk);
+            },
+
+            _computeHasContent: function (items) {
+                if (!items || !items.length) {
+                    return false;
+                } else if (items.length > 1) {
+                    return true;
+                } else {
+                    return !(items[0].containerType === 'plain' && items[0].text.length === 0);
+                }
+
+            },
+
+            _containerUnsavedChanged: function (event) {
+                var containerPk = event.detail.containerPk;
+                var hasUnsavedChanges = event.detail.value;
+                var idx = this._unsavedContainers.indexOf(containerPk);
+                event.stopPropagation();
+
+                if (hasUnsavedChanges) {
+                    if (idx > -1) {
+                        return;
+                    } else {
+                        this.push('_unsavedContainers', containerPk);
+                    }
+                } else {
+                    if (idx > -1) {
+                        this.splice('_unsavedContainers', idx, 1);
+                    } else {
+                        return;
+                    }
+                }
+            },
+
+            _computeHasUnsavedChanges: function (list, length) {
+                return length > 0;
+            },
+
+            _sortList: function () {
+                return function (a,b) {
+                    return a.order - b.order;
+                };
+            },
+
+            dataLoaded: function (data) {
+
+                var sortedData = data ? data.sort(function (a,b) {
+                    return a.order - b.order;
+                }) : null;
+
+                this._initContainersDetectable(data);
+
+//                this.set('data', null);
+                this.set('data', sortedData);
+                return Promise.resolve(sortedData);
+            },
+
+            _initContainersDetectable: function (data) {
+                var isContainersDetectable = !!app.featureContainersDetectable && data.length === 1 && data[0].containerType === 'plain';
+                this.set('isContainersDetectable', isContainersDetectable);
+            },
+
+
+            _renderFakeContainer: function (list, item, strangeIndex, beforeAfter) {
+                var before = beforeAfter === 'before',
+                    idx;
+
+                if (!list || !item) {
+                    return false;
+                }
+                idx = list.indexOf(item);
+                if (idx < 0) {
+                    return false;
+                }
+                if (before) {
+                    if (idx === 0)  {
+                        return item.containerType !== 'plain';
+                    } else {
+                        return (item.containerType !== 'plain' && list[idx - 1].containerType !== 'plain');
+                    }
+                } else {
+                    if (list.length -1 === idx) {
+
+                        return item.containerType !== 'plain';
+                    } else {
+                        //not last item
+                        return false;
+
+                    }
+                }
+
+            },
+
+            listeners: {
+                'ax-refresh-container-list': '_forceReload'
+            },
+
+
+            observers: [
+                '_computeSortedFilteredItems(data, filterListFacets, data.length, filterListFacets.*)'
+            ],
+
+            _computeSortedFilteredItems: function (data, filterListFacets) {
+
+                if (!data) {
+                    this.set('_sortedFilteredItems', []);
+                }
+
+                this.set('_sortedFilteredItems', this._filterAndSortData(data, '', filterListFacets));
+            },
+
+            _filterAndSortData: function (data, searchTerm, facets) {
+                var filterFn = this._filterList(searchTerm, facets);
+                return data.filter(filterFn);
+            },
+
+            _forceReload: function (event) {
+                event.detail.reloadResult = this.refresh(true);
+            },
+
+
+
+            _onSelectedSortChange: function (event, targetEvent) {
+                var self = this;
+                event.stopPropagation();
+                if (!targetEvent) {
+                    return;
+                }
+
+                var itemPk = targetEvent.item.value;
+                var newPos = targetEvent.newIndex;
+
+                app.storageContainer.getObject(this.modelName, itemPk).then(function (model) {
+                    model.moveTo({position: newPos}).then(function () {
+                        self.refresh();
+                    });
+                });
+            }
+
+        });
+    })();
+</script>

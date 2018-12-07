@@ -1,0 +1,72 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../model-sentence-variant-synonym/view-model-sentence-variant-synonym-form.html">
+<link rel="import" href="../model-sentence-variant-synonym/view-model-sentence-variant-synonym-list.html">
+
+<dom-module id="view-model-sentence-variant-synonym-wizard">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+        </style>
+        <section>
+            <view-model-sentence-variant-synonym-form
+                    synonym-values="{{synonymValues}}"
+                    id="modal-dialog-form"
+                    variant-pk="[[variantPk]]"
+                    training-uses-container="[[trainingUsesContainer]]">
+            </view-model-sentence-variant-synonym-form>
+        </section>
+
+        <section>
+            <paper-button disabled="[[!synonymValues.length]]" raised on-tap="submitModalForm">Save new Synonyms</paper-button>
+        </section>
+
+        <section>
+            <view-model-sentence-variant-synonym-list parent-pk="[[variantPk]]"
+                    on-form-cancel="stopPropagation"></view-model-sentence-variant-synonym-list>
+        </section>
+
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-sentence-variant-synonym-wizard',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                variantPk: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                synonyms: {
+                    type: Array,
+                    notify: true
+                }
+            },
+
+            attached: function () {
+            },
+            stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+            cancel: function () {
+            },
+            refresh: function () {
+            }
+
+        });
+
+    })();
+</script>

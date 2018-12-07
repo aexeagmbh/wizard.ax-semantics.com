@@ -1,0 +1,215 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+
+<link rel="import" href="../model-property/view-model-property-selector.html">
+
+
+<dom-module id="view-model-container-action-to-group">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host .flex-row paper-input {
+                display: inline-block;
+            }
+
+            :host .flex-row {
+                align-items: flex-start;
+            }
+        </style>
+        <form on-submit="saveModel" is="iron-form" id="model-form">
+
+
+            <paper-card>
+                <div class="card-content">
+                    <section class="card-content-body-container">
+
+                        <div class="flex-row">
+                             <view-model-property-selector item-value-prop-name="id" parent-pk="[[trainingPk]]" value="{{formData.containerProperty}}"></view-model-property-selector>
+
+                            <paper-dropdown-menu label="Group Method"
+                                                 on-iron-overlay-opened="_stopPropagation">
+
+                                <paper-menu
+                                        required
+                                        label="Group Method" class="dropdown-content" attr-for-selected="value"
+                                        selected="{{groupMethodData.method}}">
+
+                                    <paper-item value="All">All</paper-item>
+                                    <paper-item value="Best">Best</paper-item>
+                                    <paper-item value="Last">Last</paper-item>
+                                    <paper-item value="Range">Range</paper-item>
+                                    <paper-item value="Random">Random</paper-item>
+                                    <paper-item value="AllRandom">AllRandom</paper-item>
+
+                                </paper-menu>
+
+
+                            </paper-dropdown-menu>
+                            <template is="dom-if"
+                                      if="{{_equalsOneOf(groupMethodData.method, 'Best', 'Last', 'Random')}}" restamp>
+                                <paper-input label="Count" value="{{groupMethodData.count}}"
+                                             type="number"></paper-input>
+                            </template>
+                            <template is="dom-if" if="{{_equalsOneOf(groupMethodData.method, 'Range')}}" restamp>
+                                <paper-input label="Start" value="{{groupMethodData.start}}"
+                                             type="number"></paper-input>
+                                <paper-input label="End" value="{{groupMethodData.end}}" type="number"></paper-input>
+                            </template>
+                        </div>
+
+                    </section>
+                </div>
+            </paper-card>
+
+
+        </form>
+    </template>
+</dom-module>
+<script>
+(function () {
+
+
+    var defaultParametersData = {
+        Preceding: '',
+        Trailing: '',
+        On: []
+    };
+
+    var defaultAttributesData = {
+        case: 'nom',
+        switch_number: '',
+        gender: '',
+        copy_grammar_from_case: null
+    };
+    Polymer({
+        is: 'view-model-container-action-to-group',
+
+        behaviors: [AxWizard.BaseModelFormBehavior],
+
+
+        properties: {
+
+            groupMethodData: {
+                type: Object,
+                notify: true
+            },
+            storageId: {
+                type: String,
+//                value: 'container',
+                notify: true
+            },
+
+            trainingPk: {
+                type: String
+            }
+        },
+
+        _preSaveModel: function () {
+
+        },
+
+
+
+        saveModel: function () {
+            var self = this,
+                    p;
+
+
+            self.set('_isLoading', true);
+            self._preSaveModel();
+
+            p = this._toGroup();
+
+            p.then(function (resp) {
+                self.fire('model-save-success', resp);
+                self.set('_isLoading', false);
+                self.set('formData', {});
+                self.set('groupMethodData', {});
+            }, function (e) {
+                console.log('model-save-error', e);
+                self.set('_isLoading', false);
+                self.fire('model-action-error', e);
+            });
+
+            return p;
+        },
+
+
+        _toGroup: function (event) {
+            if (event) {
+                event.stopPropagation();
+            }
+
+            var gm = this.groupMethodData;
+            if (gm.count !== undefined) {
+                gm.count = 1 * gm.count;
+            }
+            if (gm.start !== undefined) {
+                gm.start = 1 * gm.start;
+            }
+            if (gm.end !== undefined) {
+                gm.end = 1 * gm.end;
+            }
+
+
+            return this.model.toGroup({containerProperty: this.formData.containerProperty, group_method: gm}).then(function () {
+               return this.model.refresh(true);
+            }.bind(this));
+        },
+
+        _stopPropagation: function (event) {
+            event.stopPropagation();
+        },
+
+
+        _equals: function (a, b) {
+            return a === b;
+        },
+
+        /**
+         * Looks for duplicate argument
+         * @returns {boolean}
+         * @private
+         */
+        _equalsOneOf: function () {
+            var args = Array.prototype.slice.call(arguments);
+
+            return args.filter(function (x, idx, ls) {
+                return ls.indexOf(x) === idx;
+            }).length < args.length;
+        },
+
+        _initFormData: function (model) {
+            AxWizard.BaseModelFormBehavior._initFormData.call(this, model);
+
+            this._initGroupMethodData(model.data.groupMethod);
+        },
+
+        _initGroupMethodData: function (groupMethod) {
+            groupMethod = groupMethod || {};
+
+            this.set('groupMethodData', groupMethod);
+        }
+
+    });
+})();
+</script>

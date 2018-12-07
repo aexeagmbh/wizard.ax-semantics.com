@@ -1,0 +1,124 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<dom-module id="view-model-property-detail-chip">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: inline-block;
+                font-size: initial !important;
+            }
+
+            :host paper-icon-item.chip {
+                min-height: 32px;
+                height: 32px;
+                padding: 0;
+                background-color: #dddddd;
+                border-radius: 16px;
+                box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+            }
+
+            :host paper-icon-item.chip ::content #contentIcon {
+                width: 32px;
+                height: 32px;
+            }
+
+            :host paper-icon-item.chip ::content paper-icon-body {
+                padding-left: 8px;
+                padding-right: 12px;
+            }
+
+            .container-avatar {
+                width:100%;
+                flex-direction: column;
+                align-items: center;
+                display: flex;
+                width: 32px;
+                height: 32px;
+                border-radius: 16px;
+                border: 4px solid;
+                color: #77bc1f;
+                box-sizing: border-box;
+                font-weight: bold;
+                opacity: 0.7;
+            }
+
+            :host iron-icon {
+                color: darkgray;
+            }
+            :host .clickable {
+                cursor: pointer;
+            }
+        </style>
+        <paper-icon-item class="chip">
+
+            <div item-icon>
+                <div class="container-avatar">
+                    <div class="flex">
+                        <iron-icon icon="icons:apps"></iron-icon>
+                    </div>
+                </div>
+            </div>
+            <paper-icon-body>
+                <div>[[model.data.name]]</div>
+            </paper-icon-body>
+            <iron-icon icon="icons:check-circle" hidden="[[!showTrue]]"></iron-icon>
+            <iron-icon icon="icons:block" hidden="[[!showFalse]]"></iron-icon>
+            <iron-icon class="clickable" icon="icons:cancel" hidden="[[!showRemove]]" on-tap="_removeItem"></iron-icon>
+        </paper-icon-item>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-property-detail-chip',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                modelName: {
+                    type: String,
+                    value: 'property',
+                    readOnly: true
+                },
+                showTrue: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                showFalse: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                showRemove: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                }
+
+            },
+
+            _removeItem: function (event) {
+                event.stopPropagation();
+                this.fire('ax-remove-item');
+            }
+
+        });
+    })();
+</script>

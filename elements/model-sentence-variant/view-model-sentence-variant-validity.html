@@ -1,0 +1,407 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+
+<dom-module id="view-model-sentence-variant-validity">
+
+    <template>
+         <style include="iron-flex">
+
+            :host .flex-row {
+                align-items: baseline;
+            }
+            :host paper-button {
+                font-size: initial !important;
+            }
+            :host #sample-output {
+                white-space: pre-line;
+            }
+
+            :host .button-spacer {
+                opacity: 1;
+            }
+            :host .validity-progress-icon {
+                opacity: 0;
+            }
+
+            :host[validation-state="valid"] .validity-progress-icon ,
+            :host[validation-state="invalid"] .validity-progress-icon  {
+                opacity: 0;
+                transition: opacity 2s ease-out;
+            }
+            :host[validation-state="validating"] .validity-progress-icon {
+                opacity: 1;
+            }
+
+            :host[validation-state="validating"] .button-spacer {
+                 opacity: 0;
+            }
+            :host[validation-state="valid"] .button-spacer ,
+            :host[validation-state="invalid"] .button-spacer  {
+                opacity: 1;
+                transition: opacity 0.5s 1.5s;
+            }
+            :host paper-button.paper-icon-button {
+                min-width: 0;
+                padding: 8px;
+                margin: 0;
+                display: inline-block;
+            }
+        </style>
+
+        <div class="flex-row" >
+            <div hidden="[[!_anyOf(_hasErrors, _hasWarnings)]]" style="margin-right: 8px;">
+
+                <template is="dom-if" if="[[_hasWarnings]]">
+                    <paper-icon-button toggles active="{{_isItemListDetailExpanded}}" icon="[[itemValidityIcon]]">
+                    </paper-icon-button>
+                </template>
+                <template is="dom-if" if="[[!_hasWarnings]]">
+                    <iron-icon icon="[[itemValidityIcon]]"></iron-icon>
+                </template>
+            </div>
+
+            <div class="flex" >
+                <div  hidden="[[!_hasErrors]]">
+                    <h4>Errors</h4>
+                    <div class="paper-font-caption flex" style="white-space: normal;" id="validity-error-msg"></div>
+                </div>
+                <template is="dom-if" if="[[_showSampleOutput(valid, sampleOutput)]]">
+                    <div id="sample-output">[[sampleOutput]]<i hidden="[[sampleOutput]]">No sample output available.</i></div>
+
+                 </template>
+
+                <paper-card hidden="[[!_allOf(_hasWarnings, _isItemListDetailExpanded)]]" class="display-list-item" elevation="0">
+                    <div class="card-header">
+                        <h4>Warnings</h4>
+                    </div>
+                    <div class="card-content paper-font-caption flex" style="white-space: normal;" id="validity-warning-msg"></div>
+                </paper-card>
+
+            </div>
+            <paper-icon-button toggles active="{{_isItemListDetailExpanded}}" hidden="[[!_hasWarnings]]" icon="[[itemExpandedIcon(_isItemListDetailExpanded)]]">
+            </paper-icon-button>
+
+            <paper-icon-button icon="icons:bug-report" title="Show Debug Output" on-tap="_showDebugOutput"></paper-icon-button>
+            <paper-button on-tap="_validateSentenceVariant">
+                    <div class="button-spacer">[[validateButtonLabel]]</div>
+
+                <div class="validity-progress-icon" style="position: absolute;">
+                    <iron-icon icon="[[itemValidityIcon]]"></iron-icon>
+                </div>
+
+
+            </paper-button>
+        </div>
+
+    </template>
+</dom-module>
+
+
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-variant-validity',
+
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+
+                isEditorView: {
+                    value: true,
+                    reflectToAttribute: true
+                },
+
+                modelName: {
+                    value: 'sentence-variant'
+                },
+
+                _validityErrorMsg: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+
+                _validityWarningMsg: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+
+                validityMessage: {
+                    notify: true
+                },
+                errors: {
+                    notify: true,
+                    value: function () {return [];}
+                },
+                warnings: {
+                    notify: true,
+                    value: function () {return [];}
+                },
+
+                _hasErrors: {
+                    notify: true,
+                    computed: '_computeHasErrors(valid, errors)'
+                },
+                _hasWarnings: {
+                    notify: true,
+                    computed: '_anyOf(warnings.length)'
+                },
+
+                valid: {
+                    type: Boolean,
+                    notify: true,
+                    observer: '_onValidChanged'
+                },
+
+
+                sampleOutput: {
+                    type: String
+                },
+                hideDebugButton: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                showValidMessage: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                hideSampleOutput: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                hideValidateButton: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                validateButtonLabel: {
+                    type: String,
+                    value: 'Validate'
+                },
+                validationState: {
+                    type: String,
+                    value: '',
+                    reflectToAttribute: true,
+                    notify: true
+                },
+
+                itemValidityIcon: {
+                    type: String,
+                    notify: true,
+                    computed: '_computeValidityIcon(valid, _hasWarnings)'
+                },
+
+                _isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+            },
+
+             itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            _computeHasErrors: function (valid, _errors) {
+                return (valid === false || (_errors && _errors.length));
+
+            },
+
+            _anyOf: function () {
+                var args = Array.prototype.slice.call(arguments);
+
+                return args.filter(function (x) {
+                    return !!x;
+                }).length > 0;
+            },
+
+            _allOf: function () {
+                return Array.prototype.slice.call(arguments).filter(function (x) {return !!x;}).length === arguments.length;
+            },
+
+            modelChanged: function () {
+              this._initModelDetails();
+            },
+
+            _initModelDetails: function () {
+                if (!this.model) {
+                    return;
+                }
+
+                this.set('errors', this.model.get('data.errors') || []);
+                this.set('warnings', this.model.get('data.warnings') || []);
+                this.set('valid', this.model.get('data.valid'));
+                this.set('sampleOutput', this.model.get('data.sampleOutput'));
+                this.set('validityMessage', this.model.get('data.validityMessage'));
+            },
+
+            onAxModelDataChanged: function () {
+
+                if (!this.model) {
+                    return;
+                }
+
+                AxWizard.BaseModelViewBehavior.onAxModelDataChanged.apply(this, arguments);
+                this._initModelDetails();
+
+            },
+
+
+
+
+            _onValidChanged: function (newVal, oldVal) {
+                var validationState;
+                if (oldVal === undefined) {
+                    return;
+                }
+
+                if (newVal === null) {
+                    validationState = 'validating';
+                } else if (newVal === false) {
+                    validationState = 'invalid';
+                } else if (newVal === true) {
+                    validationState = 'valid';
+                }
+
+                this.set('validationState', validationState);
+            },
+
+            _showValidityMessage: function (valid, showValidMessage, warnings) {
+                return !valid || showValidMessage || (warnings && warnings.length);
+            },
+            _showSampleOutput: function (valid, sampleOutput, hideSampleOutput) {
+                return valid && sampleOutput && !hideSampleOutput;
+            },
+
+            _computeValidityIcon: function (validity, _hasWarnings) {
+                if (validity === false) {
+                    return 'icons:warning';
+                }
+                if (validity === true) {
+                    if (_hasWarnings) {
+                        return 'icons:error-outline';
+                    }
+                    return 'icons:check';
+                }
+                return 'icons:hourglass-empty';
+            },
+
+
+            observers: [
+                '_displayErrorMessage(_validityErrorMsg)',
+                '_displayWarningMessage(_validityWarningMsg)',
+                '_computeValidityErrorMsg(validityMessage, errors)',
+                '_computeValidityWarningMsg(warnings)',
+            ],
+
+            attached: function () {
+                this._displayErrorMessage(this._validityErrorMsg);
+            },
+
+
+            _displayErrorMessage: function (msg) {
+                var msgContainer = this.$$('#validity-error-msg');
+
+                if (msgContainer) {
+                    msgContainer.innerHTML = msg;
+                }
+            },
+
+            _displayWarningMessage: function (msg) {
+                var msgContainer = this.$$('#validity-warning-msg');
+
+                if (msgContainer) {
+                    msgContainer.innerHTML = msg;
+                }
+            },
+
+            _computeValidityWarningMsg: function  (warnings) {
+                var msg = '';
+
+
+                if ( warnings && warnings.length) {
+
+                    warnings.forEach(function (warningItem) {
+                        msg += '<strong>' + warningItem.identifier + '</strong>';
+                        msg += '<p>' + warningItem.text + '</p>';
+
+                    });
+
+                }
+
+                this.set('_validityWarningMsg', msg);
+            },
+
+            _computeValidityErrorMsg: function (obj, errors) {
+                var msg = '',
+                        errorObject;
+
+                try {
+                    errorObject = JSON.parse(obj);
+                } catch (e) {
+                    errorObject = obj;
+                }
+
+                if (typeof errorObject === 'string') {
+                    msg += errorObject;
+                }
+
+                if ( errors && errors.length) {
+                    errors.forEach(function (errorItem) {
+                        msg += '<strong>' + errorItem.identifier + '</strong>';
+                        msg += '<p>' + errorItem.text + '</p>';
+
+                    });
+                }
+
+
+                if (typeof errorObject ==='object') {
+
+                    Object.keys(errorObject).forEach(function (keyName) {
+                        msg += '<strong>' + keyName + '</strong>';
+                        try {
+                            msg += '<p>' + errorObject[keyName].join('</p><p>') + '</p>';
+                        } catch (e) {
+                            msg += '<p>' + errorObject[keyName] + '</p>';
+                        }
+
+                    });
+
+                }
+
+                this.set('_validityErrorMsg', msg);
+            },
+
+
+            _showDebugOutput: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-modal-debug-output', params: {modelPk: this.modelPk}});
+
+            },
+
+
+            _validateSentenceVariant: function (event) {
+                event.stopPropagation();
+                this.set('sampleOutput', '');
+                this.fire('ax-validate-sentence-variant', {modelPk: this.modelPk});
+            },
+
+        });
+    }());
+</script>

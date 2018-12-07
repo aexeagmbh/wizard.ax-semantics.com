@@ -1,0 +1,468 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+<link rel="import" href="../ax-components/ax-highlight-atml-containers.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-validity.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-form-containers.html">
+
+
+<dom-module id="view-model-sentence-variant-list-detail">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host dl,
+            :host dl dt,
+            :host dl dd,
+            :host paper-item [secondary] dl,
+            :host paper-item [secondary] dl dt,
+            :host paper-item [secondary] dl dd {
+                margin: 0;
+            }
+
+            :host dl dt,
+            :host dl dd,
+            :host paper-item [secondary] dl dt,
+            :host paper-item [secondary] dl dd {
+                display: inline-flex;
+            }
+
+            :host dl dd,
+            :host paper-item [secondary] dl dd {
+                margin-left: 1em;
+                margin-right: 2em;
+            }
+
+            :host .card-content-body-form-container .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .card-content-body-form-container .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            :host .card-content-body-form-container .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host paper-icon-item,
+            :host paper-icon-item.list-summary-item {
+                cursor: pointer;
+                position: relative;
+            }
+            :host paper-icon-item paper-item-body paper-textarea {
+                white-space: normal;
+            }
+
+            :host #inline-edit-element {
+                word-wrap: break-word;
+                /*white-space: pre-line;*/
+            }
+
+
+            :host .variant-validity-icon {
+                --iron-icon-height: 16px;
+                --iron-icon-width: 16px;
+            }
+            :host .card-actions paper-menu-button {
+                padding: 0;
+            }
+            :host .card-content[secondary] {
+                color: var(--paper-item-body-secondary-color, --secondary-text-color);
+                @apply(--paper-font-body1);
+                padding-top: 4px;
+                padding-bottom: 4px;
+            }
+            :host .card-content.atml-content {
+                padding-top: 4px;
+            }
+            :host .card-actions.right {
+                text-align: right;
+            }
+
+            :host paper-tabs {
+                --paper-tabs-selection-bar-color: #77bc1f;
+
+            }
+            :host paper-tabs paper-tab {
+                --paper-tab-ink: #77bc1f;
+            }
+            :host #item-menu {
+                padding: 0;
+            }
+            :host .card-header paper-toolbar {
+                --paper-toolbar-background: transparent;
+                --paper-toolbar-color: #333;
+                cursor: pointer;
+            }
+            :host paper-badge,
+            :host .card-header paper-toolbar paper-badge {
+                --paper-badge-text-color: #ffffff;
+                --paper-badge-background: #727272;
+                /*--paper-badge-background: #77bc1f;*/
+            }
+
+            :host .light {
+                color: #727272;
+            }
+            .ax-button-icon-hint {
+                padding: 2px;
+                color:  #77bc1f !important;
+                z-index: 9;
+                top: -3px;
+                position: absolute;
+                left: 161px;
+              }
+            :host div[data-inactive] {
+                background-color: lightgray;
+            }
+            :host paper-card,
+            :host paper-item {
+                background-color: transparent;
+            }
+        </style>
+        <div class="list-view-list-item-detail-wrapper" data-inactive$="[[!model.data.active]]">
+            <paper-card class="display-list-item">
+                <div class="card-header">
+                    <paper-badge icon="{{itemValidityIcon(model.data.valid, model.data)}}" title="[[model.data.validityMessage]]"
+                                 label="[[model.data.validityMessage]]"></paper-badge>
+
+                    <paper-toolbar >
+                        <span class="light">[[languageDisplayValue]]</span>
+                        <div class="flex"></div>
+
+                        <paper-icon-button icon="editor:mode-edit" on-tap="_editModel" title="Edit">
+                        </paper-icon-button>
+                        <paper-icon-button icon="icons:content-copy" title="Duplicate" on-tap="_duplicateModel"
+                                               hidden="[[!isItemListDetailExpanded]]">
+                            </paper-icon-button>
+                        <paper-icon-button icon="icons:translate" on-tap="_translateModel" title="Translate"></paper-icon-button>
+                        <paper-icon-button toggles active={{isDeleteDialogOpen}} icon="icons:delete" title="Delete"></paper-icon-button>
+                        <paper-icon-button on-tap="toggleItemListDetail"
+                                           icon="{{itemExpandedIcon(_isItemListDetailExpanded)}}">
+                        </paper-icon-button>
+                    </paper-toolbar>
+
+
+
+                </div>
+
+                <div class="card-action" hidden="[[!isDeleteDialogOpen]]">
+                        <ax-delete-ask-button open="{{isDeleteDialogOpen}}" on-ax-delete-ask-button-confirmed="_deleteModel"
+                                              ></ax-delete-ask-button>
+                </div>
+
+                <div class="card-content atml-content" >
+
+                    <template is="dom-if" if="[[trainingUsesContainer]]">
+                        <view-model-container-list
+                                storage-id="storage-sentence-variant-container"
+                                model-name="sentence-variant-container"
+                                parent-model-name="sentence-variant"
+                                on-tap="_editModel"
+                                active-mode="readOnly"
+                                no-expand
+                                parent-pk="[[modelPk]]">
+                        </view-model-container-list>
+                    </template>
+
+                    <template is="dom-if" if="[[!trainingUsesContainer]]">
+                        <ax-highlight-atml-containers replace-container-with-source=[[replaceContainerWithSource]]
+                                                  render-fake-chips="[[trainingUsesContainer]]"
+                                                  no-space-replace
+                                                  tabindex="0" on-focus="_editModel" atml="[[model.data.text]]"
+                                                  hidden="[[_isItemListDetailInlineEdit]]"></ax-highlight-atml-containers>
+
+                    </template>
+                </div>
+
+                <template is="dom-if" if="[[_isItemListDetailExpanded]]">
+
+
+                    <paper-tabs attr-for-selected="data-action" selected="{{actionName}}" class="bottom self-end">
+                        <paper-tab data-action="synonyms">Synonyms</paper-tab>
+                        <paper-tab data-action="debug">
+
+                          <span id="tab-header-debug">Debug</span>
+
+                            <paper-badge for="tab-header-debug" icon="{{itemValidityIcon(model.data.valid, model.data)}}"
+                                         title="[[model.data.validityMessage]]"
+                                         label="[[model.data.validityMessage]]"></paper-badge>
+                        </paper-tab>
+                    </paper-tabs>
+                    <div class="card-content">
+
+                        <iron-pages attr-for-selected="data-action" selected="{{actionName}}">
+
+                            <div data-action="synonyms">
+
+                                <paper-button raised on-tap="_editSynonyms">Synonym Wizard</paper-button>
+                                <!-- Synonyms-->
+                                <view-model-sentence-variant-synonym-list
+                                        id="sentence-variant-synonym-list"
+                                        is-route-active="[[retTrue]]"
+                                        replace-container-with-source="[[replaceContainerWithSource]]"
+                                        parent-pk="[[modelPk]]">
+                                </view-model-sentence-variant-synonym-list>
+
+                            </div>
+
+                            <div data-action="debug">
+                                <paper-toolbar class="section-header">
+                                    <h4>Sample Output</h4>
+                                </paper-toolbar>
+                                <div style="margin-left: 16px;">
+                                        <view-model-sentence-variant-validity
+                                            model-pk="[[modelPk]]"
+                                            hide-validate-button
+                                            hide-debug-button>
+
+                                            </view-model-sentence-variant-validity>
+                                </div>
+                                <paper-button raised on-tap="_showDebugOutput" hidden="[[!model.data.propertyOutput]]">Show Debug Output</paper-button>
+
+                            </div>
+
+                        </iron-pages>
+                    </div>
+                </template>
+            </paper-card>
+        </div>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-variant-list-detail',
+            behaviors: [
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                modelName: {
+                    value: 'sentence-variant'
+                },
+                trainingUsesContainer: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                isModalPropertyOutputOpened: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                actionName: {
+                    type: String,
+                    value: 'synonyms',
+                    notify: true
+                },
+                selectedItemMenu: {
+                    type: String,
+                    value: null,
+                    notify: true
+                },
+                retTrue: {
+                    type: Boolean,
+                    value: true
+                },
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                _isItemListDetailExpanded: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'sentence-variant',
+                    notify: true
+                },
+                isRouteActive: {
+                    type: Boolean,
+                    value: true
+                },
+                fullRoute: {
+                    type: Array,
+                    value: function () {
+                        return ['sentence', 'variant'];
+                    }
+                },
+                _isItemListDetailInlineEdit: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                selectedForPreview: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                languageDisplayValue: {
+                    type: String,
+                    notify: true
+                }
+            },
+
+            listeners: {
+                'selected-for-preview-changed': '_selectedForPreviewChanged',
+                'ax-validate-sentence-variant': '_validateSentenceVariant'
+            },
+
+
+            _selectedForPreviewChanged: function (event, data) {
+                this.fire('selected-item-preview-changed', {modelPk: this.modelPk, selected: data.value});
+            },
+
+            _inlineEdit: function () {
+                this.set('_isItemListDetailInlineEdit', true);
+                this.$$('#inline-edit-element').focus();
+            },
+
+            _inlineEditDone: function (event, data) {
+                if (data) {
+                    // otherwise blur event is fired when paper-textarea fousses the textarea.
+                    this.set('_isItemListDetailInlineEdit', false);
+                }
+            },
+
+            saveItem: function (event) {
+
+                event.stopPropagation();
+                return this.model.save();
+            },
+
+            deleteSentenceVariant: function (event) {
+
+                event.stopPropagation();
+                var self = this;
+                self.set('selectedItemMenu', null);
+                self.model.delete().then(function () {
+                    self.fire('item-deleted');
+                });
+            },
+
+            itemExpandedIcon: function (isExpanded) {
+                return isExpanded ? 'expand-less' : 'expand-more';
+            },
+
+            itemValidityIcon: function (validity, modelData) {
+                if (validity === false) {
+                    return 'icons:warning';
+                }
+                if (validity === true) {
+                    if (modelData.warnings && modelData.warnings.length) {
+                        return 'icons:error-outline';
+                    }
+                    return 'icons:check';
+                }
+                return 'icons:hourglass-empty';
+            },
+
+
+            _editModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-modal-edit', params: {modelPk: this.modelPk}});
+            },
+
+            _duplicateModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-modal-duplicate', params: {modelPk: this.modelPk}});
+            },
+
+            _editSynonyms: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-synonym-wizard-modal', params: {variantPk: this.modelPk}});
+            },
+            _translateModel: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-modal-translate', params: {modelPk: this.modelPk}});
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+            getFieldDisplayValue: function (fieldName) {
+                return this.model.getFieldDisplayValue(fieldName);
+            },
+
+            highlightATML: function (txt) {
+                var re = /(\[[^\]]*\])/g;
+                return txt.replace(re, '<span>$&</span>');
+            },
+
+            toggleItemListDetail: function (event) {
+                event.stopPropagation();
+                this.set('_isItemListDetailExpanded', !this._isItemListDetailExpanded);
+            },
+
+            modelChanged: function () {
+              this._initModelDetails();
+            },
+
+            _initModelDetails: function () {
+                if (!this.model) {
+                    return;
+                }
+
+                var trainingP = this.fire('ax-get-training', {}).detail.training;
+
+                if (trainingP) {
+                    trainingP.then(function (training) {
+                        this.set('trainingUsesContainer', training.get('data.containerMode'));
+                    }.bind(this));
+                }
+
+                var languageId = this.get('model.data.language');
+
+                if (languageId) {
+                    app.storageContainer.getObject('language', languageId).then(function (language) {
+                        this.set('languageDisplayValue', language.data.name);
+                    }.bind(this));
+                }
+
+            },
+
+            onAxModelDataChanged: function () {
+
+                if (!this.model) {
+                    return;
+                }
+
+                AxWizard.BaseModelViewBehavior.onAxModelDataChanged.apply(this, arguments);
+                this._initModelDetails();
+
+            },
+
+            _showDebugOutput: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-modal-debug-output', params: {modelPk: this.modelPk}});
+            },
+
+
+            _validateSentenceVariant: function (event) {
+                event.stopPropagation();
+                this.model.validate();
+            },
+
+        });
+    })();
+</script>

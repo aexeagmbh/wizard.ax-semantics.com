@@ -1,0 +1,61 @@
+<!--<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">-->
+<!--<link rel="import" href="../iron-selector/iron-selector.html">-->
+<!--<link rel="import" href="../polymer/polymer.html">-->
+<!--<link rel="import" href="paper-stepper-behavior.html">-->
+
+<link rel="import" href="../../../bower_components/paper-stepper/paper-stepper.html">
+<link rel="import" href="../../../bower_components/paper-stepper/paper-step-shared-styles.html">
+<link rel="import" href="ax-paper-vertical-step.html">
+
+<!--
+@element paper-vertical-stepper
+@demo demo/index.html
+@hero hero.svg
+-->
+<dom-module id="ax-paper-vertical-stepper">
+  <template>
+    <style>
+      :host {
+        display: block;
+        box-sizing: border-box;
+        @apply(--paper-font-common-base);
+        @apply(--layout-vertical);
+        padding-top: 16px;
+      }
+      iron-selector > ax-paper-vertical-step:last-of-type ::content #connectorLine {
+        visibility: hidden;
+      }
+    </style>
+    <iron-selector
+      selected="[[selected]]"
+      id="stepSelector"
+      selected-attribute="opened"
+      activate-event="select-step">
+    </iron-selector>
+
+  </template>
+    <script>
+
+        (function () {
+
+            var Zecat = window.Zecat || {};
+
+            Polymer({
+                is: 'ax-paper-vertical-stepper',
+
+                behaviors: [
+                    Zecat.PaperStepperBehavior
+                ],
+
+                attached: function () {
+                    this.getEffectiveChildren().forEach(function (step, index) {
+                        step.set('index', index + 1);
+                        step.set('previousCompleted', !index);
+                        Polymer.dom(this.$.stepSelector).appendChild(step);
+                    }.bind(this));
+                }
+
+            });
+        })();
+    </script>
+</dom-module>

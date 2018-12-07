@@ -1,0 +1,105 @@
+<script>
+    var AxWizard = AxWizard || {};
+    AxWizard.PageRoutingBehavior = {
+        properties: {
+            currentRouteName: {
+                type: String,
+                notify: true
+            },
+            route: {
+                type: String,
+                notify: true
+            },
+            fullRoute: {
+                type: Array,
+                notify: true,
+                value: []
+            },
+            breadCrumb: {
+                type: Array,
+                notify: true
+            },
+            paramsPkName: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            params: {
+                type: Object,
+                notify: true
+            },
+             modelPk: {
+                type: String,
+                notify: true
+            },
+            isRouteActive: {
+                type: Boolean,
+                value: false,
+                notify: true,
+                reflectToAttribute: true,
+                observer: '_isRouteActiveObserver'
+            },
+            dependentStoreNames: {
+                type: Array,
+                value: function () {
+                    return [];
+                }
+
+            }
+        },
+        listeners: {
+            'full-route-changed': '_routeChanged',
+            'bread-crumb-changed': '_breadcrumbChanged'
+        },
+
+        observers: [
+            'computeModelPk(params, paramsPkName)'
+        ],
+
+        detached: function () {
+            this._purgeDependentStores();
+        },
+
+        _purgeDependentStores: function () {
+            this.dependentStoreNames.forEach(function (storeName) {
+               app.storageContainer.getStorage(storeName).then(function (store) {
+                   store.purgeAll();
+               });
+            });
+        },
+
+        computeModelPk: function (params, paramsPkName) {
+            if (params && paramsPkName) {
+                this.set('modelPk', '' + params[paramsPkName] || '');
+            }
+        },
+
+        _isRouteActiveObserver: function (newVal) {
+            if (newVal) {
+                this.routeActivated();
+            }
+        },
+
+        _handleSubRoutes: function (fullRoute) {
+        },
+
+        _routeChanged: function (event, newVal) {
+            this.set('isRouteActive', newVal.value.indexOf(this.get('currentRouteName')) > -1);
+            this._handleSubRoutes(newVal.value);
+        },
+
+        _breadcrumbChanged: function(event, newVal) {
+            this._processBreadcrumb(newVal.value);
+        },
+
+        _processBreadcrumb: function(breadcrumb) {
+        },
+
+        routeActivated: function () {
+        },
+
+        _computeIsSubRouteActive: function (showSubroute, isCurrentRouteActive) {
+            return  showSubroute && isCurrentRouteActive;
+        }
+    };
+</script>

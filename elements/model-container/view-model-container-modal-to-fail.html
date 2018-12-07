@@ -1,0 +1,69 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-container/view-model-container-action-to-fail.html">
+
+
+<dom-module id="view-model-container-modal-to-fail">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-dialog {
+                width: 90%;
+                overflow: visible;
+            }
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal opened="{{opened}}">
+            <h2>Generate a Phrase Container</h2>
+            <!--<paper-dialog-scrollable>-->
+                <template is="dom-if" if="[[opened]]" restamp>
+                    <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                    <view-model-container-action-to-fail hidden="[[_isLoading]]" id="modal-dialog-form"
+                                                             model-pk="[[pk]]"
+                                                             storage-id="[[modelName]]"
+                                                             training-pk="[[trainingPk]]"
+                                                             load-model
+                                                             on-ax-model-deleted="cancelModalForm"
+                                                             on-model-save-success="handleResponse">
+
+                    </view-model-container-action-to-fail>
+                </template>
+            <!--</paper-dialog-scrollable>-->
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Generate Fail Container</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-container-modal-to-fail',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                trainingPk: {
+                    type: String,
+                    notify: true
+                },
+                modelName: {
+                    type: String,
+                    notify: true
+                }
+            }
+        });
+
+    })();
+</script>

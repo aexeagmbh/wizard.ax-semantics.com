@@ -1,0 +1,90 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-behaviour.html">
+<link rel="import" href="../ax-crud/base-model-duplicatable-behavior.html">
+
+<script>
+    (function () {
+        Polymer({
+            is: 'model-sentence',
+            behaviors: [AxWizard.BaseModelBehaviour, AxWizard.BaseModelDuplicatableBehavior],
+            properties: {
+                displayValueForStyle: {
+                    type: String,
+                    computed: '_computeFieldDisplayName(storage.fields.style, data.style)'
+                },
+                isStoryMode: {
+                    type: Boolean,
+                    notify: true,
+                    value: false
+                },
+                defaultData: {
+                    type: Object,
+                    value: function () {
+                        return {
+                            obligatory: true,
+                            triggers: []
+                        };
+                    }
+                },
+                isTriggerAuto: {
+                    type: Boolean,
+                    notify: true,
+                    computed: '_computeIsTriggerAuto(data.autoTriggered, data)'
+                },
+                isTriggerNone: {
+                    type: Boolean,
+                    notify: true,
+                    computed: '_computeIsTriggerNone(data.triggers, data.autoTriggered, data)'
+                }
+            },
+
+            observers: [
+                '_observeIsStoryMode(data, data.command)'
+            ],
+
+            _computeIsTriggerAuto: function (isAutoTriggered) {
+               return !!isAutoTriggered;
+            },
+
+            _computeIsTriggerNone: function (triggers, isAutoTriggered) {
+                return !isAutoTriggered && (!triggers || !triggers.length);
+            },
+
+            _observeIsStoryMode: function (data) {
+                this.set('isStoryMode', data && !!(data.command));
+            },
+
+
+            validateSentenceVariants: function () {
+                var p = this._performJsonPostAction('validate-sentence-variants');
+                p.then(function () {
+                    this._displayMessage('Validation scheduled');
+                }.bind(this), function (e) {
+                    this._displayMessage('Validation failed');
+                }.bind(this));
+
+                return p;
+            },
+
+            save: function () {
+                var p;
+                p = AxWizard.BaseModelBehaviour.save.apply(this, arguments);
+                p.then(function () {
+                    app.fire('ax-intercom-event', {eventName: 'Sentence saved'});
+                });
+                return p;
+            }
+        });
+    })();
+</script>

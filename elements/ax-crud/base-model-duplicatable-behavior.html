@@ -1,0 +1,34 @@
+<script>
+    var AxWizard = AxWizard || {};
+
+    AxWizard.BaseModelDuplicatableBehavior = {
+
+        getDisplayName: function () {
+            return this.get('data.name');
+        },
+
+
+        /* ACTIONS */
+        duplicate: function (formData) {
+            var self = this,
+                p;
+            p = new Promise(function (resolve, reject) {
+                self._getStorage().then(function (storage) {
+                    self._performJsonPostAction('duplicate', null, formData).then(function (req) {
+                        self._displayMessage(storage.verboseSingleName + ' duplicated.');
+                        storage.getOrCreateObject(req.response).then(function (newModel) {
+                            resolve(newModel);
+                        });
+
+                    }, function (e) {
+                        self._displayMessage('Duplication of '+ storage.verboseSingleName + ' failed.');
+                        reject(e);
+                    });
+                });
+            });
+
+            return p;
+        }
+
+    };
+</script>

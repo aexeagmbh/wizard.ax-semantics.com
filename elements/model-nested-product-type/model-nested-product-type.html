@@ -1,0 +1,93 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../ax-crud/base-model-behaviour.html">
+
+<link rel="import" href="../ax-crud/base-model-duplicatable-behavior.html">
+
+<script>
+    (function () {
+        Polymer({
+            is: 'model-nested-product-type',
+            behaviors: [AxWizard.BaseModelBehaviour, AxWizard.BaseModelDuplicatableBehavior],
+            properties: {
+                defaultData: {
+                    type: Object,
+                    value: function () {
+                        return {
+                            'sentences': [],
+                            'name': '',
+                            triggers: []
+                        };
+                    }
+                },
+                isTriggerAuto: {
+                    type: Boolean,
+                    notify: true,
+                    computed: '_computeIsTriggerAuto(data.autoTriggered, data)'
+                },
+                isTriggerNone: {
+                    type: Boolean,
+                    notify: true,
+                    computed: '_computeIsTriggerNone(data.triggers, data.autoTriggered, data)'
+                }
+            },
+            _computeIsTriggerAuto: function (isAutoTriggered) {
+               return !!isAutoTriggered;
+            },
+
+            _computeIsTriggerNone: function (triggers, isAutoTriggered) {
+                return !isAutoTriggered && (!triggers || !triggers.length);
+            },
+
+            createNewSentence: function (sentenceName) {
+                var p;
+                p = new Promise(function (resolve) {
+                    app.storageContainer.getStorage('sentence').then(function (storageSentence) {
+                        storageSentence.getNewObject().then(function (sentence) {
+                           sentence.save(null, {
+                               name: sentenceName,
+                               training: this.data.training,
+                               triggers: [],
+                               autoTriggered: true
+                           }).then(function (sentence) {
+                               var sentences = this.data.sentences || [];
+                               sentences.push(sentence.data.id);
+
+                               // force uniqueness of sentences
+                               sentences = Array.from(new Set(sentences));
+                               this.save(['sentences'], {sentences: sentences}).then(function () {
+                                   resolve(sentence);
+                               });
+                           }.bind(this));
+                        }.bind(this));
+                    }.bind(this));
+                }.bind(this));
+
+                return p;
+            },
+
+            moveTo: function (params) {
+                var self = this,
+                        p;
+                p = self._performJsonPutAction('move-to', params, params);
+                p.then(function () {
+                    self._displayMessage('Sort order changed');
+                }, function (e) {
+                    self._displayMessage('Sorting failed');
+                });
+
+                return p;
+            },
+
+        });
+    })();
+</script>

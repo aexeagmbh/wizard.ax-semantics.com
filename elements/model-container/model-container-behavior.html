@@ -1,0 +1,616 @@
+<script>
+var AxWizard = AxWizard || {};
+
+
+AxWizard.ModelContainerBehavior = {
+
+
+    properties: {
+        defaultData: {
+            type: Object,
+            value: function () {
+                return {};
+            }
+        },
+        alternativeText: {
+            type: String,
+            notify: true,
+            computed: '_computeAlternativeText(data, data.parameters, data.parameters.*)'
+        },
+        parameterPreceding: {
+            notify: true,
+            computed: '_computeParameterPreceding(data, data.parameters, data.parameters.*)'
+        },
+        parameterTrailing: {
+            notify: true,
+            computed: '_computeParameterTrailing(data, data.parameters, data.parameters.*)'
+        },
+        parameterFormatContent: {
+            notify: true,
+            computed: '_computeParameterFormatContent(data, data.parameters, data.parameters.*)'
+        },
+        parameterKeywordId: {
+            notify: true,
+            computed: '_computeParameterKeywordId(data, data.parameters, data.parameters.*)'
+        },
+        parameterKeywordAlt: {
+            notify: true,
+            computed: '_computeParameterKeywordAlt(data, data.parameters, data.parameters.*)'
+        }
+    },
+
+    /**
+     *
+     * @returns {Promise}
+     */
+    getLanguage: function () {
+       return Promise.reject('Not defined');
+    },
+
+    _computeParameterKeywordId: function (data, parametersData) {
+        var keywordId = null;
+
+        if (Array.isArray(parametersData)) {
+            parametersData.forEach(function (parameterData) {
+                if (parameterData.type === 'keyword') {
+                    keywordId = parameterData.id;
+                }
+            });
+        } else {
+            // new bling bling
+            if (parametersData && parametersData.keyword) {
+                keywordId = parametersData.keyword.id;
+            }
+
+        }
+        return keywordId;
+    },
+
+    _computeParameterKeywordAlt: function (data, parametersData) {
+        var keywordAlt = null;
+
+        if (Array.isArray(parametersData)) {
+            parametersData.forEach(function (parameterData) {
+                if (parameterData.type === 'keyword') {
+                    keywordAlt = parameterData.alt;
+                }
+            });
+        } else {
+            // new bling bling
+            if (parametersData && parametersData.keyword) {
+                keywordAlt = parametersData.keyword.alt;
+            }
+
+        }
+
+        return keywordAlt;
+    },
+
+    _computeParameterPreceding: function (data, parametersData) {
+        var ret;
+        if (Array.isArray(parametersData)) {
+            ret = this.getParameterValue('preceding');
+            if (ret === undefined) {
+                return null;
+            }
+        } else {
+            // new bling bling
+            ret = parametersData.preceding || null;
+        }
+
+        return ret;
+    },
+
+    _computeParameterFormatContent: function (data, parametersData) {
+        var formatData;
+
+        if (Array.isArray(parametersData)) {
+            parametersData.forEach(function (parameterData) {
+                if (parameterData.type === 'capitalize') {
+                    formatData = 'capitalize';
+                } else if (parameterData.type === 'raw') {
+                    formatData = 'raw';
+                } else if (parameterData.type === 'lower') {
+                    formatData = 'lower';
+                } else if (parameterData.type === 'upper') {
+                    formatData = 'upper';
+                } else if (parameterData.type === 'void') {
+                    formatData = 'void';
+                }
+            });
+        } else {
+            // new bling bling
+            if (parametersData.void) {
+                formatData = 'void';
+            } else if (parametersData.capitalize) {
+                formatData = 'capitalize';
+            } else if (parametersData.raw) {
+                formatData = 'raw';
+            } else if (parametersData.lower) {
+                formatData = 'lower';
+            } else if (parametersData.upper) {
+                formatData = 'upper';
+            }
+        }
+
+        return formatData || null;
+    },
+
+    _computeParameterTrailing: function (data, parametersData) {
+        var ret;
+        if (Array.isArray(parametersData)) {
+            ret = this.getParameterValue('trailing');
+            if (ret === undefined) {
+                return null;
+            }
+        } else {
+            // new bling bling
+            ret = parametersData.trailing || null;
+        }
+        return ret;
+
+    },
+
+    _computeAlternativeText: function (data, parametersData) {
+        if (Array.isArray(parametersData)) {
+            return this.getParameterValue('alternative');
+        } else {
+            // new bling bling
+            return parametersData.alternative || null;
+        }
+
+    },
+
+    getParameterValue: function (parameterType) {
+        var parameters, param, ret;
+        parameters = this.get('data.parameters');
+
+        if (!parameters) {
+            return;
+        }
+        param = parameters.filter(function (param) {
+            return param.type === parameterType;
+        }).map(function (param) {
+            return param.text;
+        });
+        if (param.length) {
+            ret = param[0];
+        }
+
+        return ret;
+    },
+
+    getAttributeFieldNamesForType: function (containerType) {
+
+        var map = {
+            'phrase': [
+                'case',
+                'use_adjectives',
+                'switch_number',
+                'pronoun',
+                'determiner',
+                'reference_grammar_from',
+                'copy_grammar_from_case',
+                'copy_grammar_from_number',
+                'copy_grammar_from',
+                'preposition',
+            ],
+            'value': [
+                'case',
+                'use_adjectives',
+                'number',
+                'pronoun',
+                'determiner',
+                'reference_grammar_from',
+                'copy_grammar_from_case',
+                'copy_grammar_from_number',
+                'copy_grammar_from',
+                'preposition',
+            ],
+            'group': [
+                'case',
+                'use_adjectives',
+                'pronoun',
+                'determiner',
+                'reference_grammar_from',
+                'copy_grammar_from_case',
+                'copy_grammar_from_number',
+                'copy_grammar_from',
+                'preposition',
+                'conjunction',
+                'adjective_conjunction'
+            ],
+            'grammar': [
+                'number',
+                'case',
+                'gender',
+                'person',
+                'word_type',
+                'copy_grammar_from_case',
+                'copy_grammar_from_number',
+                'copy_grammar_from',
+                'copy_grammar_from_gender',
+                'copy_grammar_from_person',
+                'copy_grammar_from_tense',
+                'tense',
+                'preposition'
+            ],
+            'text': [
+
+            ],
+            'fail': [
+
+            ]
+        };
+
+        return map[containerType];
+
+
+    },
+
+
+    cloneContainer: function (params) {
+        var self = this,
+                p;
+
+        p = new Promise(function (resolve, reject) {
+            this._performJsonPostAction('split-translation', null, params).then(function (req) {
+                var response = req.response;
+                if (!response || !response.container) {
+                    reject(new Error('No containers generated.'));
+                }
+
+                response.container.forEach(function (item) {
+                    this.storage.setItem(item);
+                }.bind(this));
+
+                this.storage.list(this.parentPk, null, true).then(function () {
+                    resolve(response.container);
+                });
+
+//                resolve(response.container);
+
+            }.bind(this), function (e) {
+                reject(e);
+            });
+
+        }.bind(this));
+
+        p.then(function () {
+            self._displayMessage('Container generated');
+        }, function (e) {
+            self._displayMessage('Generation of Container failed');
+        });
+
+        return p;
+    },
+
+    splitContainer: function (params) {
+        var self = this,
+                p;
+
+        p = new Promise(function (resolve, reject) {
+            this._performJsonPostAction('split', null, params).then(function (req) {
+                var response = req.response;
+                if (!response || !response.container) {
+                    reject(new Error('No containers generated.'));
+                }
+                app.fire('ax-intercom-event', {eventName: 'Container created'});
+                response.container.forEach(function (item) {
+                    this.storage.setItem(item);
+                }.bind(this));
+
+                this.storage.list(this.parentPk, null, true).then(function () {
+                    resolve(response.container);
+                });
+
+//                resolve(response.container);
+
+            }.bind(this), function (e) {
+                reject(e);
+            });
+
+        }.bind(this));
+
+        p.then(function () {
+            self._displayMessage('Container generated');
+        }, function (e) {
+            self._displayMessage('Generation of Container failed');
+        });
+
+        return p;
+    },
+
+    toPlain: function () {
+        var self = this,
+                p;
+        p = this._performJsonPostAction('to-plain');
+        p.then(function (req) {
+            var param = {};
+
+            self.storage.list(self.get('parentPk'), param, true).then(function () {
+                self._displayMessage('Container removed');
+            });
+
+        }, function (e) {
+            var msg = 'Removing Container failed.';
+            if (e.axCrudErrorFields) {
+                msg += ' ' + e.axCrudErrorFields;
+            }
+            self._displayMessage(msg);
+        });
+
+        return p;
+    },
+
+
+    toText: function () {
+        var self = this,
+                p;
+        p = this._performJsonPostAction('to-text');
+        p.then(function () {
+            self._displayMessage('Container changed');
+        }, function (e) {
+            var msg = 'Changing Container failed.';
+            if (e.axCrudErrorFields) {
+                msg += ' ' + e.axCrudErrorFields;
+            }
+            self._displayMessage(msg);
+        });
+
+        return p;
+    },
+
+
+    _toIntermediateText: function (containerType) {
+        if (containerType !== 'text') {
+            return this._performJsonPostAction('to-text', null, {intermediate: true}).catch(function (e) {
+                var msg = 'Changing Container failed.';
+                if (e.axCrudErrorFields) {
+                    msg += ' ' + e.axCrudErrorFields;
+                }
+                this._displayMessage(msg);
+            }.bind(this));
+        } else {
+            return Promise.resolve();
+        }
+    },
+
+    toPhrase: function (params) {
+        var self = this,
+                toTextP,
+                removeUnusedStuffP,
+                p;
+
+        toTextP = this._toIntermediateText(this.data.containerType);
+
+        removeUnusedStuffP = toTextP.then(function () {
+            var formData = JSON.parse(JSON.stringify(this.data)),
+                    attributes = formData.attributes || {},
+                    validAttributeNames = this.getAttributeFieldNamesForType('phrase');
+
+
+            Object.keys(attributes).forEach(function (keyName) {
+                if (validAttributeNames.indexOf(keyName) < 0) {
+                    delete attributes[keyName];
+                }
+            });
+
+            if (!attributes.determiner || attributes.determiner !== 'possessive_3rd') {
+                delete attributes.reference_grammar_from;
+            }
+
+            return this.save(['attributes'], {attributes: attributes});
+        }.bind(this));
+
+        p = removeUnusedStuffP.then(function () {
+            return this._performJsonPostAction('to-phrase', null, params);
+        }.bind(this));
+
+        p.then(function () {
+            self._displayMessage('Container changed');
+        }, function (e) {
+            var msg = 'Changing Container failed.';
+            if (e.axCrudErrorFields) {
+                msg += ' ' + e.axCrudErrorFields;
+            }
+            self._displayMessage(msg);
+        });
+
+        return p;
+    },
+
+    toValue: function (params) {
+        var self = this,
+                toTextP,
+                removeUnusedStuffP,
+                p;
+
+        toTextP = this._toIntermediateText(this.data.containerType);
+
+        removeUnusedStuffP = toTextP.then(function () {
+            var formData = JSON.parse(JSON.stringify(this.data)),
+                    attributes = formData.attributes || {},
+                    validAttributeNames = this.getAttributeFieldNamesForType('phrase');
+
+
+            Object.keys(attributes).forEach(function (keyName) {
+                if (validAttributeNames.indexOf(keyName) < 0) {
+                    delete attributes[keyName];
+                }
+            });
+
+            if (!attributes.determiner || attributes.determiner !== 'possessive_3rd') {
+                delete attributes.reference_grammar_from;
+            }
+
+            return this.save(['attributes'], {attributes: attributes});
+        }.bind(this));
+
+        p = removeUnusedStuffP.then(function () {
+            return this._performJsonPostAction('to-value', null, params);
+        }.bind(this));
+
+        p.then(function () {
+            self._displayMessage('Container changed');
+        }, function (e) {
+            var msg = 'Changing Container failed.';
+            if (e.axCrudErrorFields) {
+                msg += ' ' + e.axCrudErrorFields;
+            }
+            self._displayMessage(msg);
+        });
+
+        return p;
+    },
+
+    toFail: function (params) {
+        var self = this,
+                toTextP,
+                removeUnusedStuffP,
+                p;
+
+        toTextP = this._toIntermediateText(this.data.containerType);
+
+        removeUnusedStuffP = toTextP.then(function () {
+            var formData = JSON.parse(JSON.stringify(this.data)),
+                    attributes = formData.attributes || {},
+                    validAttributeNames = this.getAttributeFieldNamesForType('phrase');
+
+
+            Object.keys(attributes).forEach(function (keyName) {
+                if (validAttributeNames.indexOf(keyName) < 0) {
+                    delete attributes[keyName];
+                }
+            });
+
+            if (!attributes.determiner || attributes.determiner !== 'possessive_3rd') {
+                delete attributes.reference_grammar_from;
+            }
+
+            return this.save(['attributes'], {attributes: attributes});
+        }.bind(this));
+
+        p = removeUnusedStuffP.then(function () {
+            return this._performJsonPostAction('to-fail', null, params);
+        }.bind(this));
+
+        p.then(function () {
+            self._displayMessage('Container changed');
+        }, function (e) {
+            var msg = 'Changing Container failed.';
+            if (e.axCrudErrorFields) {
+                msg += ' ' + e.axCrudErrorFields;
+            }
+            self._displayMessage(msg);
+        });
+
+        return p;
+    },
+
+    toGroup: function (params) {
+        var self = this,
+                toTextP,
+                removeUnusedStuffP,
+                p;
+
+        toTextP = this._toIntermediateText(this.data.containerType);
+
+        removeUnusedStuffP = toTextP.then(function () {
+            var formData = JSON.parse(JSON.stringify(this.data)),
+                    attributes = formData.attributes || {},
+                    validAttributeNames = this.getAttributeFieldNamesForType('group');
+
+
+            Object.keys(attributes).forEach(function (keyName) {
+                if (validAttributeNames.indexOf(keyName) < 0) {
+                    delete attributes[keyName];
+                }
+            });
+
+            if (!attributes.determiner || attributes.determiner !== 'possessive_3rd') {
+                delete attributes.reference_grammar_from;
+            }
+
+            return this.save(['attributes'], {attributes: attributes});
+        }.bind(this));
+
+
+        p = removeUnusedStuffP.then(function () {
+            return this._performJsonPostAction('to-group', null, params);
+        }.bind(this));
+
+        p.then(function () {
+            self._displayMessage('Container changed');
+        }, function (e) {
+            var msg = 'Changing Container failed.';
+            if (e.axCrudErrorFields) {
+                msg += ' ' + e.axCrudErrorFields;
+            }
+            self._displayMessage(msg);
+        });
+
+        return p;
+    },
+
+    toGrammar: function (params) {
+        var self = this,
+                toTextP,
+                removeUnusedStuffP,
+                p;
+
+        toTextP = this._toIntermediateText(this.data.containerType);
+
+        removeUnusedStuffP = toTextP.then(function () {
+            var formData = JSON.parse(JSON.stringify(this.data)),
+                    attributes = formData.attributes || {},
+                    validAttributeNames = this.getAttributeFieldNamesForType('grammar');
+
+
+            Object.keys(attributes).forEach(function (keyName) {
+                if (validAttributeNames.indexOf(keyName) < 0) {
+                    delete attributes[keyName];
+                }
+            });
+
+            if (!attributes.determiner || attributes.determiner !== 'possessive_3rd') {
+                delete attributes.reference_grammar_from;
+            }
+
+            return this.save(['attributes'], {attributes: attributes});
+        }.bind(this));
+
+
+        p = removeUnusedStuffP.then(function () {
+            return this._performJsonPostAction('to-grammar', null, params);
+        }.bind(this));
+
+        p.then(function () {
+            self._displayMessage('Container changed');
+        }, function (e) {
+            var msg = 'Changing Container failed.';
+            if (e.axCrudErrorFields) {
+                msg += ' ' + e.axCrudErrorFields;
+            }
+            self._displayMessage(msg);
+        });
+
+        return p;
+    },
+
+    moveTo: function (params) {
+        var self = this,
+                p;
+        p = self._performJsonPutAction('move-to', params, params);
+        p.then(function () {
+            self._displayMessage('Sort order changed');
+        }, function (e) {
+            self._displayMessage('Sorting failed');
+        });
+
+        return p;
+    }
+
+
+};
+</script>

@@ -1,0 +1,96 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<script>
+    (function () {
+
+        'use strict';
+
+        var TRACK_EVENT = 'ax-ga-event';
+        var TRACK_EVENT_INTERCOM = 'ax-intercom-event';
+
+        Polymer({
+
+            is: 'ax-ga-events',
+
+            ready: function () {
+                this._handler = this._gaTrack.bind(this);
+                this._intercomHandler = this._intercomTrack.bind(this);
+            },
+
+            attached: function () {
+                (this.parentElement || this.parentNode.host).addEventListener(TRACK_EVENT, this._handler);
+                (this.parentElement || this.parentNode.host).addEventListener(TRACK_EVENT_INTERCOM, this._intercomTrack);
+            },
+
+            detached: function () {
+                (this.parentElement || this.parentNode.host).removeEventListener(TRACK_EVENT, this._handler);
+                (this.parentElement || this.parentNode.host).removeEventListener(TRACK_EVENT_INTERCOM, this._intercomTrack);
+            },
+
+            /**
+             * Handle the ga event, if we can.
+             *
+             * @param {!CustomEvent} event
+             */
+            _gaTrack: function (event) {
+                var _ga = window.ga,
+                    _tracker,
+                    category = event.detail.category,
+                    action = event.detail.action,
+                    label = event.detail.label;
+//console.log('_gaTrack', category, action, label);
+                if (_ga === undefined) {
+                   return;
+                }
+
+                try {
+                    _tracker = _ga.getAll()[0];
+                } catch (e) {}
+
+                if (!_tracker) {
+                    return;
+                }
+
+                if (category === 'Navigation') {
+                    _tracker.set('page', label);
+                    _tracker.send('pageview');
+                }
+
+                _tracker.send('event', {
+                    eventCategory: category,
+                    eventAction: action,
+                    eventLabel: label
+                });
+
+            },
+
+
+            /**
+             * Handle the intercom event, if we can.
+             *
+             * @param {!CustomEvent} event
+             */
+            _intercomTrack: function (event) {
+                var _intercom = window.Intercom,
+                    eventName = event.detail.eventName,
+                    eventDetails = event.detail.details;
+//console.log('_intercomTrack', eventName, eventDetails);
+                if (_intercom === undefined) {
+                   return;
+                }
+
+                _intercom('trackEvent', eventName, eventDetails);
+            }
+
+        });
+
+    })();
+</script>

@@ -1,0 +1,90 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+
+<dom-module id="view-model-lookup-table-form">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+            :host  .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+        </style>
+        <form on-submit="saveModel" is="iron-form" id="model-form">
+            <input type="submit" value="save" style="display: none;">
+
+            <paper-input value="{{formData.name}}" label="Lookup Table Name" autofocus required error-message="This field is required."></paper-input>
+
+        </form>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-lookup-table-form',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'lookup-table',
+                    notify: true
+                },
+                trainingPk: {
+                    type: String,
+                    notify: true,
+                    value: ''
+                },
+                allowedFields: {
+                    type: Array,
+                    value: function () {
+                        return ['name'];
+                    },
+                    notify: true
+                }
+            },
+
+            _computeHideCategoryInput: function (lookupCategory, loadModel) {
+                return (!!lookupCategory || loadModel);
+            },
+
+            _preSaveModel: function () {
+                if (this.trainingPk) {
+                    this.set('formData.training', parseInt(this.trainingPk, 10));
+                }
+
+            },
+
+            saveModel: function () {
+                if (this.$['model-form'].validate()) {
+                    return AxWizard.BaseModelFormBehavior.saveModel.call(this);
+                } else {
+                    return;
+                }
+            }
+
+
+        });
+    })();
+</script>

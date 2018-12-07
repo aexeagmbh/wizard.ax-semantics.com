@@ -1,0 +1,63 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+
+<link rel="import" href="../model-lookup-table/view-model-lookup-table-form.html">
+
+
+<dom-module id="view-model-lookup-table-modal-edit">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-dialog {
+                width: 90%;
+            }
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal opened="{{_opened}}"
+                      on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]">
+            <h2>Edit Lookup Table</h2>
+
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <paper-spinner active="[[_isLoading]]"></paper-spinner>
+                    <view-model-lookup-table-form hidden="[[_isLoading]]" id="modal-dialog-form" training-pk="[[trainingPk]]"
+                                            model-pk="[[modelPk]]"
+                                            load-model
+                                            on-model-save-success="handleResponse"></view-model-lookup-table-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Save Changes</paper-button>
+            </div>
+        </paper-dialog>
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-lookup-table-modal-edit',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                trainingPk: {
+                    type: String,
+                    value: '',
+                    notify: true
+                }
+            }
+        });
+
+    })();
+</script>

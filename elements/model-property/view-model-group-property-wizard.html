@@ -1,0 +1,160 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+<link rel="import" href="../model-property/view-model-property-selector.html">
+
+<dom-module id="view-model-group-property-wizard">
+
+    <template>
+         <style include="iron-flex">
+            :host {
+                display: block;
+            }
+            :host .selected-properties {
+                flex-wrap: wrap;
+            }
+            :host view-model-property-detail-chip {
+                margin-right: 4px;
+                margin-bottom: 4px;
+
+            }
+            :host view-model-property-selector {
+                min-width: 300px;
+            }
+        </style>
+        <form on-submit="saveModel" is="iron-form" id="model-form">
+            <input type="submit" value="save" style="display: none;">
+            <paper-input value="{{formData.name}}" label="Name" autofocus required
+                         error-message="This field is required."></paper-input>
+
+
+
+            <div style="display: flex; flex-direction: row; align-items: flex-end">
+                <view-model-property-selector
+                             render-as-button
+                             label="Add Property to Group"
+                             item-value-prop-name="id"
+                             parent-pk="[[trainingPk]]"
+                             value="{{addPropertyPk}}">
+
+                </view-model-property-selector>
+
+                <paper-input-container class="flex" invalid="[[_selectedPropertiesInvalid]]">
+                    <input is="iron-input" value="[[!_selectedPropertiesInvalid]]" type="hidden">
+                    <h4>Properties in Group</h4>
+                    <paper-input-error>You need at least two Properties to generate a Group Property</paper-input-error>
+
+                        <div class="flex-row selected-properties" style="align-items: flex-end;">
+                            <template is="dom-repeat" items="{{selectedProperties}}" restamp>
+
+                                    <view-model-property-detail-chip show-remove model-pk="[[item.id]]" on-ax-remove-item="_removeProperty" data-args="{{index}}"></view-model-property-detail-chip>
+
+                            </template>
+                        </div>
+
+
+                </paper-input-container>
+
+            </div>
+        </form>
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-group-property-wizard',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+            properties: {
+                storageId: {
+                    type: String,
+                    value: 'property',
+                    notify: true
+                },
+                trainingPk: {
+                    notify: true
+                },
+                addPropertyPk: {
+                    notify: true,
+                    observer: '_addPropertyPkChanged'
+                },
+                selectedProperties: {
+                    type: Array,
+                    notify: true
+                },
+                _selectedPropertiesInvalid: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                }
+            },
+
+            _initFormData: function () {
+                this.set('formData', null);
+                this.set('formData', {name: ''});
+                this.set('selectedProperties', []);
+                this.set('addPropertyPk', null);
+            },
+
+            _addPropertyPkChanged: function (propertyPk) {
+                if (!propertyPk) {
+                    return;
+                }
+                this.push('selectedProperties', {id: propertyPk});
+                this.set('addPropertyPk', null);
+            },
+
+             _removeProperty: function (event) {
+                this.splice('selectedProperties', event.model.index, 1);
+             },
+
+            _preSaveModel: function () {
+
+
+            },
+
+            saveModel: function () {
+                var _propertiesValid = this.selectedProperties.length >= 2,
+                    _formValid = this.$$('#model-form').validate(),
+                    self = this,
+                    p;
+                this.set('_selectedPropertiesInvalid', !_propertiesValid);
+
+                if (_propertiesValid && _formValid) {
+                    if (this.trainingPk) {
+                        this.set('formData.training', parseInt(this.trainingPk, 10));
+                    }
+                    this.set('formData.properties', this.selectedProperties.map(function (item) {
+                        return item.id;
+                    }));
+                    p = this.model.createGroup(this.formData);
+                    p.then(function (m) {
+                        self.fire('model-save-success', m);
+                        self.set('_isLoading', false);
+                        self._initFormData(m);
+                    }, function (e) {
+                        console.log('model-save-error', e);
+                        self.set('_isLoading', false);
+                        self.fire('model-save-error', e);
+                    });
+
+                } else {
+                    return;
+                }
+            }
+
+        });
+    })();
+</script>

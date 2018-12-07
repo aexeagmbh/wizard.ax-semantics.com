@@ -1,0 +1,293 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/mercury-paginator/mercury-paginator.html">
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+<link rel="import" href="../model-sentence/view-model-sentence-list-detail.html">
+
+<dom-module id="view-model-sentence-list">
+
+    <template>
+
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host .card-content-body-form-container .input-container {
+                display: block;
+                padding: 8px 0;
+            }
+
+            :host .card-content-body-form-container .input-container .floated-label-placeholder {
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            :host .card-content-body-form-container .input-container paper-toggle-button {
+                margin-top: 8px;
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+            :host #filter-languages {
+                display: flex;
+                flex-direction: row;
+            }
+            :host #filter-languages ::content .ax-multi-select-selected-list {
+                display: flex;
+                flex-direction: row;
+            }
+
+            :host mercury-paginator {
+                --mercury-paginator-item-color: black;
+                --mercury-paginator-item-selected-bg-color: #77bc1f;
+                --mercury-paginator-item-hover-color: #77bc1f;
+            }
+
+        </style>
+        <view-model-list-section-header section-title="Sentences" search-term="{{searchTerm}}"
+                                        _is-loading="[[_isLoading]]"
+                                        show-add-button="[[showAddButton]]"
+                                        on-add-element-action="addSentenceDialog">
+            <template is="dom-if" if="[[showExpandAll]]">
+                <div class="content-right" style="display: inline-flex;">
+                    <paper-toggle-button checked="{{expandAll}}"></paper-toggle-button>
+                    Expand All
+                </div>
+            </template>
+
+        </view-model-list-section-header>
+
+        <template is="dom-if" if="[[showAddButton]]">
+
+            <section>
+                <paper-material class="model-list-section-header-description" elevation="0">
+                    <template is="dom-if" if="[[_isLoading]]">
+                        <p>
+                            A Sentence is the smallest unit for your text.
+                        </p>
+                    </template>
+                    <template is="dom-if" if="[[!_isLoading]]">
+                        <p hidden="[[!data.length]]">
+                            A Sentence is the smallest unit for your text. Add, change and remove sentences in your training.
+                        </p>
+                        <p hidden="[[data.length]]">
+                            A Sentence is the smallest unit for your text. Seems like you haven’t got any Sentences added yet.
+                        </p>
+                    </template>
+                </paper-material>
+            </section>
+
+
+        </template>
+        <template is="dom-if" if="[[showLanguageFilter]]">
+            <paper-toolbar class="section-header">
+
+                <div class="content-right" style="display: inline-flex; align-items: center;">
+                    <label>Filter Languages</label>
+                    <ax-multi-select
+                            id="filter-languages"
+                            choices="[[languageChoices]]"
+
+                            selected-values="{{filterLanguages}}"></ax-multi-select>
+                </div>
+
+            </paper-toolbar>
+        </template>
+
+        <section class="list-view-list" hidden="[[_isLoading]]">
+            <mercury-paginator id="paginator"
+                               show-first
+                               show-last
+                               hidden="[[_renderList]]"
+                               perpage="[[_maxItemsInList]]"
+                               data="[[_sortedFilteredItems]]"
+                               items="{{paginatedItems}}">
+
+            </mercury-paginator>
+            <template is="dom-repeat" items="[[paginatedItems]]"
+                      id="itemlist">
+                <view-model-sentence-list-detail
+                    filter-languages="[[filterLanguages]]"
+                    is-duplicate-disabled="[[isDeleteDisabled]]"
+                    is-delete-disabled="[[isDeleteDisabled]]"
+                    is-item-list-detail-expanded="[[expandAll]]"
+                    replace-container-with-source="[[replaceContainerWithSource]]"
+                    training-pk="[[parentPk]]"
+                    model-pk="[[item.id]]"></view-model-sentence-list-detail>
+            </template>
+        </section>
+        
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-list',
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            properties: {
+                 _sortedFilteredItems: {
+                    type: Array
+                },
+                 _maxItemsInList: {
+                    type: Number,
+                    value: 25,
+                    readOnly: true
+                },
+
+                _renderList: {
+                    type: Boolean,
+                    value: true
+                },
+                filterListFacets: {
+                   type: Object,
+                   notify: true,
+                   value: function () {
+                       return {};
+                   }
+                },
+                isDeleteDisabled: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                isDuplicateDisabled: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                showExpandAll: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                showLanguageFilter: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'storage-sentence',
+                    notify: true
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'name',
+                            'comment'
+                        ];
+                    }
+                },
+                showAddButton: {
+                    type: Boolean,
+                    reflectToAttribute: true,
+                    value: true
+                },
+                languageChoices: {
+                    type: Array
+                }
+            },
+
+
+            observers: [
+                '_computeSortedFilteredItems(data, searchTerm, filterListFacets, _maxItemsInList, data.length)'
+            ],
+
+            _computeSortedFilteredItems: function (data, searchTerm, filterListFacets, _maxItemsInList) {
+                var renderList,
+                    _filteredData;
+                if (!data) {
+                    this.set('_sortedFilteredItems', []);
+                }
+
+                _filteredData = this._filterAndSortData(data, searchTerm, filterListFacets || {});
+
+                renderList = this._computeRenderList(_filteredData.length, _maxItemsInList);
+
+                this.set('_renderList', renderList);
+
+
+                if (renderList) {
+                    this.$$('#paginator').set('currentpage', 0);
+                }
+
+                this.set('_sortedFilteredItems', _filteredData);
+
+            },
+
+
+            _computeRenderList: function (a, b) {
+                return 1 * a <= 1 * b;
+            },
+
+            _filterAndSortData: function (data, searchTerm, facets) {
+                var filterFn = this._filterList(searchTerm, facets),
+                        sortFn = facets.id ? this._orderItemListLikeFacet(facets.id, 'id') : function () {return 0;};
+                return data.filter(filterFn).sort(sortFn);
+            },
+
+
+            attached: function () {
+                this._loadLanguageChoices(this.parentPk);
+            },
+
+            _orderItemListLikeFacet: function (facets, itemFacetKeyName) {
+
+                return function (itemA, itemB) {
+                    var itemAProperty = itemA[itemFacetKeyName],
+                        itemBProperty = itemB[itemFacetKeyName],
+                        itemAIdxInFacet = facets.indexOf(itemAProperty),
+                        itemBIdxInFacet = facets.indexOf(itemBProperty);
+                    return itemAIdxInFacet - itemBIdxInFacet;
+                };
+            },
+
+            addSentenceDialog: function () {
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-modal-new', params: {trainingPk: this.parentPk}});
+            },
+
+            _validateSentenceVariants: function (event) {
+                event.stopPropagation();
+                app.storageContainer.getObject('training', this.parentPk).then(function (training) {
+                   training.validateSentenceVariants();
+                });
+            },
+
+            _loadLanguageChoices: function (trainingPk) {
+                app.storageContainer.getObject('training', trainingPk).then(function (training) {
+                    training.getConfiguredLanguageList().then(function (list) {
+                        this.set('languageChoices', list.map(function (languageItem) {
+                            return {
+                                'display_name': languageItem.name,
+                                'value': languageItem.id
+                            };
+                        }));
+                    }.bind(this));
+                }.bind(this));
+            }
+
+        });
+    })();
+</script>

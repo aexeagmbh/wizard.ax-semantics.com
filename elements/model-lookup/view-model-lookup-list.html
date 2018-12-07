@@ -1,0 +1,237 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/mercury-paginator/mercury-paginator.html">
+
+
+<link rel="import" href="../ax-crud/base-model-list-view-behaviour.html">
+<link rel="import" href="../ax-page-routing/page-routing-behavior.html">
+
+
+<link rel="import" href="../ax-components/view-model-list-section-header.html">
+<link rel="import" href="../model-lookup/view-model-lookup-list-detail.html">
+<!--<link rel="import" href="../model-lookup/view-model-lookup-table-list-detail.html">-->
+
+
+<dom-module id="view-model-lookup-list">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host paper-item-body [secondary] dl,
+            :host paper-item-body [secondary] dl dt,
+            :host paper-item-body [secondary] dl dd {
+                margin: 0;
+            }
+
+            :host paper-item-body [secondary] dl dt,
+            :host paper-item-body [secondary] dl dd {
+                display: inline-flex;
+            }
+
+            :host paper-item-body [secondary] dl dd {
+                margin-left: 1em;
+                margin-right: 2em;
+            }
+
+            :host .list-view-list paper-icon-item {
+                cursor: pointer;
+            }
+
+            :host paper-icon-item .list-icon {
+                color: grey;
+            }
+
+            :host paper-icon-item {
+                cursor: pointer;
+                position: relative;
+            }
+
+            :host ax-search-field {
+                width: 50%;
+            }
+
+            :host mercury-paginator {
+                --mercury-paginator-item-color: black;
+                --mercury-paginator-item-selected-bg-color: #77bc1f;
+                --mercury-paginator-item-hover-color: #77bc1f;
+            }
+        </style>
+
+        <view-model-list-section-header section-title="Lookups ([[_filteredDataCount]] of [[data.length]] entries match filter and search)" search-term="{{searchTerm}}"
+                                        _is-loading="[[_isLoading]]"
+                                        hide-search
+                                        on-add-element-action="addLookupDialog">
+            <div class="content-right" style="display: inline-flex;">
+                <paper-toggle-button checked="{{expandAll}}">Expand All</paper-toggle-button>
+            </div>
+        </view-model-list-section-header>
+
+        <section class="flex-row">
+
+            <div class="flex"></div>
+
+            <ax-search-field placeholder="Search for Lookups in this LookupTable" search-term="{{searchTerm}}"
+                             display-opened-form leave-form-opened></ax-search-field>
+
+            <div class="flex">
+
+            </div>
+        </section>
+
+        <section class="list-view-list">
+
+            <mercury-paginator id="paginator"
+                    show-first
+                    show-last
+                    hidden="[[_renderList]]"
+                    perpage="[[_maxItemsInList]]"
+                    data="[[_filteredData]]"
+                    items="{{paginatedItems}}">
+
+            </mercury-paginator>
+
+            <template is="dom-repeat" items="[[paginatedItems]]"
+                      id="itemlist">
+                <view-model-lookup-list-detail model-pk="[[item.id]]"
+                                               uses-container="[[usesContainer]]"
+                                               is-item-list-detail-expanded="[[expandAll]]"></view-model-lookup-list-detail>
+            </template>
+
+            <ax-list-view-add-element-card
+                    on-ax-list-view-add-element-card-add-element="addLookupDialog"
+                    data-args-referring-word="[[searchTerm]]"
+                    data-args-lookup-table="[[parentPk]]">
+
+                <div hidden="[[!searchTerm.length]]" class="header">Add Lookup for <i>[[searchTerm]]</i></div>
+                <div hidden="[[searchTerm.length]]" class="header">Add Lookup</div>
+            </ax-list-view-add-element-card>
+
+        </section>
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-lookup-list',
+            behaviors: [
+                AxWizard.BaseModelListViewBehaviour
+            ],
+
+            properties: {
+                _maxItemsInList: {
+                    type: Number,
+                    value: 25,
+                    readOnly: true
+                },
+                storageId: {
+                    type: String,
+                    value: 'storage-lookup',
+                    notify: true
+                },
+                searchFilterProperties: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            'referringWord'
+                        ];
+                    }
+                },
+                filterListFacets: {
+                    notify: true
+                },
+                searchTerm: {
+                    notify: true
+                },
+
+                _filteredData: {
+                    notify: true,
+                },
+                _filteredDataCount: {
+                    notify: true,
+                },
+
+
+                usesContainer: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+
+                _renderList: {
+                    type: Boolean,
+                    value: true
+                }
+
+            },
+
+
+            observers: [
+                '_computeFilteredData(data, searchTerm, filterListFacets, _maxItemsInList, data.*, filterListFacets.*)'
+            ],
+
+            _computeRenderList: function (a, b) {
+                return 1 * a <= 1 * b;
+            },
+
+            _computeFilteredData: function (data, searchTerm, filterListFacets, _maxItemsInList) {
+                var _filteredData,
+                    renderList,
+                    filter = this._filterList(searchTerm, filterListFacets);
+
+                if (!data || !data.length) {
+                    this.set('_filteredData', []);
+                    this.set('_renderList', true);
+                    return;
+                }
+                _filteredData = data.filter(filter);
+                this.set('_filteredData', _filteredData);
+
+                renderList = this._computeRenderList(_filteredData.length, _maxItemsInList);
+                this.set('_filteredDataCount', _filteredData.length);
+                this.set('_renderList', renderList);
+
+
+                if (renderList) {
+                    this.$$('#paginator').set('currentpage', 0);
+                }
+
+                this.set('_filteredData', _filteredData);
+            },
+
+            ready: function () {
+                this.set('listRequestParams', this._computeListRequestParams(this.parentPk));
+            },
+
+            _computeListRequestParams: function (parentPk) {
+                return {
+                    'lookup_table': parentPk
+                };
+            },
+
+            addLookupDialog: function (event) {
+                var lookupCategory = event.target.dataArgsCategory || '';
+                var referringWord = event.target.dataArgsReferringWord || '';
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-lookup-modal-new', params: {lookupTablePk: this.parentPk, referringWord: referringWord}});
+            },
+
+
+
+
+        });
+    })();
+</script>

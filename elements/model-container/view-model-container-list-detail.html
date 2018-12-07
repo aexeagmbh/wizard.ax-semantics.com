@@ -1,0 +1,391 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-view-behavior.html">
+
+<link rel="import" href="../model-training/story-type-editor/story-type-editor-mode-behavior.html">
+<link rel="import" href="../ax-components/ax-highlight-atml-plain-content.html">
+<link rel="import" href="./view-model-container-detail-chip.html">
+
+<dom-module id="view-model-container-list-detail">
+
+    <template>
+         <style include="iron-flex">
+            :host {
+                display: inline-block;
+            }
+
+            :host ax-highlight-atml-plain-content,
+            :host .container-content {
+                display: inline-block;
+            }
+
+            :host .container {
+                cursor: default;
+            }
+            :host .container.container-editable {
+                cursor: pointer;
+            }
+            :host .container.container-selectable {
+                cursor: copy;
+            }
+            :host .container .container-content {
+                white-space: pre-wrap;
+            }
+            :host .container-content.empty-content {
+                display: inline-block;
+                border-bottom: 1px solid gray;
+                min-width: 1ex;
+                cursor: text;
+            }
+            :host base-model-inplace-form {
+                min-width: 320px;
+            }
+            :host .container.write-mode {
+                cursor: pointer;
+                /*cursor: text;*/
+            }
+        </style>
+        <template is="dom-if" if="[[modelPk]]" restamp>
+
+
+                <template is="dom-if" if="[[_allowEditText]]" >
+                    <template is="dom-if" if="{{_equals(model.data.containerType, 'plain')}}">
+                        <div hidden="[[_isInplaceEdit]]" class="container write-mode"
+                             on-click="_startInplaceEdit">
+
+                            <template is="dom-if" if="[[!_isWhitespaceOnly(model.data.text)]]" >
+                                <ax-highlight-atml-plain-content atml="[[model.data.text]]"></ax-highlight-atml-plain-content>
+                                <paper-icon-button icon="editor:mode-edit" hidden="[[!showEditTextIcon]]"></paper-icon-button>
+                            </template>
+
+                            <template is="dom-if" if="[[_isWhitespaceOnly(model.data.text)]]">
+                                <div class="container-content empty-content">[[model.data.text]]</div>
+                                <paper-icon-button icon="editor:mode-edit" hidden="[[!showEditTextIcon]]"></paper-icon-button>
+                            </template>
+
+                        </div>
+                        <base-model-inplace-form id="edit-text"
+                                                 hide-buttons
+                                                 form-data={{inplaceFormData}}
+                                                 hidden="[[!_isInplaceEdit]]"
+                                                 on-form-cancel="_stopInplaceEdit"
+                                                 on-model-save-success="_stopInplaceEdit"
+                                                 model-pk="[[modelPk]]"
+                                                 allowed-fields="{{_toArray('text')}}"
+                                                 storage-id="[[modelName]]"
+                                >
+                            <paper-textarea
+                                    tabindex="-1"
+                                    value="{{inplaceFormData.text}}">
+                                <paper-icon-button suffix icon="clear" on-tap="_cancelInplaceText"></paper-icon-button>
+                                <paper-icon-button suffix icon="done" on-tap="_saveInplaceText"></paper-icon-button>
+                            </paper-textarea>
+                        </base-model-inplace-form>
+                    </template>
+
+                    <template is="dom-if" if="{{!_equals(model.data.containerType, 'plain')}}">
+                        <div class="container write-mode"  hidden="[[_isInplaceEditSource]]">
+                                <view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[modelPk]]" on-tap="_startInplaceEditSource" no-expand no-edit></view-model-container-detail-chip>
+                        </div>
+                        <base-model-inplace-form id="edit-source"
+                                         hide-buttons
+                                         form-data={{inplaceFormData}}
+                                         hidden="[[!_isInplaceEditSource]]"
+                                         on-form-cancel="_stopInplaceEditSource"
+                                         on-model-save-success="_stopInplaceEditSource"
+                                         model-pk="[[modelPk]]"
+                                         allowed-fields="{{_toArray('source')}}"
+                                         storage-id="[[modelName]]">
+                            <paper-textarea
+                                    tabindex="-1"
+                                    value="{{inplaceFormData.source}}">
+                                <paper-icon-button suffix icon="clear" on-tap="_cancelInplaceSource"></paper-icon-button>
+                                <paper-icon-button suffix icon="done" on-tap="_saveInplaceSource"></paper-icon-button>
+                            </paper-textarea>
+                        </base-model-inplace-form>
+                    </template>
+
+                </template>
+
+                <template is="dom-if" if="[[_allowEditContainers]]" >
+                    <template is="dom-if" if="{{_equals(model.data.containerType, 'plain')}}">
+                        <div class="container container-selectable" on-mouseup="_containerOnSelect">
+                            <ax-highlight-atml-plain-content atml="[[model.data.text]]"></ax-highlight-atml-plain-content>
+                        </div>
+                    </template>
+
+                    <template is="dom-if" if="{{!_equals(model.data.containerType, 'plain')}}">
+                        <div class="container container-editable"  hidden="[[_isInplaceEditSource]]">
+                            <view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[modelPk]]" no-edit="[[_readOnly]]"></view-model-container-detail-chip>
+                        </div>
+                    </template>
+                </template>
+
+                <template is="dom-if" if="[[_readOnly]]" >
+                    <template is="dom-if" if="{{_equals(model.data.containerType, 'plain')}}">
+                        <div class="container">
+                            <ax-highlight-atml-plain-content atml="[[model.data.text]]"></ax-highlight-atml-plain-content>
+                        </div>
+                    </template>
+
+                    <template is="dom-if" if="{{!_equals(model.data.containerType, 'plain')}}">
+                        <view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[modelPk]]" no-edit="[[_readOnly]]" no-expand="[[noExpand]]"></view-model-container-detail-chip>
+                    </template>
+                </template>
+
+
+
+                <template is="dom-if" if="[[_createOnly]]" >
+                    <template is="dom-if" if="{{_equals(model.data.containerType, 'plain')}}">
+                        <div class="container container-selectable" on-mouseup="_containerOnSelect">
+                            <ax-highlight-atml-plain-content atml="[[model.data.text]]"></ax-highlight-atml-plain-content>
+                        </div>
+                    </template>
+
+                    <template is="dom-if" if="{{!_equals(model.data.containerType, 'plain')}}">
+                        <div class="container">
+                            <view-model-container-detail-chip model-name="[[modelName]]" model-pk="[[modelPk]]" no-edit="[[_createOnly]]"></view-model-container-detail-chip>
+                        </div>
+                    </template>
+                </template>
+
+        </template>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-container-list-detail',
+            behaviors: [
+                AxWizard.StoryTypeEditorModeBehavior,
+                AxWizard.BaseModelViewBehavior
+            ],
+
+            properties: {
+                modelName: {
+                    type: String
+                },
+                replaceContainerWithSource: {
+                    type: Boolean,
+                    value: false
+                },
+                _isInplaceEdit: {
+                    type: Boolean,
+                    value: false
+                },
+                _isInplaceEditSource: {
+                    type: Boolean,
+                    value: false
+                },
+                hasUnsavedChanges: {
+                    type: Boolean,
+                    computed: '_checkHAsUnsavedChanges(_isInplaceEdit, _isInplaceEditSource)',
+                    notify: true,
+                    observer: '_observeHasUnsavedChanges'
+                },
+                noExpand: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                },
+                showEditTextIcon: {
+                    type: Boolean,
+                    value: false,
+                    notify: true,
+                    reflectToAttribute: true
+                }
+            },
+
+            _observeHasUnsavedChanges: function (val) {
+                this.fire('ax-has-unsaved-changes-changed', {value: val, containerPk: this.modelPk});
+            },
+
+            _checkHAsUnsavedChanges: function () {
+                var args = Array.prototype.slice.call(arguments);
+                return args.filter(function (a) {
+                   return !!a;
+                }).length > 0;
+            },
+
+            _showWhitespace: function (str) {
+                return str;
+            },
+
+            _isWhitespaceOnly: function (str) {
+                if (!str) {
+                    return true;
+                }
+                return str.replace(/\s+/, '').length === 0;
+            },
+
+            _writeModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_allowEditText', true);
+                this.set('_allowEditContainers', false);
+                this.set('_readOnly', false);
+                this.set('_createOnly', false);
+            },
+
+            _magicModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_allowEditText', false);
+                this.set('_allowEditContainers', true);
+                this.set('_readOnly', false);
+                this.set('_createOnly', false);
+            },
+
+            _variantModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_allowEditText', true);
+                this.set('_allowEditContainers', false);
+                this.set('_readOnly', false);
+                this.set('_createOnly', false);
+            },
+
+            _translateModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_allowEditText', false);
+                this.set('_allowEditContainers', false);
+                this.set('_readOnly', true);
+                this.set('_createOnly', false);
+            },
+
+            _readOnlyModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_allowEditText', false);
+                this.set('_allowEditContainers', false);
+                this.set('_readOnly', true);
+
+                this.set('_createOnly', false);
+            },
+
+            _createOnlyModeChanged: function (isOn) {
+                if (!isOn) {
+                    return;
+                }
+                this.set('_allowEditText', false);
+                this.set('_allowEditContainers', false);
+                this.set('_readOnly', false);
+                this.set('_createOnly', true);
+            },
+
+
+            _equals: function (a, b) {
+                return a === b;
+            },
+
+            _startInplaceEdit: function (event) {
+                if (event) {
+                    event.stopPropagation();
+                }
+                if (!this._allowEditText) {
+                    return;
+                }
+                this.set('_isInplaceEdit', true);
+                this.$$('#edit-text paper-textarea').focus();
+            },
+            _stopInplaceEdit: function () {
+                this.set('_isInplaceEdit', false);
+            },
+
+            _startInplaceEditSource: function (event) {
+                if (event) {
+                    event.stopPropagation();
+                }
+                if (!this._allowEditText) {
+                    return;
+                }
+                this.set('_isInplaceEditSource', true);
+                this.$$('#edit-source paper-textarea').focus();
+            },
+            _stopInplaceEditSource: function () {
+                this.set('_isInplaceEditSource', false);
+            },
+
+            _toArray: function () {
+                return Array.prototype.slice.call(arguments);
+            },
+
+
+            _cancelInplaceText: function (event) {
+                event.stopPropagation();
+                this.$$('#edit-text').cancel(event);
+            },
+            _saveInplaceText: function (event) {
+                event.stopPropagation();
+                this.$$('#edit-text').saveModel(event);
+            },
+
+
+            _cancelInplaceSource: function (event) {
+                event.stopPropagation();
+                this.$$('#edit-source').cancel(event);
+            },
+            _saveInplaceSource: function (event) {
+                event.stopPropagation();
+                this.$$('#edit-source').saveModel(event);
+            },
+
+            _containerOnSelect: function (event) {
+
+                if (!this._allowEditContainers && !this._createOnly) {
+                    return;
+                }
+                var addToOffsets = 0,
+                    srcElement = event.srcElement || event.target,
+                    sel = window.getSelection(),
+                    anchorNode = sel.anchorNode,
+                    focusNode = sel.focusNode,
+                    selStr = sel.toString();
+
+                if (!anchorNode || !selStr.length) {
+                    console.log('no selection');
+                    return;
+                }
+
+                if (anchorNode !== focusNode || anchorNode.parentElement !== srcElement) {
+                    console.log('wrong selection');
+                    return;
+                }
+
+                for (var i = 0; i < anchorNode.parentElement.childNodes.length; i++) {
+
+                    if (anchorNode.parentElement.childNodes[i] !== anchorNode) {
+                        addToOffsets += anchorNode.parentElement.childNodes[i].textContent.length;
+                    } else {
+                        break;
+                    }
+                }
+
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog',  {elementType: 'view-model-container-modal-split', params: {modelPk: this.modelPk, startPos: addToOffsets + Math.min(sel.anchorOffset, sel.focusOffset), endPos: addToOffsets + Math.max(sel.anchorOffset, sel.focusOffset), modelName: this.modelName}});
+            },
+
+            _splitContainer: function (startPos, endPos) {
+                return this.model.splitContainer({start: startPos, end: endPos});
+            }
+
+        });
+    })();
+</script>

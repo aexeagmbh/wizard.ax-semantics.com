@@ -1,0 +1,61 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../ax-components/ax-close-unsaved-ask-button.html">
+
+<link rel="import" href="../model-lookup/view-model-lookup-form.html">
+
+
+<dom-module id="view-model-lookup-modal-edit">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-dialog {
+                width: 90%;
+            }
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Edit Lookup</h2>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="[[_opened]]" restamp>
+                    <view-model-lookup-form
+                            has-unsaved-changes="{{hasUnsavedChanges}}"
+                            load-model id="modal-dialog-form" model-pk="[[modelPk]]" training-pk="[[trainingPk]]"
+                                            on-model-save-success="handleResponse"></view-model-lookup-form>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <ax-close-unsaved-ask-button has-unsaved-changes="[[hasUnsavedChanges]]" on-ax-close-unsaved-ask-button-confirmed="cancelModalForm"></ax-close-unsaved-ask-button>
+                <!--<paper-button raised on-tap="cancelModalForm">Close</paper-button>-->
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-lookup-modal-edit',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                trainingPk: {
+                    notify: true
+                }
+            }
+        });
+
+    })();
+</script>

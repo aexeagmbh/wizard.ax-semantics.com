@@ -1,0 +1,480 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-form.html">
+
+
+<dom-module id="view-model-sentence-variant-modal-translate">
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host .preview-container {
+                position: relative;
+                background-color: #dddddd;
+                padding: 16px;
+            }
+            :host .row {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+            }
+            :host paper-material {
+                padding: 16px;
+            }
+        </style>
+
+
+    <paper-dialog class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm"
+                  no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                  opened="{{_opened}}">
+        <h2>Translate Variant</h2>
+        <paper-dialog-scrollable>
+            <template is="dom-if" if="[[_opened]]" restamp>
+
+                <template is="dom-if" if="[[trainingUsesContainer]]" restamp>
+
+                    <section class="preview-container">
+                        <h3>Source Variant</h3>
+                        <container-view-translate-model-sentence-variant-list-detail
+                                on-ax-sentence-variant-added="_sentenceVariantAdded"
+                                on-item-deleted="_selectPrevious"
+                                active-mode="readOnly"
+                                training-pk="[[trainingPk]]"
+                                training-uses-containers="[[trainingUsesContainer]]"
+                                class="flex"
+                                model="{{selectedTranslationSourceVariant}}"
+                                model-pk="[[modelPk]]">
+                        </container-view-translate-model-sentence-variant-list-detail>
+                    </section>
+
+
+                    <section class="translation-container">
+                        <div class="row">
+                        <h3>Translation</h3>
+                        <paper-menu-button id="select-language">
+                                    <paper-button class="dropdown-trigger">
+                                        <iron-icon icon="icons:language"></iron-icon>
+                                        [[selectedLanguageItem.label]]
+                                        <iron-icon icon="icons:arrow-drop-down"></iron-icon>
+                                    </paper-button>
+                                    <paper-menu selected-item="{{selectedLanguageItem}}" class="dropdown-content"
+                                                attr-for-selected="value"
+                                                selected="{{_translateToLanguage}}">
+                                        <template is="dom-repeat" items="[[languageChoices]]">
+                                            <paper-item label="[[item.name]]" value="[[item.id]]">[[item.name]]
+                                            </paper-item>
+                                        </template>
+                                    </paper-menu>
+                                </paper-menu-button>
+                        </div>
+
+
+                        <container-view-translate-model-sentence-variant-list
+                                id="translation-target-variant-list"
+                                on-ax-get-sentence-name="_onAxGetSentenceName"
+                                is-translation-target
+                                active-mode="[[_getActiveModeForStep(translationStep)]]"
+                                translation-step="{{translationStep}}"
+                                selected-variant-pk="{{selectedTranslationTargetVariantPk}}"
+
+                                filter-list-facets="{{_getSentenceVariantListFacets(_translateToLanguage)}}"
+                                training-pk="[[trainingPk]]"
+                                training-uses-containers="[[trainingUsesContainers]]"
+                                language="[[_translateToLanguage]]"
+
+                                search-term="{{searchTerm}}"
+                                id="sentence-variant-list"
+                                parent-pk="[[selectedTranslationSourceVariant.parentPk]]">
+                        </container-view-translate-model-sentence-variant-list>
+
+
+                        <template is="dom-if" if="[[writeStep]]">
+                            <paper-material elevation="0">
+                                <form is="iron-form" id="new-sentence-variant-form"
+                                      on-submit="_createNewSentenceVariant">
+                                    <paper-input no-label-float id="new-variant-input" tabindex="1"
+                                                    value="{{_newSentenceVariantText}}"
+                                                    placeholder="Write a new Translation here">
+
+                                        <paper-icon-button hidden="[[!_newSentenceVariantText.length]]"
+                                                           suffix
+                                                           icon="clear"
+                                                           on-tap="_cancelNewSentenceVariantForm"></paper-icon-button>
+                                        <paper-icon-button hidden="[[!_newSentenceVariantText.length]]"
+                                                           suffix
+                                                           icon="done"
+                                                           on-tap="_createNewSentenceVariant"></paper-icon-button>
+                                    </paper-input>
+                                </form>
+                            </paper-material>
+
+                        </template>
+
+
+                        <template is="dom-if" if="[[translatePhrasesStep]]">
+                            <paper-material elevation="0">
+                                <h4 elevation="0">
+                                    Translate Property Outputs
+                                </h4>
+
+                                <div>
+                                    <template is="dom-repeat" items="[[_propertiesInVariantContainers]]">
+
+                                        <container-view-model-property-translation-list-detail
+                                                model-pk="[[item.property]]"
+                                                language="[[language]]"
+                                                container-pks="[[item.containers]]"
+                                                translate-language="[[translateLanguage]]"
+                                                no-delete
+                                                no-clone
+                                                ></container-view-model-property-translation-list-detail>
+
+
+                                    </template>
+                                </div>
+                            </paper-material>
+                        </template>
+
+
+                    </section>
+                </template>
+
+                <template is="dom-if" if="[[!trainingUsesContainer]]" restamp>
+                    <model-sentence-variant data="{{sourceVariantData}}" pk="[[modelPk]]"></model-sentence-variant>
+                    <model-language data="{{languageData}}" pk="[[sourceVariantData.language]]"></model-language>
+                    <section class="preview-container">
+                        <h3>Source Variant</h3>
+                        <h4 id="preview-language">[[languageData.name]]</h4>
+
+                        <div id="preview-text">[[sourceVariantData.text]]</div>
+                    </section>
+
+                    <section class="preview-container" hidden="[[!sourceVariantData.sampleOutput]]">
+                        <h3>Sample Output</h3>
+
+                        <div>[[sourceVariantData.sampleOutput]]</div>
+                    </section>
+
+                    <h3>Translation</h3>
+                    <view-model-sentence-variant-form language="{{language}}" id="modal-dialog-form"
+                                                      training-pk="[[trainingPk]]"
+                                                      sentence-pk="[[sourceVariantData.sentence]]"
+                                                      on-model-save-success="handleResponse"
+                                                      on-model-loaded="setDefaultFormData"></view-model-sentence-variant-form>
+
+
+                </template>
+
+            </template>
+        </paper-dialog-scrollable>
+        <div class="buttons">
+            <template is="dom-if" if="[[trainingUsesContainer]]" restamp>
+
+                <paper-button raised on-tap="cancelModalForm">Close</paper-button>
+            </template>
+            <template is="dom-if" if="[[!trainingUsesContainer]]" restamp>
+
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Create Translation</paper-button>
+            </template>
+        </div>
+    </paper-dialog>
+
+
+</template>
+
+</dom-module>
+<script>
+(function () {
+
+
+    Polymer({
+        is: 'view-model-sentence-variant-modal-translate',
+        behaviors: [AxWizard.BaseModelModalFormBehavior,
+            AxWizard.StoryTypeEditorModeBehavior],
+
+        properties: {
+            modelPk: {
+                type: String,
+                notify: true
+            },
+            sentencePk: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            trainingPk: {
+                notify: true
+            },
+            language: {
+                type: String,
+                value: '',
+                notify: true
+            },
+            _translateToLanguage: {
+                value: null,
+                notify: true
+            },
+
+
+            _newSentenceVariantText: {
+                type: String,
+                value: ''
+            },
+            translationStep: {
+                type: String,
+                notify: true,
+                value: 'write'
+            },
+            translateMagicDetailMode: {
+                type: String,
+                notify: true,
+                value: 'properties'
+            },
+            selectedTranslationBaseVariantPk: {
+                notify: true
+            },
+            selectedTranslationTargetVariantPk: {
+                notify: true,
+                observer: '_selectedTranslationTargetVariantPkChanged'
+            },
+
+            writeStep: {
+                type: Boolean,
+                computed: '_computeWriteStep(translationStep)',
+                notify: true,
+                observer: '_writeStepChanged'
+            },
+            magicStep: {
+                type: Boolean,
+                computed: '_computeMagicStep(translationStep)',
+                notify: true,
+                observer: '_magicStepChanged'
+            },
+            translatePhrasesStep: {
+                type: Boolean,
+                computed: '_computeTranslatePhrasesStep(translationStep)',
+                notify: true,
+                observer: '_translatePhrasesStepChanged'
+            },
+
+            _propertiesInVariantContainers: {
+                type: Array,
+                notify: true
+            },
+
+
+        },
+
+
+        _writeStepChanged: function (isOn) {
+            if (!isOn) {
+                return;
+            }
+
+            this.set('_showNewSentenceVariant', true);
+            this.set('_showTranslationBaseContainerProperties', true);
+            this.set('_showTranslationTargetContainerProperties', false);
+            this.set('_showSelectedTranslationVariant', true);
+            this.set('_showSelectedBaseVariant', true);
+
+            this.set('_showPropertiesInTranslationTargetVariant', false);
+            this.set('_selectedTranslationTargetVariantActiveMode', 'write');
+        },
+
+        _magicStepChanged: function (isOn) {
+            if (!isOn) {
+                return;
+            }
+
+            this.set('_showNewSentenceVariant', false);
+            this.set('_showTranslationBaseContainerProperties', true);
+            this.set('_showTranslationTargetContainerProperties', true);
+            this.set('_showSelectedTranslationVariant', true);
+            this.set('_showSelectedBaseVariant', false);
+
+            this.set('_showPropertiesInTranslationTargetVariant', false);
+            this.set('_selectedTranslationTargetVariantActiveMode', 'magic');
+        },
+
+        _translatePhrasesStepChanged: function (isOn) {
+            if (!isOn) {
+                return;
+            }
+
+            this.set('_showNewSentenceVariant', false);
+            this.set('_showTranslationBaseContainerProperties', false);
+            this.set('_showTranslationTargetContainerProperties', true);
+            this.set('_showSelectedTranslationVariant', true);
+            this.set('_showSelectedBaseVariant', false);
+            this.set('_showPropertiesInTranslationTargetVariant', true);
+            this.set('_selectedTranslationTargetVariantActiveMode', 'magic');
+
+            this._computePropertiesInVariantContainers(this.selectedTranslationTargetVariantPk).then(function (propertiesInVariantContainers) {
+                this.set('_propertiesInVariantContainers', propertiesInVariantContainers);
+            }.bind(this));
+        },
+
+        _selectedTranslationTargetVariantPkChanged: function (selectedTranslationTargetVariantPk) {
+            this.set('_propertiesInVariantContainers', null);
+            this._computePropertiesInVariantContainers(selectedTranslationTargetVariantPk).then(function (propertiesInVariantContainers) {
+                this.set('_propertiesInVariantContainers', propertiesInVariantContainers);
+            }.bind(this));
+        },
+
+        _getCardElevation: function (isExpanded) {
+            return isExpanded ? 2 : 1;
+        },
+
+        _computeWriteStep: function (modeName) {
+            return modeName === 'write';
+        },
+        _computeMagicStep: function (modeName) {
+            return modeName === 'magic';
+        },
+        _computeTranslatePhrasesStep: function (modeName) {
+            return modeName === 'translatePhrases';
+        },
+
+        listeners: {
+            'ax-sentence-variant-added': '_sentenceVariantAdded',
+            'ax-open-training-dialog': '_openContainerDialog'
+        },
+
+        _getSentenceVariantListFacets: function (language) {
+            if (language) {
+                return {'language': language};
+            }
+
+            return {};
+        },
+
+        _createNewSentenceVariant: function (event) {
+            event.stopPropagation();
+            var language = this.language;
+            return app.storageContainer.getNewObject('sentence-variant').then(function (model) {
+                model.save(null, {sentence: this.selectedTranslationSourceVariant.parentPk, language: this._translateToLanguage, text: this._newSentenceVariantText}).then(function () {
+                    this._cancelNewVariantForm();
+                    this.fire('ax-sentence-variant-added');
+                }.bind(this));
+            }.bind(this));
+        },
+
+        _cancelNewVariantForm: function (event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            this.set('_newSentenceVariantText', '');
+        },
+
+
+        _sentenceVariantAdded: function (event) {
+            this.$$('#translation-target-variant-list').selectLastVariant();
+        },
+
+
+        _openContainerDialog: function (event, details) {
+            if (details.elementType === 'view-model-container-modal-split') {
+                details.params = details.params || {};
+                details.params.baseVariantPk = this.get('modelPk');
+            }
+        },
+
+
+        _getActiveModeForStep: function (step) {
+
+            if (step === 'write') {
+                return 'write';
+            }
+            if (step === 'magic') {
+                return 'magic';
+            }
+            if (step === 'translatePhrases') {
+                return 'translatePhrases';
+            }
+
+            return 'readOnly';
+        },
+
+
+        _computePropertiesInVariantContainers: function (sentenceVariantPk) {
+
+            if (!sentenceVariantPk) {
+                return Promise.resolve([]);
+            }
+            var containersP = app.storageContainer.getList('sentence-variant-container', sentenceVariantPk, {'sentence_variant': sentenceVariantPk});
+            return containersP.then(function (containers) {
+                var propertyContainers = containers.filter(function (c) {
+                    return c.containerProperty;
+                });
+
+                var propertiesConnected = {};
+                propertyContainers.forEach(function (c) {
+                    propertiesConnected[c.containerProperty] = propertiesConnected[c.containerProperty] || {containers: []};
+                    propertiesConnected[c.containerProperty].containers.push(c.id);
+
+                });
+                var ret = Object.keys(propertiesConnected).map(function (propertyPk) {
+                    return {'property': propertyPk, containers: propertiesConnected[propertyPk].containers};
+                });
+
+                return ret;
+            }.bind(this));
+
+//                return containersP;
+        },
+
+
+        _getVocabularyListFacets: function (filterLanguage) {
+            if (filterLanguage) {
+                return {'language': filterLanguage};
+            }
+            return {};
+        },
+
+
+        setDefaultFormData: function () {
+            if (this.language) {
+                this.$$('#modal-dialog-form').set('formData.language', this.language);
+            } else {
+                this.set('_isLoading', true);
+                this._getUserLanguage().then(function (language) {
+                    this.$$('#modal-dialog-form').set('formData.language', language);
+                    this.set('_isLoading', false);
+                }.bind(this), function () {
+                    this.$$('#modal-dialog-form').set('formData.language', '');
+                    this.set('_isLoading', false);
+                }.bind(this));
+            }
+            this.$$('#modal-dialog-form').set('formData.text', this.sourceVariantData.text);
+        },
+
+        _getUserLanguage: function () {
+            return app.fire('query-settings', {propertyName: 'language'}).detail.result;
+        },
+
+
+        _loadLanguageChoices: function () {
+            this.fire('ax-get-training-languages', {}).detail.languages.then(function (list) {
+                this.set('languageChoices', list);
+            }.bind(this));
+        },
+
+
+        _refreshForm: function () {
+            AxWizard.BaseModelModalFormBehavior._refreshForm.apply(this, arguments);
+            this._getUserLanguage().then(function (language) {
+                this.set('_translateToLanguage', language);
+            }.bind(this));
+            this._loadLanguageChoices();
+        }
+
+    });
+
+})();
+</script>

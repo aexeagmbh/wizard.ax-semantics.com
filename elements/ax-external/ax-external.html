@@ -1,0 +1,131 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="ax-external">
+    <template>
+        <iron-signals on-iron-signal-ax-auth-token-change="updatetoken"></iron-signals>
+        <model-user id="model"></model-user>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'ax-external',
+            behaviors: [
+              AxWizard.BaseModelViewBehavior
+            ],
+            properties: {
+                _servicesStarted: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+                ravenUrl: {
+                    type: String,
+                    value: ''
+
+                }
+            },
+
+            created: function () {
+                this._installRaven();
+            },
+
+            onAxModelDataChanged: function () {
+                var username,
+                    email;
+
+                AxWizard.BaseModelViewBehavior.onAxModelDataChanged.apply(this, arguments);
+
+                username = this.model.data.username;
+                email = this.model.data.email || 'no-email-wizard@example.com';
+                this._startServices(username, email);
+                this._feedback(username, email);
+            },
+
+            _startServices: function (username, email) {
+                if (!this._servicesStarted) {
+                    this._bootIntercom(username, email);
+                    this._bootRaven(username, email);
+                    this.set('_servicesStarted', true);
+                }
+
+            },
+
+            _stopServices: function () {
+                var self = this;
+                if (this._servicesStarted) {
+                    this._shutdownIntercom();
+                    this._shutdownRaven();
+                    this.set('_servicesStarted', false);
+                }
+
+            },
+            _feedback: function(username, email) {
+                window.ATL_JQ_PAGE_PROPS = app.extend(window.ATL_JQ_PAGE_PROPS, {
+                      fieldValues: {
+                           fullname: username,
+                           email: email
+                     }
+                });
+            },
+
+            updatetoken: function (event, token) {
+                var self = this;
+                if (!token) {
+                    self._stopServices();
+                    return;
+                }
+            },
+
+            _bootIntercom: function (username, email) {
+                if (!window.Intercom) {
+                    return;
+                }
+
+                window.Intercom('boot', {
+                    app_id: '56a54bf3818673484d09c5551b819d9daaedd377',
+                    name: username,
+                    email: email,
+                    widget: {
+                        activator: '.ax-intercom-trigger'
+                    }
+                });
+                window.Intercom('trackEvent', 'logged into snape');
+            },
+
+            _shutdownIntercom: function () {
+                if (!window.Intercom) {
+                    return;
+                }
+                window.Intercom('shutdown');
+            },
+
+            _installRaven: function () {
+                if (!window.Raven || !this.ravenUrl) {
+                    return;
+                }
+
+                window.Raven.config(this.ravenUrl).install();
+            },
+
+            _bootRaven: function (username, email) {
+                if (!window.Raven) {
+                    return;
+                }
+
+                this._installRaven();
+                window.Raven.setUserContext({
+                    username: username,
+                    email: email
+                });
+            },
+
+            _shutdownRaven: function () {
+                if (!window.Raven) {
+                    return;
+                }
+                window.Raven.setUserContext();
+            }
+        });
+    })();
+</script>

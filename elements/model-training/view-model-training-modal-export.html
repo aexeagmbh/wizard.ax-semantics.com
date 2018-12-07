@@ -1,0 +1,62 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+
+<link rel="import" href="../model-training/view-model-training-action-export.html">
+
+
+<dom-module id="view-model-training-modal-export">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal on-iron-overlay-opened="_refreshForm"
+                      no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Export ATML</h2>
+
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="{{_opened}}" restamp>
+                    <view-model-training-action-export id="modal-dialog-form" model-pk="[[modelPk]]" load-model
+                                                       is-download-available="{{isDownloadAvailable}}"
+                                                       on-model-action-success="handleResponse"></view-model-training-action-export>
+                </template>
+            </paper-dialog-scrollable>
+            <div class="buttons">
+                <paper-button raised on-tap="submitModalForm">Create new Export</paper-button>
+                <div class="flex"></div>
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-training-modal-export',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+
+            },
+
+            downloadAtml: function (event) {
+                event.stopPropagation();
+                this.$$('#modal-dialog-form').downloadAtml();
+            }
+        });
+
+    })();
+</script>

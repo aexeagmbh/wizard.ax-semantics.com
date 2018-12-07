@@ -1,0 +1,90 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+
+
+<link rel="import" href="../ax-crud/base-model-modal-form-behavior.html">
+
+<link rel="import" href="../model-property/view-model-property-form.html">
+
+
+<dom-module id="view-model-property-modal-new">
+
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+
+            :host paper-dialog {
+                width: 90%;
+            }
+
+            :host .buttons {
+                display: inline-block !important;
+                float: right;
+            }
+
+            :host .button-near {
+                display: inline-block;
+            }
+        </style>
+        <paper-dialog class="full-display" id="modal-dialog" modal no-cancel-on-esc-key="[[noCancelOnEscKey]]"
+                      opened="{{_opened}}">
+            <h2>Add Property</h2>
+            <paper-material class="model-list-section-header-description" elevation="0"><p>Add a property by setting a
+                name,
+                a truth expression and a mapping expression. Additionally you can leave a comment to your property.</p>
+            </paper-material>
+            <paper-dialog-scrollable>
+                <template is="dom-if" if="{{_opened}}" restamp>
+                    <view-model-property-form id="modal-dialog-form" training-pk="[[trainingPk]]"
+                                              on-model-save-success="handleResponse"></view-model-property-form>
+                </template>
+            </paper-dialog-scrollable>
+            <paper-material class="button-near" elevation="0">For more information about Properties, truth and mapping
+                expression, please check the <a
+                        href="{{_ironMetaQuery('ax-external-url-atml3-doc', '', '#properties')}}" target="_blank">Documentation</a>.
+            </paper-material>
+            <div class="buttons">
+                <paper-button raised on-tap="cancelModalForm">Cancel</paper-button>
+                <paper-button raised on-tap="submitModalForm">Add Property</paper-button>
+            </div>
+        </paper-dialog>
+
+
+    </template>
+
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-property-modal-new',
+            behaviors: [AxWizard.BaseModelModalFormBehavior],
+
+            properties: {
+                trainingPk: {
+                    type: String,
+                    value: '',
+                    notify: true
+                }
+            },
+            _ironMetaQuery: function (key, prependStr, appendStr) {
+                var ret = [
+                    prependStr,
+                    new Polymer.IronMetaQuery({key: key}).value,
+                    appendStr
+                ];
+
+                return ret.join('');
+            },
+
+            handleResponse: function (event, model) {
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-property-modal-edit', params: {modelPk: model.pk, isFirstEdit: true}});
+                this.cancelModalForm();
+            }
+        });
+
+    })();
+</script>

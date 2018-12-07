@@ -1,0 +1,170 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+
+
+<link rel="import" href="../model-vocabulary/view-model-vocabulary-modal-new.html">
+<link rel="import" href="../model-vocabulary/view-model-vocabulary-modal-edit.html">
+<link rel="import" href="../model-vocabulary/view-model-vocabulary-modal-translate.html">
+<link rel="import" href="../model-vocabulary/view-model-vocabulary-modal-duplicate.html">
+
+<link rel="import" href="../model-property/view-model-property-modal-new.html">
+<link rel="import" href="../model-property/view-model-property-modal-edit.html">
+<link rel="import" href="../model-property/view-model-property-wizard-modal.html">
+<link rel="import" href="../model-property/view-model-group-property-wizard-modal.html">
+<link rel="import" href="../model-property/view-model-property-modal-duplicate.html">
+
+
+<link rel="import" href="../model-sentence/view-model-sentence-modal-new.html">
+<link rel="import" href="../model-sentence/view-model-sentence-modal-edit.html">
+<link rel="import" href="../model-sentence/view-model-sentence-modal-duplicate.html">
+
+
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-modal-new.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-modal-edit.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-modal-edit-containers.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-modal-duplicate.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-modal-translate.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-modal-debug-output.html">
+<link rel="import" href="../model-sentence-variant/view-model-sentence-variant-synonym-wizard-modal.html">
+
+
+<link rel="import" href="../model-lookup-table/view-model-lookup-table-modal-new.html">
+<link rel="import" href="../model-lookup-table/view-model-lookup-table-modal-edit.html">
+<link rel="import" href="../model-lookup-table/view-model-lookup-table-modal-duplicate.html">
+
+<link rel="import" href="../model-lookup/view-model-lookup-modal-new.html">
+<link rel="import" href="../model-lookup/view-model-lookup-modal-edit.html">
+<link rel="import" href="../model-lookup/view-model-lookup-modal-duplicate.html">
+<link rel="import" href="../model-training/view-model-training-modal-edit-product-type-order.html">
+
+<link rel="import" href="../model-lookup-value/view-model-lookup-value-modal-new.html">
+<link rel="import" href="../model-lookup-value/view-model-lookup-value-modal-edit.html">
+<link rel="import" href="../model-lookup-value/view-model-lookup-value-modal-duplicate.html">
+
+
+<link rel="import" href="../model-nested-product-type/view-model-nested-product-type-modal-new.html">
+<link rel="import" href="../model-nested-product-type/view-model-nested-product-type-modal-edit.html">
+<link rel="import" href="../model-nested-product-type/view-model-nested-product-type-modal-duplicate.html">
+
+<link rel="import" href="../model-sentence-group/view-model-sentence-group-modal-new.html">
+<link rel="import" href="../model-sentence-group/view-model-sentence-group-modal-edit.html">
+<link rel="import" href="../model-sentence-group/view-model-sentence-group-modal-duplicate.html">
+
+
+<link rel="import" href="../model-container/view-model-container-modal-split.html">
+<link rel="import" href="../model-container/view-model-container-modal-edit.html">
+<link rel="import" href="../model-container/view-model-container-modal-to-phrase.html">
+<link rel="import" href="../model-container/view-model-container-modal-to-group.html">
+<link rel="import" href="../model-container/view-model-container-modal-to-grammar.html">
+
+<dom-module id="training-dialogs">
+    <template>
+        <view-model-vocabulary-modal-new></view-model-vocabulary-modal-new>
+        <view-model-vocabulary-modal-edit></view-model-vocabulary-modal-edit>
+        <view-model-vocabulary-modal-translate></view-model-vocabulary-modal-translate>
+        <view-model-vocabulary-modal-duplicate></view-model-vocabulary-modal-duplicate>
+
+        <view-model-property-modal-new></view-model-property-modal-new>
+        <view-model-property-modal-edit></view-model-property-modal-edit>
+        <view-model-property-modal-duplicate></view-model-property-modal-duplicate>
+        <view-model-property-wizard-modal></view-model-property-wizard-modal>
+        <view-model-group-property-wizard-modal></view-model-group-property-wizard-modal>
+
+        <view-model-sentence-modal-new></view-model-sentence-modal-new>
+        <view-model-sentence-modal-edit></view-model-sentence-modal-edit>
+        <view-model-sentence-modal-duplicate></view-model-sentence-modal-duplicate>
+
+        <view-model-sentence-variant-modal-new></view-model-sentence-variant-modal-new>
+        <view-model-sentence-variant-modal-edit></view-model-sentence-variant-modal-edit>
+
+        <view-model-sentence-variant-modal-edit-containers></view-model-sentence-variant-modal-edit-containers>
+        <view-model-sentence-variant-modal-duplicate></view-model-sentence-variant-modal-duplicate>
+        <view-model-sentence-variant-modal-translate></view-model-sentence-variant-modal-translate>
+        <view-model-sentence-variant-modal-debug-output></view-model-sentence-variant-modal-debug-output>
+
+        <view-model-sentence-variant-synonym-wizard-modal></view-model-sentence-variant-synonym-wizard-modal>
+        <view-model-sentence-variant-synonym-modal-edit></view-model-sentence-variant-synonym-modal-edit>
+
+
+        <view-model-lookup-table-modal-new></view-model-lookup-table-modal-new>
+        <view-model-lookup-table-modal-edit></view-model-lookup-table-modal-edit>
+        <view-model-lookup-table-modal-duplicate></view-model-lookup-table-modal-duplicate>
+
+        <view-model-lookup-modal-new></view-model-lookup-modal-new>
+        <view-model-lookup-modal-edit></view-model-lookup-modal-edit>
+        <view-model-lookup-modal-duplicate></view-model-lookup-modal-duplicate>
+        <view-model-training-modal-edit-product-type-order></view-model-training-modal-edit-product-type-order>
+
+        <view-model-lookup-value-modal-new></view-model-lookup-value-modal-new>
+        <view-model-lookup-value-modal-edit></view-model-lookup-value-modal-edit>
+        <view-model-lookup-value-modal-duplicate></view-model-lookup-value-modal-duplicate>
+
+
+        <view-model-nested-product-type-modal-new></view-model-nested-product-type-modal-new>
+        <view-model-nested-product-type-modal-edit></view-model-nested-product-type-modal-edit>
+        <view-model-nested-product-type-modal-duplicate></view-model-nested-product-type-modal-duplicate>
+
+
+        <view-model-sentence-group-modal-new></view-model-sentence-group-modal-new>
+        <view-model-sentence-group-modal-edit></view-model-sentence-group-modal-edit>
+        <view-model-sentence-group-modal-duplicate></view-model-sentence-group-modal-duplicate>
+
+
+        <view-model-container-modal-split></view-model-container-modal-split>
+        <view-model-container-modal-edit></view-model-container-modal-edit>
+        <view-model-container-modal-to-grammar></view-model-container-modal-to-grammar>
+        <view-model-container-modal-to-group></view-model-container-modal-to-group>
+        <view-model-container-modal-to-phrase></view-model-container-modal-to-phrase>
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'training-dialogs',
+
+            properties: {
+                trainingPk: {
+                    notify: true
+                },
+                trainingUsesContainer: {
+                    notify: true
+                },
+                trainingVersion: {
+                    notify: true
+                }
+            },
+
+            openDialog : function (elementType, params) {
+                var dialogElement = this.$$(elementType);
+
+                if (!dialogElement) {
+                    console.warn('Dialog "' + elementType + '" not found.');
+                    return;
+                }
+
+                dialogElement.set('trainingPk', this.trainingPk);
+                dialogElement.set('trainingUsesContainer', this.trainingUsesContainer);
+                dialogElement.set('trainingVersion', this.trainingVersion);
+                if (params) {
+                    Object.keys(params).forEach(function (paramName) {
+                       dialogElement.set(paramName, params[paramName]);
+                    });
+                }
+
+                dialogElement.open();
+            }
+
+
+        });
+    })();
+</script>

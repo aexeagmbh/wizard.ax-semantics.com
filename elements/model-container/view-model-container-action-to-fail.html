@@ -1,0 +1,191 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../ax-crud/base-model-form-behavior.html">
+<link rel="import" href="../model-property/view-model-property-selector.html">
+
+<dom-module id="view-model-container-action-to-fail">
+
+    <template>
+
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+            :host paper-card {
+                width: 100%;
+            }
+
+            :host .flex-row paper-input {
+                display: inline-block;
+            }
+
+            :host .flex-row {
+                align-items: flex-start;
+            }
+        </style>
+
+        <form on-submit="saveModel" is="iron-form" id="model-form">
+
+
+            <paper-card>
+
+
+                    <div class="card-content">
+                        <section class="card-content-body-container">
+
+                            <div class="flex-row">
+
+                                <paper-input class="flex" value="{{formData.text}}" label="Message" autofocus required
+                                                 error-message="This field is required."></paper-input>
+
+                            </div>
+
+
+
+                        </section>
+                    </div>
+            </paper-card>
+
+
+        </form>
+    </template>
+</dom-module>
+<script>
+    (function () {
+
+
+        Polymer({
+            is: 'view-model-container-action-to-fail',
+
+            behaviors: [AxWizard.BaseModelFormBehavior],
+
+
+            properties: {
+
+                retTrue: {
+                    type: Boolean,
+                    value: true,
+                    readOnly: true
+                },
+                storageId: {
+                    type: String,
+                    notify: true
+                },
+                trainingPk: {
+                    type: String
+                }
+            },
+
+
+            _allOfSet: function () {
+
+                var args = Array.prototype.slice.call(arguments),
+                    ret;
+
+                ret = args.filter(function (x) {
+                    return x !== undefined && x !== null;
+                }).length === args.length;
+                return ret;
+            },
+
+
+            _preSaveModel: function () {
+
+            },
+
+            saveModel: function () {
+                var self = this,
+                        p;
+
+
+                self.set('_isLoading', true);
+                self._preSaveModel();
+
+                p = this._toFail();
+                p.then(function (resp) {
+                    self.fire('model-save-success', resp);
+                    self.set('_isLoading', false);
+                    self.set('formData', {});
+                }, function (e) {
+                    console.log('model-save-error', e);
+                    self.set('_isLoading', false);
+                    self.fire('model-action-error', e);
+                });
+
+                return p;
+            },
+
+
+            _toFail: function (event) {
+                var params = {
+                    text: this.formData.text
+                };
+
+                if (event) {
+                    event.stopPropagation();
+                }
+
+                return this.model.toFail(params).then(function () {
+                    return this.model.refresh(true);
+                }.bind(this));
+
+            },
+
+            _deleteModel: function (event) {
+                if (event) {
+                    event.stopPropagation();
+                }
+
+                return this.model.toPlain().then(function () {
+                    this.fire('ax-model-deleted');
+                }.bind(this));
+            },
+
+            _stopPropagation: function (event) {
+                event.stopPropagation();
+            },
+
+
+            _equals: function (a, b) {
+                return a === b;
+            },
+
+
+            _isLastListIndex: function (idx, length) {
+                return idx - 0 === length - 1;
+            },
+
+
+            _initFormData: function (model) {
+                var formData = {};
+
+                this.set('formData', null);
+
+                formData.text = '' + model.data.text;
+                formData.on = (model.data.parameters && model.data.parameters.on) ? JSON.parse(JSON.stringify(model.data.parameters.on)) : [];
+                this.set('formData', formData);
+            },
+
+            _addParameterOn: function (event) {
+                event.stopPropagation();
+                if (this.formData.on === undefined) {
+                    this.set('formData.on', []);
+                }
+                this.push('formData.on', {trigger: '', trigger_on: null});
+            }
+
+
+        });
+    })();
+</script>

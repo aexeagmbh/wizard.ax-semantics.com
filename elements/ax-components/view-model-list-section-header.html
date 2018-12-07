@@ -1,0 +1,92 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="ax-search-field.html">
+
+<dom-module id="view-model-list-section-header">
+
+    <template>
+        <style include="iron-flex">
+            :host {
+                display: block;
+            }
+
+        </style>
+
+        <paper-toolbar class="section-header">
+            <template is="dom-if" if="[[showTitle]]">
+                <h4>[[sectionTitle]]</h4>
+            </template>
+            <template is="dom-if" if="[[showAddButton]]">
+                <paper-icon-button icon="add" on-tap="addElementAction"></paper-icon-button>
+            </template>
+            <paper-spinner active="[[_isLoading]]" hidden="[[!_isLoading]]"></paper-spinner>
+            <template is="dom-if" if="[[!_isLoading]]">
+                <content select=".content-left"></content>
+            </template>
+            <div class="flex"></div>
+            <template is="dom-if" if="[[!_isLoading]]">
+                <content select=".content-right"></content>
+                <template is="dom-if" if="[[!hideSearch]]">
+                    <ax-search-field search-term="{{searchTerm}}"></ax-search-field>
+                </template>
+            </template>
+        </paper-toolbar>
+
+
+    </template>
+</dom-module>
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-list-section-header',
+
+            properties: {
+                sectionTitle: {
+                    type: String,
+                    value: ''
+                },
+                searchTerm: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                showAddButton: {
+                    type: Boolean,
+                    value: true
+                    //TODO default to false and reflectToAttribute
+                },
+                showTitle: {
+                    type: Boolean,
+                    value: true
+                    //TODO default to false and reflectToAttribute
+                },
+                _isLoading: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                hideSearch: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                }
+            },
+
+            clearSearchTerm: function () {
+                this.set('searchTerm', '');
+            },
+            addElementAction: function () {
+                this.fire('add-element-action');
+            }
+        });
+    }());
+</script>

@@ -1,0 +1,266 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+
+<dom-module id="view-model-sentence-variant-validity-message">
+
+    <template>
+
+         <style include="iron-flex">
+
+            :host .flex-row {
+                align-items: baseline;
+            }
+            :host paper-button {
+                font-size: initial !important;
+            }
+            :host #sample-output {
+                white-space: pre-line;
+            }
+
+            :host .button-spacer {
+                opacity: 1;
+            }
+            :host .validity-progress-icon {
+                opacity: 0;
+            }
+
+            :host[validation-state="valid"] .validity-progress-icon ,
+            :host[validation-state="invalid"] .validity-progress-icon  {
+                opacity: 0;
+                transition: opacity 2s ease-out;
+            }
+            :host[validation-state="validating"] .validity-progress-icon {
+                opacity: 1;
+            }
+
+            :host[validation-state="validating"] .button-spacer {
+                 opacity: 0;
+            }
+            :host[validation-state="valid"] .button-spacer ,
+            :host[validation-state="invalid"] .button-spacer  {
+                opacity: 1;
+                transition: opacity 0.5s 1.5s;
+            }
+            :host paper-button.paper-icon-button {
+                min-width: 0;
+                padding: 8px;
+                margin: 0;
+                display: inline-block;
+            }
+        </style>
+
+        <div class="flex-row" >
+            <div hidden="[[!_showValidityMessage(valid, showValidMessage)]]" style="margin-right: 8px;">
+                <iron-icon icon="[[itemValidityIcon(valid)]]"></iron-icon>
+            </div>
+            <div class="flex" hidden="[[!_showValidityMessage(valid, showValidMessage)]]">
+                <div class="paper-font-caption flex" style="white-space: normal;" id="validity-error-msg"></div>
+            </div>
+
+
+            <div class="flex" >
+                <template is="dom-if" if="[[_showSampleOutput(valid, sampleOutput, hideSampleOutput)]]">
+                    <div id="sample-output">[[sampleOutput]]</div>
+                 </template>
+            </div>
+
+
+            <div hidden="[[hideDebugButton]]">
+                <paper-icon-button icon="icons:bug-report" title="Show Debug Output" on-tap="_showDebugOutput"></paper-icon-button>
+            </div>
+            <div hidden="[[hideValidateButton]]">
+                <template is="dom-if" if="[[validateButtonLabel]]">
+                    <paper-button on-tap="_validateSentenceVariant">
+                        <div class="button-spacer">[[validateButtonLabel]]</div>
+
+                        <div class="validity-progress-icon" style="position: absolute;">
+                            <iron-icon icon="[[itemValidityIcon(valid)]]"></iron-icon>
+                        </div>
+
+
+                    </paper-button>
+                </template>
+                <template is="dom-if" if="[[!validateButtonLabel]]">
+                    <paper-button class="paper-icon-button" on-tap="_validateSentenceVariant">
+                         <div class="validity-progress-icon" style="position: absolute;">
+                            <iron-icon icon="[[itemValidityIcon(valid)]]"></iron-icon>
+                        </div>
+                        <iron-icon class="button-spacer" icon="icons:spellcheck"></iron-icon>
+
+                    </paper-button>
+                </template>
+            </div>
+
+        </div>
+    </template>
+</dom-module>
+
+
+<script>
+    (function () {
+        Polymer({
+            is: 'view-model-sentence-variant-validity-message',
+
+            properties: {
+                valid: {
+                    type: Boolean,
+                    notify: true,
+                    observer: '_onValidChanged'
+                },
+                modelPk: {
+                    notify: true
+                },
+                _validityErrorMsg: {
+                    type: String,
+                    value: '',
+                    notify: true
+                },
+                validityMessage: {
+                    notify: true
+                },
+                sampleOutput: {
+                    type: String
+                },
+                hideDebugButton: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                showValidMessage: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                hideSampleOutput: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                hideValidateButton: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                validateButtonLabel: {
+                    type: String,
+                    value: ''
+                },
+                validationState: {
+                    type: String,
+                    value: '',
+                    reflectToAttribute: true,
+                    notify: true
+                }
+            },
+
+            _onValidChanged: function (newVal, oldVal) {
+                var validationState;
+                if (oldVal === undefined) {
+                    return;
+                }
+
+                if (newVal === null) {
+                    validationState = 'validating';
+                } else if (newVal === false) {
+                    validationState = 'invalid';
+                } else if (newVal === true) {
+                    validationState = 'valid';
+                }
+
+                this.set('validationState', validationState);
+            },
+
+            _showValidityMessage: function (valid, showValidMessage) {
+                return !valid || showValidMessage;
+            },
+            _showSampleOutput: function (valid, sampleOutput, hideSampleOutput) {
+                return valid && sampleOutput && !hideSampleOutput;
+            },
+
+            itemValidityIcon: function (validity) {
+                if (validity === false) {
+                    return 'icons:warning';
+                }
+                if (validity === true) {
+                    return 'icons:check';
+                }
+                return 'icons:hourglass-empty';
+            },
+
+
+            observers: [
+                '_displayErrorMessage(_validityErrorMsg)',
+                '_computeValidityErrorMsg(validityMessage)'
+            ],
+
+            attached: function () {
+                this._displayErrorMessage(this._validityErrorMsg);
+            },
+
+
+            _displayErrorMessage: function (msg) {
+                var msgContainer = this.$$('#validity-error-msg');
+
+                if (msgContainer) {
+                    msgContainer.innerHTML = msg;
+                }
+            },
+
+            _computeValidityErrorMsg: function (obj) {
+                var msg = '',
+                        errorObject;
+
+                try {
+                    errorObject = JSON.parse(obj);
+                } catch (e) {
+                    errorObject = obj;
+                }
+
+                if (typeof errorObject === 'string') {
+                    this.set('_validityErrorMsg', errorObject);
+                    return;
+                }
+
+                if (!errorObject) {
+                    this.set('_validityErrorMsg', '');
+                    return;
+                }
+
+                Object.keys(errorObject).forEach(function (keyName) {
+                    msg += '<strong>' + keyName + '</strong>';
+                    try {
+                        msg += '<p>' + errorObject[keyName].join('</p><p>') + '</p>';
+                    } catch (e) {
+                        msg += '<p>' + errorObject[keyName] + '</p>';
+                    }
+
+                });
+                this.set('_validityErrorMsg', msg);
+            },
+
+
+            _showDebugOutput: function (event) {
+                event.stopPropagation();
+                this.fire('ax-open-training-dialog', {elementType: 'view-model-sentence-variant-modal-debug-output', params: {modelPk: this.modelPk}});
+
+            },
+
+
+            _validateSentenceVariant: function (event) {
+                event.stopPropagation();
+                this.fire('ax-validate-sentence-variant', {modelPk: this.modelPk});
+            },
+
+        });
+    }());
+</script>
